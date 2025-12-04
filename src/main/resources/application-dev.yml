@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/CoreFlow_dev
+    username: dev
+    password: dev@IET25
+
+    driver-class-name: org.postgresql.Driver
+
+upload:
+  path: uploads

@@ -1,0 +1,13 @@
+server:
+  port: 8085
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/CoreFlow_prod
+    username: postgres
+    password: root@IET25
+    driver-class-name: org.postgresql.Driver
+
+
+upload:
+  path: /var/www/businesscube/uploads
