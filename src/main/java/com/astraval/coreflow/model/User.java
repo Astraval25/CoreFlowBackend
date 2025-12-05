@@ -32,6 +32,10 @@ public class User {
 
     @Column(name = "email" ,length = 100, nullable = false)
     private String email;
+
+    @OneToOne
+    @JoinColumn(name = "default_company_id", nullable = false)
+    private Companies defaultCompany;
     
 
     // defaule fields...

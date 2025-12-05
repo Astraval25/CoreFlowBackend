@@ -65,6 +65,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             String userId = claims.getSubject();
             String roleCode = claims.get("roleCode", String.class);
+            String companyId = claims.get("companyId", String.class);
+            String companyName = claims.get("companyName", String.class);
             
             // ✅ FIX 3: HANDLE NULL roleCode
             if (roleCode == null) {

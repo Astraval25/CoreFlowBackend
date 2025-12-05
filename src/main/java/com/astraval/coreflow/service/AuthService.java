@@ -74,10 +74,11 @@ public class AuthService {
             }
             
             // Access token (1 hour)
-            String token = Jwts.builder()
+            String finalToken = Jwts.builder()
                     .setSubject(user.getUserId())
                     .claim("roleCode", role.getRoleCode())
                     .claim("landingUrl", role.getLandingUrl())
+                    .claim("companyId", user.getDefaultCompany().getCompanyId())
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + 3600000))
                     .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
@@ -92,7 +93,7 @@ public class AuthService {
                     .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
                     .compact();
             
-            return authMapper.toLoginResponse(user, role, token, refreshToken);
+            return authMapper.toLoginResponse(user, role, finalToken, refreshToken);
         } catch (Exception e) {
             // e.printStackTrace();
             throw new SystemErrorException("Token generation failed");
@@ -125,16 +126,21 @@ public class AuthService {
             Role role = roleMap.getRole();
             
             // Generate new access token
+            User user = userRepository.findById(userId).orElseThrow();
+            
             String newToken = Jwts.builder()
                     .setSubject(userId)
                     .claim("roleCode", role.getRoleCode())
                     .claim("landingUrl", role.getLandingUrl())
+                    .claim("companyId", user.getDefaultCompany().getCompanyId())
+                    .claim("companyName", user.getDefaultCompany().getCompanyname())
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + 3600000))
                     .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
                     .compact();
             
-            return new LoginResponse(newToken, refreshToken, userId, role.getRoleCode(), role.getLandingUrl());
+            return new LoginResponse(newToken, refreshToken, userId, role.getRoleCode(), role.getLandingUrl(), 
+                    user.getDefaultCompany().getCompanyId(), user.getDefaultCompany().getCompanyname());
         } catch (Exception e) {
             throw new InvalidCredentialsException("Invalid refresh token");
         }
