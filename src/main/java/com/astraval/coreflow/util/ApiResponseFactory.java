@@ -35,4 +35,8 @@ public class ApiResponseFactory {
         return new ApiResponse<>(false, 401, message, null, null);
     }
     
+    public static <T> ApiResponse<T> badRequest(String message){
+        return new ApiResponse<>(false, 400, message, null, null);
+    }
+    
 }

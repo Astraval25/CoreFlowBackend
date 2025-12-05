@@ -23,13 +23,13 @@ public class Companies {
     @Column(name = "industry" , length = 250, nullable = false)
     private String industry;
 
-    @Column(name = "pan" , length = 50, nullable = false)
+    @Column(name = "pan" , length = 50, nullable = true)
     private String pan;
 
-    @Column(name = "gst_no" , length = 50, nullable = false)
+    @Column(name = "gst_no" , length = 50, nullable = true)
     private String gstNo;
 
-    @Column(name = "hsn_code" , length = 50, nullable = false)
+    @Column(name = "hsn_code" , length = 50, nullable = true)
     private String hsnCode;
 
     @Column(name = "short_name" , length = 200)
