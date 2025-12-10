@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.auth.mapper;
+package com.astraval.coreflow.modules.auth;
 
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;

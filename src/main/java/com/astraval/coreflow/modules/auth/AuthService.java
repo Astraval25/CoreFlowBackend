@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.auth.service;
+package com.astraval.coreflow.modules.auth;
 
 import com.astraval.coreflow.global.exception.InvalidCredentialsException;
 import com.astraval.coreflow.global.exception.SystemErrorException;
@@ -16,9 +16,10 @@ import com.astraval.coreflow.modules.auth.dto.LoginRequest;
 import com.astraval.coreflow.modules.auth.dto.LoginResponse;
 import com.astraval.coreflow.modules.auth.dto.RegisterRequest;
 import com.astraval.coreflow.modules.auth.dto.RegisterResponse;
-import com.astraval.coreflow.modules.auth.mapper.AuthMapper;
 
 import io.jsonwebtoken.Jwts;
+import jakarta.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -165,6 +166,7 @@ public class AuthService {
         }
     }
     
+    @Transactional
     public RegisterResponse register(RegisterRequest request) {
         // Check if username already exists
         if (userRepository.findByUserNameAndIsActiveTrue(request.getUserName()) != null) {

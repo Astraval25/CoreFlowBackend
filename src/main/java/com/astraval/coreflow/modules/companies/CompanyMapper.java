@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.companies.mapper;
+package com.astraval.coreflow.modules.companies;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

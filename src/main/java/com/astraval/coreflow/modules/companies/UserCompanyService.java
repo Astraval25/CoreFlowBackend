@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.companies.service;
+package com.astraval.coreflow.modules.companies;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import com.astraval.coreflow.global.repo.UserCompanyMapRepository;
 import com.astraval.coreflow.modules.companies.dto.AdminCompaniesResponseDto;
-import com.astraval.coreflow.modules.companies.mapper.CompanyMapper;
 
 @Service
 public class UserCompanyService {
