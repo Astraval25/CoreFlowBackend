@@ -23,7 +23,7 @@ public interface AuthMapper {
     @Mapping(source = "role.roleCode", target = "roleCode")
     @Mapping(source = "role.landingUrl", target = "landingUrl")
     @Mapping(source = "user.defaultCompany.companyId", target = "companyId")
-    @Mapping(source = "user.defaultCompany.companyname", target = "companyName")
+    @Mapping(source = "user.defaultCompany.companyName", target = "companyName")
     LoginResponse toLoginResponse(User user, Role role, String token, String refreshToken);
 
     // Optional: Map LoginRequest → User (useful for registration)
@@ -40,7 +40,7 @@ public interface AuthMapper {
     User toUser(RegisterRequest registerRequest);
     
     @BeanMapping(ignoreByDefault = true)
-    @Mapping(source = "companyName", target = "companyname")
+    @Mapping(source = "companyName", target = "companyName")
     @Mapping(source = "industry", target = "industry")
     Companies toCompany(RegisterRequest registerRequest);
     
@@ -50,7 +50,7 @@ public interface AuthMapper {
     @Mapping(source = "user.firstName", target = "firstName")
     @Mapping(source = "user.lastName", target = "lastName")
     @Mapping(source = "company.companyId", target = "companyId")
-    @Mapping(source = "company.companyname", target = "companyName")
+    @Mapping(source = "company.companyName", target = "companyName")
     @Mapping(source = "company.industry", target = "industry")
     @Mapping(source = "role.roleCode", target = "roleCode")
     RegisterResponse toRegisterResponse(User user, Companies company, Role role, String accessToken, String refreshToken);

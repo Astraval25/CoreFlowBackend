@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 
 
 @Entity
-@Table(name = "tbluserrolemap")
+@Table(name = "user_role_map")
 @Data
 public class UserRoleMap {
 
@@ -35,7 +35,7 @@ public class UserRoleMap {
     @JoinColumn(name = "role_id", nullable = false, insertable = false, updatable = false)
     private Role role;
 
-    // defaule fields...
+    // default fields...
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -46,7 +46,7 @@ public class UserRoleMap {
     @Column(name = "created_dt", nullable = false)
     private LocalDateTime createdDt;
 
-    @Column(name = "modifed_by", length = 100)
+    @Column(name = "modified_by", length = 100)
     private String modifiedBy;
 
     @Column(name = "modified_dt")

@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 
 @Entity
-@Table(name = "tblroles")
+@Table(name = "roles")
 @Data
 public class Role {
 
@@ -23,7 +23,7 @@ public class Role {
     @Column(name = "landing_url", length = 200)
     private String landingUrl;
 
-    // defule fields
+    // default fields
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -34,7 +34,7 @@ public class Role {
     @Column(name = "created_dt", nullable = false)
     private LocalDateTime createdDt;
 
-    @Column(name = "modifed_by", length = 100, nullable = true)
+    @Column(name = "modified_by", length = 100, nullable = true)
     private String modifiedBy;
 
     @Column(name = "modified_dt", nullable = true)

@@ -14,7 +14,7 @@ import lombok.Data;
 
 @Entity
 @Data
-@Table(name = "tbluser_comp_map")
+@Table(name = "user_comp_map")
 public class UserCompanyMap {
     @Id
     @Column(name = "user_comp_map_id", length = 36)
@@ -28,7 +28,7 @@ public class UserCompanyMap {
     @JoinColumn(name = "company_id", nullable = false)
     private Companies company;
 
-    // defaule fields...
+    // default fields...
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

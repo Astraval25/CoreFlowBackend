@@ -11,14 +11,14 @@ import lombok.Data;
 
 @Entity
 @Data
-@Table(name = "tblcompanies")
+@Table(name = "companies")
 public class Companies {
     @Id
     @Column(name = "company_id" , length = 36, nullable = false)
     private String companyId;
 
     @Column(name = "company_name" , length = 500, nullable = false)
-    private String companyname;
+    private String companyName;
 
     @Column(name = "industry" , length = 250, nullable = false)
     private String industry;
@@ -35,7 +35,7 @@ public class Companies {
     @Column(name = "short_name" , length = 200)
     private String shortName;
 
-    // defule fields
+    // default fields
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -46,7 +46,7 @@ public class Companies {
     @Column(name = "created_dt", nullable = false)
     private LocalDateTime createdDt;
 
-    @Column(name = "modifed_by", length = 100, nullable = true)
+    @Column(name = "modified_by", length = 100, nullable = true)
     private String modifiedBy;
 
     @Column(name = "modified_dt", nullable = true)

@@ -151,14 +151,14 @@ public class AuthService {
                     .claim("roleCode", role.getRoleCode())
                     .claim("landingUrl", role.getLandingUrl())
                     .claim("companyId", user.getDefaultCompany().getCompanyId())
-                    .claim("companyName", user.getDefaultCompany().getCompanyname())
+                    .claim("companyName", user.getDefaultCompany().getCompanyName())
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + 3600000))
                     .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
                     .compact();
             
             return new LoginResponse(newToken, refreshToken, userId, role.getRoleCode(), role.getLandingUrl(), 
-                    user.getDefaultCompany().getCompanyId(), user.getDefaultCompany().getCompanyname());
+                    user.getDefaultCompany().getCompanyId(), user.getDefaultCompany().getCompanyName());
         } catch (Exception e) {
             throw new InvalidCredentialsException("Invalid refresh token");
         }

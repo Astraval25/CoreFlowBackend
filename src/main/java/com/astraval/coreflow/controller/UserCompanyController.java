@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.RestController;
 
-import com.astraval.coreflow.dto.response.AdminCompanyiesResponseDto;
+import com.astraval.coreflow.dto.response.AdminCompaniesResponseDto;
 import com.astraval.coreflow.dto.response.ApiResponse;
 import com.astraval.coreflow.service.UserCompanyService;
 import com.astraval.coreflow.util.ApiResponseFactory;
@@ -26,7 +26,7 @@ public class UserCompanyController {
     private UserCompanyService userCompanyService;
 
     @GetMapping("/details")
-    public ApiResponse<List<AdminCompanyiesResponseDto>> getCompaniesByUserId() {
+    public ApiResponse<List<AdminCompaniesResponseDto>> getCompaniesByUserId() {
         String userId = securityUtil.getCurrentSub();
         return ApiResponseFactory.accepted(userCompanyService.getAllCompaniesByUserId(userId), null);
     }

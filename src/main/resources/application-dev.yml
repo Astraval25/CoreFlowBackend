@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/CoreFlow_dev
-    username: dev
-    password: dev@IET25
+    url: jdbc:postgresql://localhost:5432/coreflow_dev
+    username: postgres
+    password: root@IET25
 
     driver-class-name: org.postgresql.Driver
 

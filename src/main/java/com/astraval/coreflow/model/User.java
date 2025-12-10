@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "tblusers")
+@Table(name = "users")
 @Data
 
 public class User {
@@ -38,7 +38,7 @@ public class User {
     private Companies defaultCompany;
     
 
-    // defaule fields...
+    // default fields...
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
