@@ -1,4 +1,4 @@
-package com.astraval.coreflow.shared.exception;
+package com.astraval.coreflow.global.exception;
 
 public class UserNotActiveException extends RuntimeException {
     public UserNotActiveException(String message) {

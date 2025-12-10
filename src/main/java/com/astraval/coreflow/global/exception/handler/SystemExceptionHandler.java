@@ -1,11 +1,11 @@
-package com.astraval.coreflow.shared.exception.handler;
+package com.astraval.coreflow.global.exception.handler;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import com.astraval.coreflow.shared.exception.SystemErrorException;
-import com.astraval.coreflow.shared.util.ApiResponse;
-import com.astraval.coreflow.shared.util.ApiResponseFactory;
+import com.astraval.coreflow.global.exception.SystemErrorException;
+import com.astraval.coreflow.global.util.ApiResponse;
+import com.astraval.coreflow.global.util.ApiResponseFactory;
 
 import lombok.extern.slf4j.Slf4j;
 

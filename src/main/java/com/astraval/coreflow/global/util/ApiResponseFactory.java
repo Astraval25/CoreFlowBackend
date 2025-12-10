@@ -1,4 +1,4 @@
-package com.astraval.coreflow.shared.util;
+package com.astraval.coreflow.global.util;
 
 public class ApiResponseFactory {
 

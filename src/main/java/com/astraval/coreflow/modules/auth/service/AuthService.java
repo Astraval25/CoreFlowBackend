@@ -1,22 +1,22 @@
 package com.astraval.coreflow.modules.auth.service;
 
+import com.astraval.coreflow.global.exception.InvalidCredentialsException;
+import com.astraval.coreflow.global.exception.SystemErrorException;
+import com.astraval.coreflow.global.model.Companies;
+import com.astraval.coreflow.global.model.Role;
+import com.astraval.coreflow.global.model.User;
+import com.astraval.coreflow.global.model.UserCompanyMap;
+import com.astraval.coreflow.global.model.UserRoleMap;
+import com.astraval.coreflow.global.repo.CompaniesRepository;
+import com.astraval.coreflow.global.repo.RoleRepository;
+import com.astraval.coreflow.global.repo.UserCompanyMapRepository;
+import com.astraval.coreflow.global.repo.UserRepository;
+import com.astraval.coreflow.global.repo.UserRoleMapRepository;
 import com.astraval.coreflow.modules.auth.dto.LoginRequest;
 import com.astraval.coreflow.modules.auth.dto.LoginResponse;
 import com.astraval.coreflow.modules.auth.dto.RegisterRequest;
 import com.astraval.coreflow.modules.auth.dto.RegisterResponse;
 import com.astraval.coreflow.modules.auth.mapper.AuthMapper;
-import com.astraval.coreflow.shared.exception.InvalidCredentialsException;
-import com.astraval.coreflow.shared.exception.SystemErrorException;
-import com.astraval.coreflow.shared.model.Companies;
-import com.astraval.coreflow.shared.model.Role;
-import com.astraval.coreflow.shared.model.User;
-import com.astraval.coreflow.shared.model.UserCompanyMap;
-import com.astraval.coreflow.shared.model.UserRoleMap;
-import com.astraval.coreflow.shared.repo.CompaniesRepository;
-import com.astraval.coreflow.shared.repo.RoleRepository;
-import com.astraval.coreflow.shared.repo.UserCompanyMapRepository;
-import com.astraval.coreflow.shared.repo.UserRepository;
-import com.astraval.coreflow.shared.repo.UserRoleMapRepository;
 
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -205,8 +205,8 @@ public class AuthService {
         
         UserRoleMap userRoleMap = new UserRoleMap();
         userRoleMap.setUserRoleMapId(UUID.randomUUID().toString());
-        userRoleMap.getUser().setUserId(user.getUserId());
-        userRoleMap.getRole().setRoleId(adminRole.getRoleId());
+        userRoleMap.setUserId(user.getUserId());
+        userRoleMap.setRoleId(adminRole.getRoleId());
         userRoleMap.setUser(user);
         userRoleMap.setRole(adminRole);
         userRoleMap.setCreatedBy("SYSTEM");

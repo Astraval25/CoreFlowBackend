@@ -1,13 +1,13 @@
-package com.astraval.coreflow.shared.exception.handler;
+package com.astraval.coreflow.global.exception.handler;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.astraval.coreflow.shared.exception.AdminAccessDeniedException;
-import com.astraval.coreflow.shared.exception.AdminNotFoundException;
-import com.astraval.coreflow.shared.util.ApiResponse;
-import com.astraval.coreflow.shared.util.ApiResponseFactory;
+import com.astraval.coreflow.global.exception.AdminAccessDeniedException;
+import com.astraval.coreflow.global.exception.AdminNotFoundException;
+import com.astraval.coreflow.global.util.ApiResponse;
+import com.astraval.coreflow.global.util.ApiResponseFactory;
 
 import lombok.extern.slf4j.Slf4j;
 

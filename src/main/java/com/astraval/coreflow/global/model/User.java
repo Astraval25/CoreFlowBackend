@@ -1,4 +1,4 @@
-package com.astraval.coreflow.shared.model;
+package com.astraval.coreflow.global.model;
 
 import jakarta.persistence.*;
 import lombok.Data;

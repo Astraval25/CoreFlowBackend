@@ -1,6 +1,6 @@
-package com.astraval.coreflow.shared.model;
+package com.astraval.coreflow.global.model;
 
-import lombok.Data;
+
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -10,27 +10,26 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-
+import lombok.Data;
 
 @Entity
-@Table(name = "user_role_map")
 @Data
-public class UserRoleMap {
-
+@Table(name = "user_comp_map")
+public class UserCompanyMap {
     @Id
-    @Column(name="user_role_map_id", length = 36)
-    private String userRoleMapId;
+    @Column(name = "user_comp_map_id", length = 36)
+    private String userCompId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false, insertable = false, updatable = false)
-    private Role role;
+    @JoinColumn(name = "company_id", nullable = false)
+    private Companies company;
 
     // default fields...
-    
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

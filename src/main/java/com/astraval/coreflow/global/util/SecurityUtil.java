@@ -1,4 +1,4 @@
-package com.astraval.coreflow.shared.util;
+package com.astraval.coreflow.global.util;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
