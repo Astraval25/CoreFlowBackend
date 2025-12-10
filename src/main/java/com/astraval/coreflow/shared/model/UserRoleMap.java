@@ -21,12 +21,6 @@ public class UserRoleMap {
     @Column(name="user_role_map_id", length = 36)
     private String userRoleMapId;
 
-    @Column(name = "user_id", length = 36, nullable = false)
-    private String userId;
-
-    @Column(name = "role_id", length = 36, nullable = false)
-    private String roleId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
     private User user;

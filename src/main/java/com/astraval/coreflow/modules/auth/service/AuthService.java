@@ -205,8 +205,8 @@ public class AuthService {
         
         UserRoleMap userRoleMap = new UserRoleMap();
         userRoleMap.setUserRoleMapId(UUID.randomUUID().toString());
-        userRoleMap.setUserId(user.getUserId());
-        userRoleMap.setRoleId(adminRole.getRoleId());
+        userRoleMap.getUser().setUserId(user.getUserId());
+        userRoleMap.getRole().setRoleId(adminRole.getRoleId());
         userRoleMap.setUser(user);
         userRoleMap.setRole(adminRole);
         userRoleMap.setCreatedBy("SYSTEM");
