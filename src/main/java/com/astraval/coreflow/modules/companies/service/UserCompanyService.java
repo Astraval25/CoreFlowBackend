@@ -1,0 +1,28 @@
+package com.astraval.coreflow.modules.companies.service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.astraval.coreflow.modules.companies.dto.AdminCompaniesResponseDto;
+import com.astraval.coreflow.modules.companies.mapper.CompanyMapper;
+import com.astraval.coreflow.shared.repo.UserCompanyMapRepository;
+
+@Service
+public class UserCompanyService {
+    
+    @Autowired
+    private UserCompanyMapRepository userCompanyMapRepository;
+    
+    @Autowired
+    private CompanyMapper companyMapper;
+    
+    public List<AdminCompaniesResponseDto> getAllCompaniesByUserId(String userId) {
+        return userCompanyMapRepository.findByUserUserId(userId)
+            .stream()
+            .map(ucm -> companyMapper.toAdminCompanyResponseDto(ucm.getCompany()))
+            .collect(Collectors.toList());
+    }
+}
