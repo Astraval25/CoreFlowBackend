@@ -6,8 +6,8 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.astraval.coreflow.global.repo.UserCompanyMapRepository;
 import com.astraval.coreflow.modules.companies.dto.AdminCompaniesResponseDto;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyMapRepository;
 
 @Service
 public class UserCompanyService {

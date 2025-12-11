@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.auth.dto;
+package com.astraval.coreflow.modules.user.dto;
 
 import lombok.Data;
 

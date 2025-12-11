@@ -1,21 +1,19 @@
-package com.astraval.coreflow.modules.auth;
+package com.astraval.coreflow.modules.user;
 
 import com.astraval.coreflow.global.exception.InvalidCredentialsException;
 import com.astraval.coreflow.global.exception.SystemErrorException;
-import com.astraval.coreflow.global.model.Companies;
-import com.astraval.coreflow.global.model.Role;
-import com.astraval.coreflow.global.model.User;
-import com.astraval.coreflow.global.model.UserCompanyMap;
-import com.astraval.coreflow.global.model.UserRoleMap;
-import com.astraval.coreflow.global.repo.CompaniesRepository;
-import com.astraval.coreflow.global.repo.RoleRepository;
-import com.astraval.coreflow.global.repo.UserCompanyMapRepository;
-import com.astraval.coreflow.global.repo.UserRepository;
-import com.astraval.coreflow.global.repo.UserRoleMapRepository;
-import com.astraval.coreflow.modules.auth.dto.LoginRequest;
-import com.astraval.coreflow.modules.auth.dto.LoginResponse;
-import com.astraval.coreflow.modules.auth.dto.RegisterRequest;
-import com.astraval.coreflow.modules.auth.dto.RegisterResponse;
+import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.companies.CompaniesRepository;
+import com.astraval.coreflow.modules.role.Role;
+import com.astraval.coreflow.modules.role.RoleRepository;
+import com.astraval.coreflow.modules.user.dto.LoginRequest;
+import com.astraval.coreflow.modules.user.dto.LoginResponse;
+import com.astraval.coreflow.modules.user.dto.RegisterRequest;
+import com.astraval.coreflow.modules.user.dto.RegisterResponse;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyMap;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyMapRepository;
+import com.astraval.coreflow.modules.userrolemap.UserRoleMap;
+import com.astraval.coreflow.modules.userrolemap.UserRoleMapRepository;
 
 import io.jsonwebtoken.Jwts;
 import jakarta.transaction.Transactional;

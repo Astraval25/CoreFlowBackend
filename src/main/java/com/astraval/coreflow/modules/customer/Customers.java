@@ -1,9 +1,11 @@
-package com.astraval.coreflow.global.model;
+package com.astraval.coreflow.modules.customer;
 
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.astraval.coreflow.modules.companies.Companies;
 
 @Entity
 @Table(name = "customers")

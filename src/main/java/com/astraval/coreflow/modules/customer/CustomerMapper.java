@@ -4,8 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-import com.astraval.coreflow.global.model.Address;
-import com.astraval.coreflow.global.model.Customers;
+import com.astraval.coreflow.modules.address.Address;
 import com.astraval.coreflow.modules.customer.dto.AddressDto;
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;

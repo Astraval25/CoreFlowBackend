@@ -1,4 +1,4 @@
-package com.astraval.coreflow.global.model;
+package com.astraval.coreflow.modules.companies;
 
 
 import java.time.LocalDateTime;

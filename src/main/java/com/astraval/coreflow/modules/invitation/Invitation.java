@@ -1,9 +1,11 @@
-package com.astraval.coreflow.global.model;
+package com.astraval.coreflow.modules.invitation;
 
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.astraval.coreflow.modules.companies.Companies;
 
 @Entity
 @Table(name = "invitation")

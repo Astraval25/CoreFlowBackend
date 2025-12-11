@@ -1,11 +1,9 @@
-package com.astraval.coreflow.global.repo;
+package com.astraval.coreflow.modules.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 // import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import com.astraval.coreflow.global.model.User;
 
 
 @Repository

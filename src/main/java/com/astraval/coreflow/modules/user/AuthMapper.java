@@ -1,17 +1,16 @@
-package com.astraval.coreflow.modules.auth;
+package com.astraval.coreflow.modules.user;
 
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-import com.astraval.coreflow.global.model.Companies;
-import com.astraval.coreflow.global.model.Role;
-import com.astraval.coreflow.global.model.User;
-import com.astraval.coreflow.modules.auth.dto.LoginRequest;
-import com.astraval.coreflow.modules.auth.dto.LoginResponse;
-import com.astraval.coreflow.modules.auth.dto.RegisterRequest;
-import com.astraval.coreflow.modules.auth.dto.RegisterResponse;
+import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.role.Role;
+import com.astraval.coreflow.modules.user.dto.LoginRequest;
+import com.astraval.coreflow.modules.user.dto.LoginResponse;
+import com.astraval.coreflow.modules.user.dto.RegisterRequest;
+import com.astraval.coreflow.modules.user.dto.RegisterResponse;
 
 @Mapper(componentModel = "spring")
 public interface AuthMapper {

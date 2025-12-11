@@ -1,8 +1,6 @@
-package com.astraval.coreflow.global.repo;
+package com.astraval.coreflow.modules.usercompmap;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.astraval.coreflow.global.model.UserCompanyMap;
 
 import java.util.List;
 

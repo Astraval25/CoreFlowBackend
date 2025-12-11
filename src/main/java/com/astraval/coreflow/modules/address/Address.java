@@ -1,4 +1,4 @@
-package com.astraval.coreflow.global.model;
+package com.astraval.coreflow.modules.address;
 
 import lombok.Data;
 import java.time.LocalDateTime;

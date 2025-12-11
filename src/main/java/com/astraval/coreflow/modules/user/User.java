@@ -1,9 +1,12 @@
-package com.astraval.coreflow.global.model;
+package com.astraval.coreflow.modules.user;
 
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyMap;
 
 @Entity
 @Table(name = "users")
