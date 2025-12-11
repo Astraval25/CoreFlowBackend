@@ -13,9 +13,17 @@ public class SecurityUtil {
     }
     
     public String getCurrentRoleCode() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof Claims) {
-            return ((Claims) principal).get("roleCode", String.class);
+        Object details = SecurityContextHolder.getContext().getAuthentication().getDetails();
+        if (details instanceof Claims) {
+            return ((Claims) details).get("roleCode", String.class);
+        }
+        return null;
+    }
+    
+    public Integer getCurrentCompanyId() {
+        Object details = SecurityContextHolder.getContext().getAuthentication().getDetails();
+        if (details instanceof Claims) {
+            return ((Claims) details).get("companyId", Integer.class);
         }
         return null;
     }
