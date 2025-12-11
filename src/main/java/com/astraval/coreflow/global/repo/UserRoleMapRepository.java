@@ -10,9 +10,9 @@ import com.astraval.coreflow.global.model.UserRoleMap;
 import java.util.Optional;
 
 @Repository
-public interface UserRoleMapRepository extends JpaRepository<UserRoleMap, String> {
+public interface UserRoleMapRepository extends JpaRepository<UserRoleMap, Integer> {
     
     @Query("SELECT urm FROM UserRoleMap urm " +
            "WHERE urm.user.userId = :userId AND urm.isActive = true")
-    Optional<UserRoleMap> findByUserIdAndIsActiveTrue(@Param("userId") String userId);
+    Optional<UserRoleMap> findByUserIdAndIsActiveTrue(@Param("userId") Integer userId);
 }

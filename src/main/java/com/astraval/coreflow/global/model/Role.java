@@ -11,8 +11,9 @@ import java.time.LocalDateTime;
 public class Role {
 
     @Id
-    @Column(name="role_id", length = 36)
-    private String roleId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="role_id")
+    private Integer roleId;
 
     @Column(name = "role_code", length = 5)
     private String roleCode;

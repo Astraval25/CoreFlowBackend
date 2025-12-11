@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AdminCompaniesResponseDto {
-    private String companyId;
+    private Integer companyId;
     private String companyName;
 }

@@ -26,7 +26,8 @@ public class CompaniesController {
 
     @GetMapping("/details")
     public ApiResponse<List<AdminCompaniesResponseDto>> getCompaniesByUserId() {
-        String userId = securityUtil.getCurrentSub();
+        String userIdStr = securityUtil.getCurrentSub();
+        Integer userId = Integer.valueOf(userIdStr);
         return ApiResponseFactory.accepted(userCompanyService.getAllCompaniesByUserId(userId), null);
     }
     

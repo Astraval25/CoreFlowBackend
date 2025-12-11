@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -18,14 +20,15 @@ import jakarta.persistence.Table;
 public class UserRoleMap {
 
     @Id
-    @Column(name="user_role_map_id", length = 36)
-    private String userRoleMapId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="user_role_map_id")
+    private Integer userRoleMapId;
     
     @Column(name = "user_id", nullable = false)
-    private String userId;
+    private Integer userId;
 
     @Column(name = "role_id", nullable = false)
-    private String roleId;
+    private Integer roleId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)

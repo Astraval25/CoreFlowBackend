@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -14,8 +16,9 @@ import jakarta.persistence.Table;
 public class Address {
 
     @Id
-    @Column(name = "address_id", length = 64)
-    private String addressId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "address_id")
+    private Integer addressId;
 
     @Column(name = "attention_name", length = 128)
     private String attentionName;

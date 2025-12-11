@@ -18,7 +18,7 @@ public class UserCompanyService {
     @Autowired
     private CompanyMapper companyMapper;
     
-    public List<AdminCompaniesResponseDto> getAllCompaniesByUserId(String userId) {
+    public List<AdminCompaniesResponseDto> getAllCompaniesByUserId(Integer userId) {
         return userCompanyMapRepository.findByUserUserId(userId)
             .stream()
             .map(ucm -> companyMapper.toAdminCompanyResponseDto(ucm.getCompany()))

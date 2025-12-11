@@ -12,8 +12,9 @@ import java.util.List;
 public class User {
 
     @Id
-    @Column(name = "user_id", length = 36)
-    private String userId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
+    private Integer userId;
 
     @Column(name = "first_name", length = 200)
     private String firstName;

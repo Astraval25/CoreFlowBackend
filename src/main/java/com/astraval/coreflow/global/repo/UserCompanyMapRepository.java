@@ -6,8 +6,8 @@ import com.astraval.coreflow.global.model.UserCompanyMap;
 
 import java.util.List;
 
-public interface UserCompanyMapRepository extends JpaRepository<UserCompanyMap, String>{
+public interface UserCompanyMapRepository extends JpaRepository<UserCompanyMap, Integer>{
 
-    List<UserCompanyMap> findByUserUserId(String userId);
+    List<UserCompanyMap> findByUserUserId(Integer userId);
 
 }

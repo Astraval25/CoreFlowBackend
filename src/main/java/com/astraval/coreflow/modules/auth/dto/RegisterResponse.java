@@ -4,12 +4,12 @@ import lombok.Data;
 
 @Data
 public class RegisterResponse {
-    private String userId;
+    private Integer userId;
     private String userName;
     private String email;
     private String firstName;
     private String lastName;
-    private String companyId;
+    private Integer companyId;
     private String companyName;
     private String industry;
     private String roleCode;

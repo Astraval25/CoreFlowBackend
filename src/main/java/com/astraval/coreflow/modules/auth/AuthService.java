@@ -95,7 +95,7 @@ public class AuthService {
             
             // Access token (1 hour)
             String finalToken = Jwts.builder()
-                    .setSubject(user.getUserId())
+                    .setSubject(user.getUserId().toString())
                     .claim("roleCode", role.getRoleCode())
                     .claim("landingUrl", role.getLandingUrl())
                     .claim("companyId", user.getDefaultCompany().getCompanyId())
@@ -106,7 +106,7 @@ public class AuthService {
             
             // Refresh token (7 days)
             String refreshToken = Jwts.builder()
-                    .setSubject(user.getUserId())
+                    .setSubject(user.getUserId().toString())
                     .claim("type", "refresh")
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + 604800000))
@@ -135,7 +135,8 @@ public class AuthService {
                     .parseClaimsJws(refreshToken)
                     .getBody();
             
-            String userId = claims.getSubject();
+            String userIdStr = claims.getSubject();
+            Integer userId = Integer.valueOf(userIdStr);
             String tokenType = claims.get("type", String.class);
             
             if (!"refresh".equals(tokenType)) {
@@ -149,7 +150,7 @@ public class AuthService {
             User user = userRepository.findById(userId).orElseThrow();
             
             String newToken = Jwts.builder()
-                    .setSubject(userId)
+                    .setSubject(userId.toString())
                     .claim("roleCode", role.getRoleCode())
                     .claim("landingUrl", role.getLandingUrl())
                     .claim("companyId", user.getDefaultCompany().getCompanyId())
@@ -180,7 +181,6 @@ public class AuthService {
         
         // Create company using mapper
         Companies company = authMapper.toCompany(request);
-        company.setCompanyId(UUID.randomUUID().toString());
         company.setPan("");
         company.setGstNo("");
         company.setHsnCode("");
@@ -191,7 +191,6 @@ public class AuthService {
         
         // Create user using mapper
         User user = authMapper.toUser(request);
-        user.setUserId(UUID.randomUUID().toString());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setContactNo("");
         user.setDefaultCompany(company);
@@ -206,7 +205,6 @@ public class AuthService {
         }
         
         UserRoleMap userRoleMap = new UserRoleMap();
-        userRoleMap.setUserRoleMapId(UUID.randomUUID().toString());
         userRoleMap.setUserId(user.getUserId());
         userRoleMap.setRoleId(adminRole.getRoleId());
         userRoleMap.setUser(user);
@@ -217,7 +215,6 @@ public class AuthService {
         
         // Create UserCompanyMap
         UserCompanyMap userCompanyMap = new UserCompanyMap();
-        userCompanyMap.setUserCompId(UUID.randomUUID().toString());
         userCompanyMap.setUser(user);
         userCompanyMap.setCompany(company);
         userCompanyMap.setCreatedBy("SYSTEM");
@@ -234,7 +231,7 @@ public class AuthService {
             }
             
             String accessToken = Jwts.builder()
-                    .setSubject(user.getUserId())
+                    .setSubject(user.getUserId().toString())
                     .claim("roleCode", adminRole.getRoleCode())
                     .claim("landingUrl", adminRole.getLandingUrl())
                     .claim("companyId", company.getCompanyId())
@@ -244,7 +241,7 @@ public class AuthService {
                     .compact();
             
             String refreshToken = Jwts.builder()
-                    .setSubject(user.getUserId())
+                    .setSubject(user.getUserId().toString())
                     .claim("type", "refresh")
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + 604800000))

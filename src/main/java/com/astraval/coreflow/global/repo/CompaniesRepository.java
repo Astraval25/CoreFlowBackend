@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 import com.astraval.coreflow.global.model.Companies;
 
 @Repository
-public interface CompaniesRepository extends JpaRepository<Companies, String> {
+public interface CompaniesRepository extends JpaRepository<Companies, Integer> {
 }

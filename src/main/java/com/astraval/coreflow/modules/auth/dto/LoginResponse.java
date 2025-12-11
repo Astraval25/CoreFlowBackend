@@ -6,13 +6,13 @@ import lombok.Data;
 public class LoginResponse {
     private String token;
     private String refreshToken;
-    private String userId;
+    private Integer userId;
     private String roleCode;
     private String landingUrl;
-    private String companyId;
+    private Integer companyId;
     private String companyName;
     
-    public LoginResponse(String token, String refreshToken, String userId, String roleCode, String landingUrl, String companyId, String companyName) {
+    public LoginResponse(String token, String refreshToken, Integer userId, String roleCode, String landingUrl, Integer companyId, String companyName) {
         this.token = token;
         this.refreshToken = refreshToken;
         this.userId = userId;

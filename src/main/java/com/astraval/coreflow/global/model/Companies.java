@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -14,8 +16,9 @@ import lombok.Data;
 @Table(name = "companies")
 public class Companies {
     @Id
-    @Column(name = "company_id" , length = 36, nullable = false)
-    private String companyId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "company_id", nullable = false)
+    private Integer companyId;
 
     @Column(name = "company_name" , length = 500, nullable = false)
     private String companyName;

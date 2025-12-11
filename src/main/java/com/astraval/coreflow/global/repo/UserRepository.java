@@ -9,7 +9,7 @@ import com.astraval.coreflow.global.model.User;
 
 
 @Repository
-public interface UserRepository extends JpaRepository<User, String> {
+public interface UserRepository extends JpaRepository<User, Integer> {
     
     // @Query("SELECT u FROM User u WHERE u.email = :email AND u.isActive = true")
     // User findByEmailAndIsActiveTrue(@Param("email") String email);
