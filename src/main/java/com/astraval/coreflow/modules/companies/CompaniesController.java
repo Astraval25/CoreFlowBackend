@@ -8,7 +8,6 @@ import com.astraval.coreflow.global.util.ApiResponse;
 import com.astraval.coreflow.global.util.ApiResponseFactory;
 import com.astraval.coreflow.global.util.SecurityUtil;
 import com.astraval.coreflow.modules.companies.dto.AdminCompaniesResponseDto;
-
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +23,7 @@ public class CompaniesController {
     @Autowired
     private UserCompanyService userCompanyService;
 
+
     @GetMapping("/details")
     public ApiResponse<List<AdminCompaniesResponseDto>> getCompaniesByUserId() {
         String userIdStr = securityUtil.getCurrentSub();
@@ -31,4 +31,5 @@ public class CompaniesController {
         return ApiResponseFactory.accepted(userCompanyService.getAllCompaniesByUserId(userId), null);
     }
     
+
 }

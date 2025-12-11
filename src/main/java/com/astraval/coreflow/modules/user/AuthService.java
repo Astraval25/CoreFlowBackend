@@ -2,10 +2,10 @@ package com.astraval.coreflow.modules.user;
 
 import com.astraval.coreflow.global.exception.InvalidCredentialsException;
 import com.astraval.coreflow.global.exception.SystemErrorException;
+import com.astraval.coreflow.modules.companies.facade.CompanyFacade;
 import com.astraval.coreflow.modules.companies.Companies;
-import com.astraval.coreflow.modules.companies.CompaniesRepository;
+import com.astraval.coreflow.modules.role.facade.RoleFacade;
 import com.astraval.coreflow.modules.role.Role;
-import com.astraval.coreflow.modules.role.RoleRepository;
 import com.astraval.coreflow.modules.user.dto.LoginRequest;
 import com.astraval.coreflow.modules.user.dto.LoginResponse;
 import com.astraval.coreflow.modules.user.dto.RegisterRequest;
@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -38,10 +37,11 @@ public class AuthService {
     private UserRoleMapRepository userRoleMapRepository;
     
     @Autowired
-    private CompaniesRepository companiesRepository;
+    private CompanyFacade companyFacade;
     
     @Autowired
-    private RoleRepository roleRepository;
+    private RoleFacade roleFacade;
+    
     
     @Autowired
     private UserCompanyMapRepository userCompanyMapRepository;
@@ -177,15 +177,8 @@ public class AuthService {
             throw new InvalidCredentialsException("Email already exists");
         }
         
-        // Create company using mapper
-        Companies company = authMapper.toCompany(request);
-        company.setPan("");
-        company.setGstNo("");
-        company.setHsnCode("");
-        company.setShortName("");
-        company.setCreatedBy("SYSTEM");
-        company.setCreatedDt(LocalDateTime.now());
-        company = companiesRepository.save(company);
+        // Create company using facade
+        Companies company = companyFacade.createCompany(request.getCompanyName(), request.getIndustry(), "SYSTEM");
         
         // Create user using mapper
         User user = authMapper.toUser(request);
@@ -196,8 +189,8 @@ public class AuthService {
         user.setCreatedDt(LocalDateTime.now());
         user = userRepository.save(user);
         
-        // Assign ADMIN role
-        Role adminRole = roleRepository.findByRoleCodeAndIsActiveTrue("ADM");
+        // Get ADMIN role via facade
+        Role adminRole = roleFacade.getRoleByCode("ADM");
         if (adminRole == null) {
             throw new SystemErrorException("ADMIN role not found");
         }
