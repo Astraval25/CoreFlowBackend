@@ -65,8 +65,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             String userId = claims.getSubject();
             String roleCode = claims.get("roleCode", String.class);
-            String companyId = claims.get("companyId", String.class);
-            String companyName = claims.get("companyName", String.class);
             
             // ✅ FIX 3: HANDLE NULL roleCode
             if (roleCode == null) {
@@ -81,6 +79,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userId, null, authorities);
+            authentication.setDetails(claims);
             SecurityContextHolder.getContext().setAuthentication(authentication);
             log.info("JWT Filter - ✅ Authenticated user: {} with role: ROLE_{}", userId, roleCode.toUpperCase());
             
