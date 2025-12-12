@@ -1,4 +1,5 @@
 server:
+  address: 0.0.0.0
   port: 8085
 
 spring:
@@ -10,4 +11,4 @@ spring:
 
 
 upload:
-  path: /var/www/businesscube/uploads
+  path: /uploads

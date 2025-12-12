@@ -24,6 +24,11 @@ repositories {
 	mavenCentral()
 }
 
+bootRun {
+    systemProperty 'spring.profiles.active', 
+		project.findProperty('spring.profiles.active') ?: 'dev'
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
