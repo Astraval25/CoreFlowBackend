@@ -4,13 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.global.model.Address;
-import com.astraval.coreflow.global.model.Companies;
-import com.astraval.coreflow.global.model.Customers;
-import com.astraval.coreflow.global.repo.AddressRepository;
-import com.astraval.coreflow.global.repo.CompaniesRepository;
-import com.astraval.coreflow.global.repo.CustomerRepository;
 import com.astraval.coreflow.global.util.SecurityUtil;
+import com.astraval.coreflow.modules.address.Address;
+import com.astraval.coreflow.modules.address.AddressRepository;
+import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.companies.CompaniesRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
 
