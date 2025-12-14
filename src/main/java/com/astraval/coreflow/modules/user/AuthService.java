@@ -141,11 +141,13 @@ public class AuthService {
                 throw new InvalidCredentialsException("Invalid token type");
             }
             
-            UserRoleMap roleMap = userRoleMapRepository.findByUserIdAndIsActiveTrue(userId).orElseThrow();
+            UserRoleMap roleMap = userRoleMapRepository.findByUserIdAndIsActiveTrue(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("User role not found"));
             Role role = roleMap.getRole();
             
             // Generate new access token
-            User user = userRepository.findById(userId).orElseThrow();
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("User not found"));
             
             String newToken = Jwts.builder()
                     .setSubject(userId.toString())
