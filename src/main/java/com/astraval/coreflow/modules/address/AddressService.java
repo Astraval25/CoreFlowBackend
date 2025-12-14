@@ -28,11 +28,17 @@ public class AddressService {
     }
     
     public AddressProjection getAddressById(Integer addressId) {
+        String currentUserId = securityUtil.getCurrentSub();
+        
         Address address = addressRepository.findById(addressId)
             .orElseThrow(() -> new RuntimeException("Address not found"));
             
         if (!address.getIsActive()) {
             throw new RuntimeException("Address is not active");
+        }
+        
+        if (!currentUserId.equals(address.getCreatedBy())) {
+            throw new RuntimeException("Access denied: Address does not belong to current user");
         }
         
         return addressMapper.toProjection(address);
@@ -47,6 +53,10 @@ public class AddressService {
             
         if (!address.getIsActive()) {
             throw new RuntimeException("Address is not active");
+        }
+        
+        if (!userIdStr.equals(address.getCreatedBy())) {
+            throw new RuntimeException("Access denied: Address does not belong to current user");
         }
         
         // Update address fields
@@ -73,6 +83,10 @@ public class AddressService {
         Address address = addressRepository.findById(addressId)
             .orElseThrow(() -> new RuntimeException("Address not found"));
             
+        if (!userIdStr.equals(address.getCreatedBy())) {
+            throw new RuntimeException("Access denied: Address does not belong to current user");
+        }
+        
         address.setIsActive(false);
         address.setModifiedBy(userIdStr);
         address.setModifiedDt(LocalDateTime.now());
