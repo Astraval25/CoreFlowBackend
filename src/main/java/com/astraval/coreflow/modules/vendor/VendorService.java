@@ -15,7 +15,9 @@ import com.astraval.coreflow.modules.address.facade.AddressFacade;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class VendorService {
 
@@ -156,8 +158,10 @@ public class VendorService {
             try {
                 Integer billingAddrId = Integer.valueOf(vendor.getBillingAddrId());
                 projection.setBillingAddress(addressFacade.getAddressById(billingAddrId));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid billing address ID format for vendor {}", vendor.getVendorId());
             } catch (Exception e) {
-                // Handle invalid address ID or address not found
+                log.warn("Failed to load billing address for vendor {}", vendor.getVendorId());
             }
         }
         
@@ -166,8 +170,10 @@ public class VendorService {
             try {
                 Integer shippingAddrId = Integer.valueOf(vendor.getShippingAddrId());
                 projection.setShippingAddress(addressFacade.getAddressById(shippingAddrId));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid shipping address ID format for vendor {}", vendor.getVendorId());
             } catch (Exception e) {
-                // Handle invalid address ID or address not found
+                log.warn("Failed to load shipping address for vendor {}", vendor.getVendorId());
             }
         }
         

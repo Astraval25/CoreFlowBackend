@@ -116,7 +116,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.info("JWT Filter - ✅ Authenticated user: {} with role: ROLE_{}", userId, roleCode.toUpperCase());
             
         } catch (Exception e) {
-            log.warn("JWT Filter - Invalid token: {}", e.getMessage());
+            log.warn("JWT Filter - Invalid token: {}", e.getMessage(), e);
             // Continue without authentication (will hit .authenticated() rules)
         }
         
