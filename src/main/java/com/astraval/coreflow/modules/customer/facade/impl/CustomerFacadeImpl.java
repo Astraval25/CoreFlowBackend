@@ -28,6 +28,11 @@ public class CustomerFacadeImpl implements CustomerFacade {
     }
 
     @Override
+    public CustomerProjection getCustomerById(Integer companyId, Long customerId) {
+        return customerService.getCustomerById(companyId, customerId);
+    }
+
+    @Override
     public CustomerProjection updateCustomer(Integer companyId, Long customerId, UpdateCustomerRequest request) {
         return customerService.updateCustomer(companyId, customerId, request);
     }

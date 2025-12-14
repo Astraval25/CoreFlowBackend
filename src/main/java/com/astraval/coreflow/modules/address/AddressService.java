@@ -22,6 +22,11 @@ public class AddressService {
     @Autowired
     private SecurityUtil securityUtil;
     
+    @Transactional
+    public Address createAddress(Address address) {
+        return addressRepository.save(address);
+    }
+    
     public AddressProjection getAddressById(Integer addressId) {
         Address address = addressRepository.findById(addressId)
             .orElseThrow(() -> new RuntimeException("Address not found"));

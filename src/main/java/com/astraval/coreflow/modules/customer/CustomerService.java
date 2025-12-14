@@ -6,12 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.global.util.SecurityUtil;
 import com.astraval.coreflow.modules.address.Address;
-import com.astraval.coreflow.modules.address.AddressRepository;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompaniesRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
 import com.astraval.coreflow.modules.customer.dto.UpdateCustomerRequest;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
+import com.astraval.coreflow.modules.address.facade.AddressFacade;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,8 +22,7 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
     
-    @Autowired
-    private AddressRepository addressRepository;
+
     
     @Autowired
     private CompaniesRepository companiesRepository;
@@ -33,6 +32,9 @@ public class CustomerService {
     
     @Autowired
     private SecurityUtil securityUtil;
+    
+    @Autowired
+    private AddressFacade addressFacade;
     
     @Transactional
     public CustomerProjection createCustomer(Integer companyId, CreateCustomerRequest request) {
@@ -57,7 +59,7 @@ public class CustomerService {
             billingAddress.setIsActive(true);
             billingAddress.setCreatedBy(userIdStr);
             billingAddress.setCreatedDt(LocalDateTime.now());
-            billingAddress = addressRepository.save(billingAddress);
+            billingAddress = addressFacade.createAddress(billingAddress);
             customer.setBillingAddrId(billingAddress.getAddressId().toString());
         }
         
@@ -67,7 +69,7 @@ public class CustomerService {
             shippingAddress.setIsActive(true);
             shippingAddress.setCreatedBy(userIdStr);
             shippingAddress.setCreatedDt(LocalDateTime.now());
-            shippingAddress = addressRepository.save(shippingAddress);
+            shippingAddress = addressFacade.createAddress(shippingAddress);
             customer.setShippingAddrId(shippingAddress.getAddressId().toString());
         } else if (Boolean.TRUE.equals(request.getSameForShipping()) && customer.getBillingAddrId() != null) {
             // Use billing address for shipping if sameForShipping is true
@@ -75,15 +77,30 @@ public class CustomerService {
         }
         
         customer = customerRepository.save(customer);
-        return customerMapper.toProjection(customer);
+        return mapCustomerWithAddresses(customer);
     }
     
     public List<CustomerProjection> getAllCustomers(Integer companyId) {
         
         return customerRepository.findByCompanyCompanyIdAndIsActiveTrue(companyId)
             .stream()
-            .map(customerMapper::toProjection)
+            .map(this::mapCustomerWithAddresses)
             .toList();
+    }
+    
+    public CustomerProjection getCustomerById(Integer companyId, Long customerId) {
+        Customers customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new RuntimeException("Customer not found"));
+            
+        if (!customer.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Customer does not belong to the specified company");
+        }
+        
+        if (!customer.getIsActive()) {
+            throw new RuntimeException("Customer is not active");
+        }
+        
+        return mapCustomerWithAddresses(customer);
     }
     
     @Transactional
@@ -110,7 +127,7 @@ public class CustomerService {
         customer.setUpdateAt(Long.valueOf(userIdStr));
         
         customer = customerRepository.save(customer);
-        return customerMapper.toProjection(customer);
+        return mapCustomerWithAddresses(customer);
     }
     
     @Transactional
@@ -129,5 +146,31 @@ public class CustomerService {
         customer.setUpdateAt(Long.valueOf(userIdStr));
         
         customerRepository.save(customer);
+    }
+    
+    private CustomerProjection mapCustomerWithAddresses(Customers customer) {
+        CustomerProjection projection = customerMapper.toProjection(customer);
+        
+        // Load billing address if exists
+        if (customer.getBillingAddrId() != null) {
+            try {
+                Integer billingAddrId = Integer.valueOf(customer.getBillingAddrId());
+                projection.setBillingAddress(addressFacade.getAddressById(billingAddrId));
+            } catch (Exception e) {
+                // Handle invalid address ID or address not found
+            }
+        }
+        
+        // Load shipping address if exists
+        if (customer.getShippingAddrId() != null) {
+            try {
+                Integer shippingAddrId = Integer.valueOf(customer.getShippingAddrId());
+                projection.setShippingAddress(addressFacade.getAddressById(shippingAddrId));
+            } catch (Exception e) {
+                // Handle invalid address ID or address not found
+            }
+        }
+        
+        return projection;
     }
 }

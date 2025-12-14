@@ -7,6 +7,7 @@ import com.astraval.coreflow.modules.user.dto.LoginRequest;
 import com.astraval.coreflow.modules.user.dto.LoginResponse;
 import com.astraval.coreflow.modules.user.dto.RegisterRequest;
 import com.astraval.coreflow.modules.user.dto.RegisterResponse;
+import com.astraval.coreflow.modules.user.facade.UserFacade;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +18,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     
     @Autowired
-    private AuthService authService;
+    private UserFacade userFacade;
     
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@RequestBody LoginRequest request) {
         try {
-            LoginResponse response = authService.login(request);
+            LoginResponse response = userFacade.login(request);
             return ApiResponseFactory.accepted(response, "Login Success");
         } catch (Exception e) {
             return ApiResponseFactory.UnauthorizedAccess( "Invalid credentials");
@@ -32,7 +33,7 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest request) {
         try {
-            LoginResponse response = authService.refreshToken(request.getRefreshToken());
+            LoginResponse response = userFacade.refreshToken(request.getRefreshToken());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Invalid refresh token");
@@ -42,7 +43,7 @@ public class AuthController {
     @PostMapping("/register")
     public ApiResponse<RegisterResponse> register(@RequestBody RegisterRequest request) {
         try {
-            RegisterResponse response = authService.register(request);
+            RegisterResponse response = userFacade.register(request);
             return ApiResponseFactory.accepted(response, "Registration successful");
         } catch (Exception e) {
             return ApiResponseFactory.badRequest(e.getMessage());

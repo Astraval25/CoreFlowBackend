@@ -41,6 +41,16 @@ public class VendorController {
     }
   }
   
+  @GetMapping("/{vendorId}")
+  public ApiResponse<VendorProjection> getVendorById(@PathVariable Integer companyId, @PathVariable Long vendorId) {
+    try {
+      VendorProjection vendor = vendorFacade.getVendorById(companyId, vendorId);
+      return ApiResponseFactory.accepted(vendor, "Vendor retrieved successfully");
+    } catch (Exception e) {
+      return ApiResponseFactory.badRequest(e.getMessage());
+    }
+  }
+  
   @PutMapping("/{vendorId}")
   public ApiResponse<VendorProjection> updateVendor(@PathVariable Integer companyId, @PathVariable Long vendorId, @Valid @RequestBody UpdateVendorRequest request) {
     try {

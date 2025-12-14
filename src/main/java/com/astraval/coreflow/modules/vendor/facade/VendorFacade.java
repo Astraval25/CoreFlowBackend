@@ -9,6 +9,7 @@ import com.astraval.coreflow.modules.vendor.projection.VendorProjection;
 public interface VendorFacade {
     VendorProjection createVendor(Integer companyId, CreateVendorRequest request);
     List<VendorProjection> getAllVendors(Integer companyId);
+    VendorProjection getVendorById(Integer companyId, Long vendorId);
     VendorProjection updateVendor(Integer companyId, Long vendorId, UpdateVendorRequest request);
     void deactivateVendor(Integer companyId, Long vendorId);
 }

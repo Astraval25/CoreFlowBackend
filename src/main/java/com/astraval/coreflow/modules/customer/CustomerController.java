@@ -41,6 +41,16 @@ public class CustomerController {
     }
   }
   
+  @GetMapping("/{customerId}")
+  public ApiResponse<CustomerProjection> getCustomerById(@PathVariable Integer companyId, @PathVariable Long customerId) {
+    try {
+      CustomerProjection customer = customerFacade.getCustomerById(companyId, customerId);
+      return ApiResponseFactory.accepted(customer, "Customer retrieved successfully");
+    } catch (Exception e) {
+      return ApiResponseFactory.badRequest(e.getMessage());
+    }
+  }
+  
   @PutMapping("/{customerId}")
   public ApiResponse<CustomerProjection> updateCustomer(@PathVariable Integer companyId, @PathVariable Long customerId, @Valid @RequestBody UpdateCustomerRequest request) {
     try {

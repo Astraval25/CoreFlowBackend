@@ -4,6 +4,8 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.astraval.coreflow.modules.address.projection.AddressProjection;
+
 @Data
 public class CustomerProjection {
     private Long customerId;
@@ -17,4 +19,6 @@ public class CustomerProjection {
     private BigDecimal advanceAmount;
     private Boolean isActive;
     private LocalDateTime createdAt;
+    private AddressProjection billingAddress;
+    private AddressProjection shippingAddress;
 }
