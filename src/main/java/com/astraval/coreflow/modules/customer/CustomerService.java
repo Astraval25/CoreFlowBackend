@@ -86,6 +86,21 @@ public class CustomerService {
             .toList();
     }
     
+    public CustomerProjection getCustomerById(Integer companyId, Long customerId) {
+        Customers customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new RuntimeException("Customer not found"));
+            
+        if (!customer.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Customer does not belong to the specified company");
+        }
+        
+        if (!customer.getIsActive()) {
+            throw new RuntimeException("Customer is not active");
+        }
+        
+        return customerMapper.toProjection(customer);
+    }
+    
     @Transactional
     public CustomerProjection updateCustomer(Integer companyId, Long customerId, UpdateCustomerRequest request) {
         String userIdStr = securityUtil.getCurrentSub();

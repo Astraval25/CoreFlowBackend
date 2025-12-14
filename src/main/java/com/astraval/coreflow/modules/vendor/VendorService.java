@@ -86,6 +86,21 @@ public class VendorService {
             .toList();
     }
     
+    public VendorProjection getVendorById(Integer companyId, Long vendorId) {
+        Vendors vendor = vendorRepository.findById(vendorId)
+            .orElseThrow(() -> new RuntimeException("Vendor not found"));
+            
+        if (!vendor.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Vendor does not belong to the specified company");
+        }
+        
+        if (!vendor.getIsActive()) {
+            throw new RuntimeException("Vendor is not active");
+        }
+        
+        return vendorMapper.toProjection(vendor);
+    }
+    
     @Transactional
     public VendorProjection updateVendor(Integer companyId, Long vendorId, UpdateVendorRequest request) {
         String userIdStr = securityUtil.getCurrentSub();

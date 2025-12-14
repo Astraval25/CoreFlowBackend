@@ -28,6 +28,11 @@ public class VendorFacadeImpl implements VendorFacade {
     }
 
     @Override
+    public VendorProjection getVendorById(Integer companyId, Long vendorId) {
+        return vendorService.getVendorById(companyId, vendorId);
+    }
+
+    @Override
     public VendorProjection updateVendor(Integer companyId, Long vendorId, UpdateVendorRequest request) {
         return vendorService.updateVendor(companyId, vendorId, request);
     }
