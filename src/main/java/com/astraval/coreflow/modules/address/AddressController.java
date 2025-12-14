@@ -12,7 +12,7 @@ import com.astraval.coreflow.modules.address.projection.AddressProjection;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/admin/addresses")
+@RequestMapping("/api/common/addresses")
 public class AddressController {
 
   @Autowired

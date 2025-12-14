@@ -41,7 +41,7 @@ public class CustomerController {
     }
   }
   
-  @PutMapping("/{customerId}")
+  @PutMapping("customerId/{customerId}")
   public ApiResponse<CustomerProjection> updateCustomer(@PathVariable Long customerId, @Valid @RequestBody UpdateCustomerRequest request) {
     try {
       CustomerProjection customer = customerFacade.updateCustomer(customerId, request);
@@ -51,7 +51,7 @@ public class CustomerController {
     }
   }
   
-  @DeleteMapping("/{customerId}")
+  @DeleteMapping("customerId/{customerId}")
   public ApiResponse<Void> deactivateCustomer(@PathVariable Long customerId) {
     try {
       customerFacade.deactivateCustomer(customerId);
