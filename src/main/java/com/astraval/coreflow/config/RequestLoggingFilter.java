@@ -28,9 +28,8 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
         long time = System.currentTimeMillis() - start;
 
-        log.info("{} {} -> {} ({} ms)",
+        log.info("Request processed: method={}, status={}, time={}ms", 
                 req.getMethod(),
-                req.getRequestURI(),
                 res.getStatus(),
                 time);
     }
