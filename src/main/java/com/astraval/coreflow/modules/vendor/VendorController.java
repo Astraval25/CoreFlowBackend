@@ -15,16 +15,16 @@ import com.astraval.coreflow.modules.vendor.projection.VendorProjection;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/admin/vendors")
+@RequestMapping("/api/admin/companies/{companyId}/vendors")
 public class VendorController {
 
   @Autowired
   private VendorFacade vendorFacade;
 
   @PostMapping
-  public ApiResponse<VendorProjection> createVendor(@Valid @RequestBody CreateVendorRequest request) {
+  public ApiResponse<VendorProjection> createVendor(@PathVariable Integer companyId, @Valid @RequestBody CreateVendorRequest request) {
     try {
-      VendorProjection vendor = vendorFacade.createVendor(request);
+      VendorProjection vendor = vendorFacade.createVendor(companyId, request);
       return ApiResponseFactory.accepted(vendor, "Vendor created successfully");
     } catch (Exception e) {
       return ApiResponseFactory.badRequest(e.getMessage());
@@ -32,29 +32,29 @@ public class VendorController {
   }
   
   @GetMapping
-  public ApiResponse<List<VendorProjection>> getAllVendors() {
+  public ApiResponse<List<VendorProjection>> getAllVendors(@PathVariable Integer companyId) {
     try {
-      List<VendorProjection> vendors = vendorFacade.getAllVendors();
+      List<VendorProjection> vendors = vendorFacade.getAllVendors(companyId);
       return ApiResponseFactory.accepted(vendors, "Vendors retrieved successfully");
     } catch (Exception e) {
       return ApiResponseFactory.badRequest(e.getMessage());
     }
   }
   
-  @PutMapping("/vendorId/{vendorId}")
-  public ApiResponse<VendorProjection> updateVendor(@PathVariable Long vendorId, @Valid @RequestBody UpdateVendorRequest request) {
+  @PutMapping("/{vendorId}")
+  public ApiResponse<VendorProjection> updateVendor(@PathVariable Integer companyId, @PathVariable Long vendorId, @Valid @RequestBody UpdateVendorRequest request) {
     try {
-      VendorProjection vendor = vendorFacade.updateVendor(vendorId, request);
+      VendorProjection vendor = vendorFacade.updateVendor(companyId, vendorId, request);
       return ApiResponseFactory.accepted(vendor, "Vendor updated successfully");
     } catch (Exception e) {
       return ApiResponseFactory.badRequest(e.getMessage());
     }
   }
   
-  @DeleteMapping("/vendorId/{vendorId}")
-  public ApiResponse<Void> deactivateVendor(@PathVariable Long vendorId) {
+  @DeleteMapping("/{vendorId}")
+  public ApiResponse<Void> deactivateVendor(@PathVariable Integer companyId, @PathVariable Long vendorId) {
     try {
-      vendorFacade.deactivateVendor(vendorId);
+      vendorFacade.deactivateVendor(companyId, vendorId);
       return ApiResponseFactory.accepted(null, "Vendor deactivated successfully");
     } catch (Exception e) {
       return ApiResponseFactory.badRequest(e.getMessage());

@@ -18,22 +18,22 @@ public class CustomerFacadeImpl implements CustomerFacade {
     private CustomerService customerService;
 
     @Override
-    public CustomerProjection createCustomer(CreateCustomerRequest request) {
-        return customerService.createCustomer(request);
+    public CustomerProjection createCustomer(Integer companyId, CreateCustomerRequest request) {
+        return customerService.createCustomer(companyId, request);
     }
 
     @Override
-    public List<CustomerProjection> getAllCustomers() {
-        return customerService.getAllCustomers();
+    public List<CustomerProjection> getAllCustomers(Integer companyId) {
+        return customerService.getAllCustomers(companyId);
     }
 
     @Override
-    public CustomerProjection updateCustomer(Long customerId, UpdateCustomerRequest request) {
-        return customerService.updateCustomer(customerId, request);
+    public CustomerProjection updateCustomer(Integer companyId, Long customerId, UpdateCustomerRequest request) {
+        return customerService.updateCustomer(companyId, customerId, request);
     }
 
     @Override
-    public void deactivateCustomer(Long customerId) {
-        customerService.deactivateCustomer(customerId);
+    public void deactivateCustomer(Integer companyId, Long customerId) {
+        customerService.deactivateCustomer(companyId, customerId);
     }
 }

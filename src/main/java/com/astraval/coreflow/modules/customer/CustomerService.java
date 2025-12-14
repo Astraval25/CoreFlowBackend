@@ -35,16 +35,12 @@ public class CustomerService {
     private SecurityUtil securityUtil;
     
     @Transactional
-    public CustomerProjection createCustomer(CreateCustomerRequest request) {
-        // Get current user's company
+    public CustomerProjection createCustomer(Integer companyId, CreateCustomerRequest request) {
+        // Get current user info
         String userIdStr = securityUtil.getCurrentSub();
         Integer userId = Integer.valueOf(userIdStr);
         
-        // Get company from JWT claims
-        Integer companyId = securityUtil.getCurrentCompanyId();
-        if (companyId == null) {
-            throw new RuntimeException("Company ID not found in token");
-        }
+        // Get company by provided companyId
         Companies company = companiesRepository.findById(companyId)
             .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
         
@@ -82,11 +78,7 @@ public class CustomerService {
         return customerMapper.toProjection(customer);
     }
     
-    public List<CustomerProjection> getAllCustomers() {
-        Integer companyId = securityUtil.getCurrentCompanyId();
-        if (companyId == null) {
-            throw new RuntimeException("Company ID not found in token");
-        }
+    public List<CustomerProjection> getAllCustomers(Integer companyId) {
         
         return customerRepository.findByCompanyCompanyIdAndIsActiveTrue(companyId)
             .stream()
@@ -95,9 +87,8 @@ public class CustomerService {
     }
     
     @Transactional
-    public CustomerProjection updateCustomer(Long customerId, UpdateCustomerRequest request) {
+    public CustomerProjection updateCustomer(Integer companyId, Long customerId, UpdateCustomerRequest request) {
         String userIdStr = securityUtil.getCurrentSub();
-        Integer companyId = securityUtil.getCurrentCompanyId();
         
         Customers customer = customerRepository.findById(customerId)
             .orElseThrow(() -> new RuntimeException("Customer not found"));
@@ -123,9 +114,8 @@ public class CustomerService {
     }
     
     @Transactional
-    public void deactivateCustomer(Long customerId) {
+    public void deactivateCustomer(Integer companyId, Long customerId) {
         String userIdStr = securityUtil.getCurrentSub();
-        Integer companyId = securityUtil.getCurrentCompanyId();
         
         Customers customer = customerRepository.findById(customerId)
             .orElseThrow(() -> new RuntimeException("Customer not found"));

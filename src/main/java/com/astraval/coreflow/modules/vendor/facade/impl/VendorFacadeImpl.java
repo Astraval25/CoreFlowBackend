@@ -18,22 +18,22 @@ public class VendorFacadeImpl implements VendorFacade {
     private VendorService vendorService;
 
     @Override
-    public VendorProjection createVendor(CreateVendorRequest request) {
-        return vendorService.createVendor(request);
+    public VendorProjection createVendor(Integer companyId, CreateVendorRequest request) {
+        return vendorService.createVendor(companyId, request);
     }
 
     @Override
-    public List<VendorProjection> getAllVendors() {
-        return vendorService.getAllVendors();
+    public List<VendorProjection> getAllVendors(Integer companyId) {
+        return vendorService.getAllVendors(companyId);
     }
 
     @Override
-    public VendorProjection updateVendor(Long vendorId, UpdateVendorRequest request) {
-        return vendorService.updateVendor(vendorId, request);
+    public VendorProjection updateVendor(Integer companyId, Long vendorId, UpdateVendorRequest request) {
+        return vendorService.updateVendor(companyId, vendorId, request);
     }
 
     @Override
-    public void deactivateVendor(Long vendorId) {
-        vendorService.deactivateVendor(vendorId);
+    public void deactivateVendor(Integer companyId, Long vendorId) {
+        vendorService.deactivateVendor(companyId, vendorId);
     }
 }

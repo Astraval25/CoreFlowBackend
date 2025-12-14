@@ -35,16 +35,12 @@ public class VendorService {
     private SecurityUtil securityUtil;
     
     @Transactional
-    public VendorProjection createVendor(CreateVendorRequest request) {
-        // Get current user's company
+    public VendorProjection createVendor(Integer companyId, CreateVendorRequest request) {
+        // Get current user info
         String userIdStr = securityUtil.getCurrentSub();
         Integer userId = Integer.valueOf(userIdStr);
         
-        // Get company from JWT claims
-        Integer companyId = securityUtil.getCurrentCompanyId();
-        if (companyId == null) {
-            throw new RuntimeException("Company ID not found in token");
-        }
+        // Get company by provided companyId
         Companies company = companiesRepository.findById(companyId)
             .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
         
@@ -82,11 +78,7 @@ public class VendorService {
         return vendorMapper.toProjection(vendor);
     }
     
-    public List<VendorProjection> getAllVendors() {
-        Integer companyId = securityUtil.getCurrentCompanyId();
-        if (companyId == null) {
-            throw new RuntimeException("Company ID not found in token");
-        }
+    public List<VendorProjection> getAllVendors(Integer companyId) {
         
         return vendorRepository.findByCompanyCompanyIdAndIsActiveTrue(companyId)
             .stream()
@@ -95,9 +87,8 @@ public class VendorService {
     }
     
     @Transactional
-    public VendorProjection updateVendor(Long vendorId, UpdateVendorRequest request) {
+    public VendorProjection updateVendor(Integer companyId, Long vendorId, UpdateVendorRequest request) {
         String userIdStr = securityUtil.getCurrentSub();
-        Integer companyId = securityUtil.getCurrentCompanyId();
         
         Vendors vendor = vendorRepository.findById(vendorId)
             .orElseThrow(() -> new RuntimeException("Vendor not found"));
@@ -123,9 +114,8 @@ public class VendorService {
     }
     
     @Transactional
-    public void deactivateVendor(Long vendorId) {
+    public void deactivateVendor(Integer companyId, Long vendorId) {
         String userIdStr = securityUtil.getCurrentSub();
-        Integer companyId = securityUtil.getCurrentCompanyId();
         
         Vendors vendor = vendorRepository.findById(vendorId)
             .orElseThrow(() -> new RuntimeException("Vendor not found"));
