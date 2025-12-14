@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.address.Address;
-import com.astraval.coreflow.modules.address.AddressRepository;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompaniesRepository;
 import com.astraval.coreflow.global.util.SecurityUtil;
@@ -23,8 +22,7 @@ public class VendorService {
     @Autowired
     private VendorRepository vendorRepository;
     
-    @Autowired
-    private AddressRepository addressRepository;
+
     
     @Autowired
     private CompaniesRepository companiesRepository;
@@ -61,7 +59,7 @@ public class VendorService {
             billingAddress.setIsActive(true);
             billingAddress.setCreatedBy(userIdStr);
             billingAddress.setCreatedDt(LocalDateTime.now());
-            billingAddress = addressRepository.save(billingAddress);
+            billingAddress = addressFacade.createAddress(billingAddress);
             vendor.setBillingAddrId(billingAddress.getAddressId().toString());
         }
         
@@ -71,7 +69,7 @@ public class VendorService {
             shippingAddress.setIsActive(true);
             shippingAddress.setCreatedBy(userIdStr);
             shippingAddress.setCreatedDt(LocalDateTime.now());
-            shippingAddress = addressRepository.save(shippingAddress);
+            shippingAddress = addressFacade.createAddress(shippingAddress);
             vendor.setShippingAddrId(shippingAddress.getAddressId().toString());
         } else if (Boolean.TRUE.equals(request.getSameForShipping()) && vendor.getBillingAddrId() != null) {
             // Use billing address for shipping if sameForShipping is true

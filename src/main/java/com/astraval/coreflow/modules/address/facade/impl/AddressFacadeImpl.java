@@ -3,6 +3,7 @@ package com.astraval.coreflow.modules.address.facade.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.astraval.coreflow.modules.address.Address;
 import com.astraval.coreflow.modules.address.AddressService;
 import com.astraval.coreflow.modules.address.dto.UpdateAddressRequest;
 import com.astraval.coreflow.modules.address.facade.AddressFacade;
@@ -13,6 +14,11 @@ public class AddressFacadeImpl implements AddressFacade {
 
     @Autowired
     private AddressService addressService;
+
+    @Override
+    public Address createAddress(Address address) {
+        return addressService.createAddress(address);
+    }
 
     @Override
     public AddressProjection getAddressById(Integer addressId) {
