@@ -1,25 +1,28 @@
 package com.astraval.coreflow.modules.customer.facade.impl;
 
-import com.astraval.coreflow.modules.customer.facade.CustomerFacade;
-import com.astraval.coreflow.modules.customer.Customers;
-import com.astraval.coreflow.modules.customer.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
+
+import com.astraval.coreflow.modules.customer.CustomerService;
+import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
+import com.astraval.coreflow.modules.customer.facade.CustomerFacade;
+import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
 
 @Service
 public class CustomerFacadeImpl implements CustomerFacade {
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private CustomerService customerService;
 
     @Override
-    public Customers getCustomerById(Integer customerId) {
-        return customerRepository.findById(Long.valueOf(customerId)).orElse(null);
+    public CustomerProjection createCustomer(CreateCustomerRequest request) {
+        return customerService.createCustomer(request);
     }
 
     @Override
-    public List<Customers> getCustomersByCompanyId(Integer companyId) {
-        return customerRepository.findAll();
+    public List<CustomerProjection> getAllCustomers() {
+        return customerService.getAllCustomers();
     }
 }

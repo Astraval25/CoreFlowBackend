@@ -5,7 +5,10 @@ import org.springframework.web.bind.annotation.*;
 
 import com.astraval.coreflow.global.util.ApiResponse;
 import com.astraval.coreflow.global.util.ApiResponseFactory;
+import java.util.List;
+
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
+import com.astraval.coreflow.modules.customer.facade.CustomerFacade;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
 
 import jakarta.validation.Valid;
@@ -15,13 +18,23 @@ import jakarta.validation.Valid;
 public class CustomerController {
 
   @Autowired
-  private CustomerService customerService;
+  private CustomerFacade customerFacade;
 
   @PostMapping
   public ApiResponse<CustomerProjection> createCustomer(@Valid @RequestBody CreateCustomerRequest request) {
     try {
-      CustomerProjection customer = customerService.createCustomer(request);
+      CustomerProjection customer = customerFacade.createCustomer(request);
       return ApiResponseFactory.accepted(customer, "Customer created successfully");
+    } catch (Exception e) {
+      return ApiResponseFactory.badRequest(e.getMessage());
+    }
+  }
+  
+  @GetMapping
+  public ApiResponse<List<CustomerProjection>> getAllCustomers() {
+    try {
+      List<CustomerProjection> customers = customerFacade.getAllCustomers();
+      return ApiResponseFactory.accepted(customers, "Customers retrieved successfully");
     } catch (Exception e) {
       return ApiResponseFactory.badRequest(e.getMessage());
     }
