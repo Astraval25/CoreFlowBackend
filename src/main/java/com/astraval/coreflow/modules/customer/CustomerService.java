@@ -12,6 +12,7 @@ import com.astraval.coreflow.modules.companies.CompaniesRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
 import com.astraval.coreflow.modules.customer.dto.UpdateCustomerRequest;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
+import com.astraval.coreflow.modules.address.facade.AddressFacade;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +34,9 @@ public class CustomerService {
     
     @Autowired
     private SecurityUtil securityUtil;
+    
+    @Autowired
+    private AddressFacade addressFacade;
     
     @Transactional
     public CustomerProjection createCustomer(Integer companyId, CreateCustomerRequest request) {
@@ -75,14 +79,14 @@ public class CustomerService {
         }
         
         customer = customerRepository.save(customer);
-        return customerMapper.toProjection(customer);
+        return mapCustomerWithAddresses(customer);
     }
     
     public List<CustomerProjection> getAllCustomers(Integer companyId) {
         
         return customerRepository.findByCompanyCompanyIdAndIsActiveTrue(companyId)
             .stream()
-            .map(customerMapper::toProjection)
+            .map(this::mapCustomerWithAddresses)
             .toList();
     }
     
@@ -98,7 +102,7 @@ public class CustomerService {
             throw new RuntimeException("Customer is not active");
         }
         
-        return customerMapper.toProjection(customer);
+        return mapCustomerWithAddresses(customer);
     }
     
     @Transactional
@@ -125,7 +129,7 @@ public class CustomerService {
         customer.setUpdateAt(Long.valueOf(userIdStr));
         
         customer = customerRepository.save(customer);
-        return customerMapper.toProjection(customer);
+        return mapCustomerWithAddresses(customer);
     }
     
     @Transactional
@@ -144,5 +148,31 @@ public class CustomerService {
         customer.setUpdateAt(Long.valueOf(userIdStr));
         
         customerRepository.save(customer);
+    }
+    
+    private CustomerProjection mapCustomerWithAddresses(Customers customer) {
+        CustomerProjection projection = customerMapper.toProjection(customer);
+        
+        // Load billing address if exists
+        if (customer.getBillingAddrId() != null) {
+            try {
+                Integer billingAddrId = Integer.valueOf(customer.getBillingAddrId());
+                projection.setBillingAddress(addressFacade.getAddressById(billingAddrId));
+            } catch (Exception e) {
+                // Handle invalid address ID or address not found
+            }
+        }
+        
+        // Load shipping address if exists
+        if (customer.getShippingAddrId() != null) {
+            try {
+                Integer shippingAddrId = Integer.valueOf(customer.getShippingAddrId());
+                projection.setShippingAddress(addressFacade.getAddressById(shippingAddrId));
+            } catch (Exception e) {
+                // Handle invalid address ID or address not found
+            }
+        }
+        
+        return projection;
     }
 }

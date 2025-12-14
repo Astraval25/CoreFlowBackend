@@ -12,6 +12,7 @@ import com.astraval.coreflow.global.util.SecurityUtil;
 import com.astraval.coreflow.modules.vendor.dto.CreateVendorRequest;
 import com.astraval.coreflow.modules.vendor.dto.UpdateVendorRequest;
 import com.astraval.coreflow.modules.vendor.projection.VendorProjection;
+import com.astraval.coreflow.modules.address.facade.AddressFacade;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +35,9 @@ public class VendorService {
     @Autowired
     private SecurityUtil securityUtil;
     
+    @Autowired
+    private AddressFacade addressFacade;
+
     @Transactional
     public VendorProjection createVendor(Integer companyId, CreateVendorRequest request) {
         // Get current user info
@@ -75,14 +79,14 @@ public class VendorService {
         }
         
         vendor = vendorRepository.save(vendor);
-        return vendorMapper.toProjection(vendor);
+        return mapVendorWithAddresses(vendor);
     }
     
     public List<VendorProjection> getAllVendors(Integer companyId) {
         
         return vendorRepository.findByCompanyCompanyIdAndIsActiveTrue(companyId)
             .stream()
-            .map(vendorMapper::toProjection)
+            .map(this::mapVendorWithAddresses)
             .toList();
     }
     
@@ -98,7 +102,7 @@ public class VendorService {
             throw new RuntimeException("Vendor is not active");
         }
         
-        return vendorMapper.toProjection(vendor);
+        return mapVendorWithAddresses(vendor);
     }
     
     @Transactional
@@ -125,7 +129,7 @@ public class VendorService {
         vendor.setUpdateAt(Long.valueOf(userIdStr));
         
         vendor = vendorRepository.save(vendor);
-        return vendorMapper.toProjection(vendor);
+        return mapVendorWithAddresses(vendor);
     }
     
     @Transactional
@@ -144,5 +148,31 @@ public class VendorService {
         vendor.setUpdateAt(Long.valueOf(userIdStr));
         
         vendorRepository.save(vendor);
+    }
+    
+    private VendorProjection mapVendorWithAddresses(Vendors vendor) {
+        VendorProjection projection = vendorMapper.toProjection(vendor);
+        
+        // Load billing address if exists
+        if (vendor.getBillingAddrId() != null) {
+            try {
+                Integer billingAddrId = Integer.valueOf(vendor.getBillingAddrId());
+                projection.setBillingAddress(addressFacade.getAddressById(billingAddrId));
+            } catch (Exception e) {
+                // Handle invalid address ID or address not found
+            }
+        }
+        
+        // Load shipping address if exists
+        if (vendor.getShippingAddrId() != null) {
+            try {
+                Integer shippingAddrId = Integer.valueOf(vendor.getShippingAddrId());
+                projection.setShippingAddress(addressFacade.getAddressById(shippingAddrId));
+            } catch (Exception e) {
+                // Handle invalid address ID or address not found
+            }
+        }
+        
+        return projection;
     }
 }
