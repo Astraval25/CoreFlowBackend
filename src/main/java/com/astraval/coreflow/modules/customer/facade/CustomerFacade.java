@@ -1,9 +1,14 @@
 package com.astraval.coreflow.modules.customer.facade;
 
-import com.astraval.coreflow.modules.customer.Customers;
 import java.util.List;
 
+import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
+import com.astraval.coreflow.modules.customer.dto.UpdateCustomerRequest;
+import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
+
 public interface CustomerFacade {
-    Customers getCustomerById(Integer customerId);
-    List<Customers> getCustomersByCompanyId(Integer companyId);
+    CustomerProjection createCustomer(Integer companyId, CreateCustomerRequest request);
+    List<CustomerProjection> getAllCustomers(Integer companyId);
+    CustomerProjection updateCustomer(Integer companyId, Long customerId, UpdateCustomerRequest request);
+    void deactivateCustomer(Integer companyId, Long customerId);
 }

@@ -10,9 +10,11 @@ import com.astraval.coreflow.modules.address.AddressRepository;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompaniesRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
+import com.astraval.coreflow.modules.customer.dto.UpdateCustomerRequest;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class CustomerService {
@@ -33,16 +35,12 @@ public class CustomerService {
     private SecurityUtil securityUtil;
     
     @Transactional
-    public CustomerProjection createCustomer(CreateCustomerRequest request) {
-        // Get current user's company
+    public CustomerProjection createCustomer(Integer companyId, CreateCustomerRequest request) {
+        // Get current user info
         String userIdStr = securityUtil.getCurrentSub();
         Integer userId = Integer.valueOf(userIdStr);
         
-        // Get company from JWT claims
-        Integer companyId = securityUtil.getCurrentCompanyId();
-        if (companyId == null) {
-            throw new RuntimeException("Company ID not found in token");
-        }
+        // Get company by provided companyId
         Companies company = companiesRepository.findById(companyId)
             .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
         
@@ -78,5 +76,58 @@ public class CustomerService {
         
         customer = customerRepository.save(customer);
         return customerMapper.toProjection(customer);
+    }
+    
+    public List<CustomerProjection> getAllCustomers(Integer companyId) {
+        
+        return customerRepository.findByCompanyCompanyIdAndIsActiveTrue(companyId)
+            .stream()
+            .map(customerMapper::toProjection)
+            .toList();
+    }
+    
+    @Transactional
+    public CustomerProjection updateCustomer(Integer companyId, Long customerId, UpdateCustomerRequest request) {
+        String userIdStr = securityUtil.getCurrentSub();
+        
+        Customers customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new RuntimeException("Customer not found"));
+            
+        if (!customer.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Customer does not belong to your company");
+        }
+        
+        // Update customer fields
+        customer.setCustomerName(request.getCustomerName());
+        customer.setDisplayName(request.getDisplayName());
+        customer.setEmail(request.getEmail());
+        customer.setPhone(request.getPhone());
+        customer.setLang(request.getLang());
+        customer.setPan(request.getPan());
+        customer.setGst(request.getGst());
+        customer.setAdvanceAmount(request.getAdvanceAmount());
+        customer.setUpdatedAt(LocalDateTime.now());
+        customer.setUpdateAt(Long.valueOf(userIdStr));
+        
+        customer = customerRepository.save(customer);
+        return customerMapper.toProjection(customer);
+    }
+    
+    @Transactional
+    public void deactivateCustomer(Integer companyId, Long customerId) {
+        String userIdStr = securityUtil.getCurrentSub();
+        
+        Customers customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new RuntimeException("Customer not found"));
+            
+        if (!customer.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Customer does not belong to your company");
+        }
+        
+        customer.setIsActive(false);
+        customer.setUpdatedAt(LocalDateTime.now());
+        customer.setUpdateAt(Long.valueOf(userIdStr));
+        
+        customerRepository.save(customer);
     }
 }
