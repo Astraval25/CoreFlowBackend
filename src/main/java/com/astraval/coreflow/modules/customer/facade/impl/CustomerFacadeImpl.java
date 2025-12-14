@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
+import com.astraval.coreflow.modules.customer.dto.UpdateCustomerRequest;
 import com.astraval.coreflow.modules.customer.facade.CustomerFacade;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
 
@@ -24,5 +25,15 @@ public class CustomerFacadeImpl implements CustomerFacade {
     @Override
     public List<CustomerProjection> getAllCustomers() {
         return customerService.getAllCustomers();
+    }
+
+    @Override
+    public CustomerProjection updateCustomer(Long customerId, UpdateCustomerRequest request) {
+        return customerService.updateCustomer(customerId, request);
+    }
+
+    @Override
+    public void deactivateCustomer(Long customerId) {
+        customerService.deactivateCustomer(customerId);
     }
 }

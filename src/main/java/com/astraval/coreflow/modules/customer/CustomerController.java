@@ -8,6 +8,7 @@ import com.astraval.coreflow.global.util.ApiResponseFactory;
 import java.util.List;
 
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
+import com.astraval.coreflow.modules.customer.dto.UpdateCustomerRequest;
 import com.astraval.coreflow.modules.customer.facade.CustomerFacade;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
 
@@ -35,6 +36,26 @@ public class CustomerController {
     try {
       List<CustomerProjection> customers = customerFacade.getAllCustomers();
       return ApiResponseFactory.accepted(customers, "Customers retrieved successfully");
+    } catch (Exception e) {
+      return ApiResponseFactory.badRequest(e.getMessage());
+    }
+  }
+  
+  @PutMapping("/{customerId}")
+  public ApiResponse<CustomerProjection> updateCustomer(@PathVariable Long customerId, @Valid @RequestBody UpdateCustomerRequest request) {
+    try {
+      CustomerProjection customer = customerFacade.updateCustomer(customerId, request);
+      return ApiResponseFactory.accepted(customer, "Customer updated successfully");
+    } catch (Exception e) {
+      return ApiResponseFactory.badRequest(e.getMessage());
+    }
+  }
+  
+  @DeleteMapping("/{customerId}")
+  public ApiResponse<Void> deactivateCustomer(@PathVariable Long customerId) {
+    try {
+      customerFacade.deactivateCustomer(customerId);
+      return ApiResponseFactory.accepted(null, "Customer deactivated successfully");
     } catch (Exception e) {
       return ApiResponseFactory.badRequest(e.getMessage());
     }

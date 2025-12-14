@@ -8,6 +8,7 @@ import com.astraval.coreflow.global.util.ApiResponseFactory;
 import java.util.List;
 
 import com.astraval.coreflow.modules.vendor.dto.CreateVendorRequest;
+import com.astraval.coreflow.modules.vendor.dto.UpdateVendorRequest;
 import com.astraval.coreflow.modules.vendor.facade.VendorFacade;
 import com.astraval.coreflow.modules.vendor.projection.VendorProjection;
 
@@ -35,6 +36,26 @@ public class VendorController {
     try {
       List<VendorProjection> vendors = vendorFacade.getAllVendors();
       return ApiResponseFactory.accepted(vendors, "Vendors retrieved successfully");
+    } catch (Exception e) {
+      return ApiResponseFactory.badRequest(e.getMessage());
+    }
+  }
+  
+  @PutMapping("/vendorId/{vendorId}")
+  public ApiResponse<VendorProjection> updateVendor(@PathVariable Long vendorId, @Valid @RequestBody UpdateVendorRequest request) {
+    try {
+      VendorProjection vendor = vendorFacade.updateVendor(vendorId, request);
+      return ApiResponseFactory.accepted(vendor, "Vendor updated successfully");
+    } catch (Exception e) {
+      return ApiResponseFactory.badRequest(e.getMessage());
+    }
+  }
+  
+  @DeleteMapping("/vendorId/{vendorId}")
+  public ApiResponse<Void> deactivateVendor(@PathVariable Long vendorId) {
+    try {
+      vendorFacade.deactivateVendor(vendorId);
+      return ApiResponseFactory.accepted(null, "Vendor deactivated successfully");
     } catch (Exception e) {
       return ApiResponseFactory.badRequest(e.getMessage());
     }

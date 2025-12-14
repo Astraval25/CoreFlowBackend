@@ -10,6 +10,7 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompaniesRepository;
 import com.astraval.coreflow.global.util.SecurityUtil;
 import com.astraval.coreflow.modules.vendor.dto.CreateVendorRequest;
+import com.astraval.coreflow.modules.vendor.dto.UpdateVendorRequest;
 import com.astraval.coreflow.modules.vendor.projection.VendorProjection;
 
 import java.time.LocalDateTime;
@@ -91,5 +92,52 @@ public class VendorService {
             .stream()
             .map(vendorMapper::toProjection)
             .toList();
+    }
+    
+    @Transactional
+    public VendorProjection updateVendor(Long vendorId, UpdateVendorRequest request) {
+        String userIdStr = securityUtil.getCurrentSub();
+        Integer companyId = securityUtil.getCurrentCompanyId();
+        
+        Vendors vendor = vendorRepository.findById(vendorId)
+            .orElseThrow(() -> new RuntimeException("Vendor not found"));
+            
+        if (!vendor.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Vendor does not belong to your company");
+        }
+        
+        // Update vendor fields
+        vendor.setVendorName(request.getVendorName());
+        vendor.setDisplayName(request.getDisplayName());
+        vendor.setEmail(request.getEmail());
+        vendor.setPhone(request.getPhone());
+        vendor.setLang(request.getLang());
+        vendor.setPan(request.getPan());
+        vendor.setGst(request.getGst());
+        vendor.setAdvanceAmount(request.getAdvanceAmount());
+        vendor.setUpdatedAt(LocalDateTime.now());
+        vendor.setUpdateAt(Long.valueOf(userIdStr));
+        
+        vendor = vendorRepository.save(vendor);
+        return vendorMapper.toProjection(vendor);
+    }
+    
+    @Transactional
+    public void deactivateVendor(Long vendorId) {
+        String userIdStr = securityUtil.getCurrentSub();
+        Integer companyId = securityUtil.getCurrentCompanyId();
+        
+        Vendors vendor = vendorRepository.findById(vendorId)
+            .orElseThrow(() -> new RuntimeException("Vendor not found"));
+            
+        if (!vendor.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Vendor does not belong to your company");
+        }
+        
+        vendor.setIsActive(false);
+        vendor.setUpdatedAt(LocalDateTime.now());
+        vendor.setUpdateAt(Long.valueOf(userIdStr));
+        
+        vendorRepository.save(vendor);
     }
 }

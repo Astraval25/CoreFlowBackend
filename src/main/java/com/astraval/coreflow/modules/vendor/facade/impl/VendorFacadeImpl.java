@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.astraval.coreflow.modules.vendor.VendorService;
 import com.astraval.coreflow.modules.vendor.dto.CreateVendorRequest;
+import com.astraval.coreflow.modules.vendor.dto.UpdateVendorRequest;
 import com.astraval.coreflow.modules.vendor.facade.VendorFacade;
 import com.astraval.coreflow.modules.vendor.projection.VendorProjection;
 
@@ -24,5 +25,15 @@ public class VendorFacadeImpl implements VendorFacade {
     @Override
     public List<VendorProjection> getAllVendors() {
         return vendorService.getAllVendors();
+    }
+
+    @Override
+    public VendorProjection updateVendor(Long vendorId, UpdateVendorRequest request) {
+        return vendorService.updateVendor(vendorId, request);
+    }
+
+    @Override
+    public void deactivateVendor(Long vendorId) {
+        vendorService.deactivateVendor(vendorId);
     }
 }

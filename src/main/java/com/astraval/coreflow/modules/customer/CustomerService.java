@@ -10,6 +10,7 @@ import com.astraval.coreflow.modules.address.AddressRepository;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompaniesRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateCustomerRequest;
+import com.astraval.coreflow.modules.customer.dto.UpdateCustomerRequest;
 import com.astraval.coreflow.modules.customer.projection.CustomerProjection;
 
 import java.time.LocalDateTime;
@@ -91,5 +92,52 @@ public class CustomerService {
             .stream()
             .map(customerMapper::toProjection)
             .toList();
+    }
+    
+    @Transactional
+    public CustomerProjection updateCustomer(Long customerId, UpdateCustomerRequest request) {
+        String userIdStr = securityUtil.getCurrentSub();
+        Integer companyId = securityUtil.getCurrentCompanyId();
+        
+        Customers customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new RuntimeException("Customer not found"));
+            
+        if (!customer.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Customer does not belong to your company");
+        }
+        
+        // Update customer fields
+        customer.setCustomerName(request.getCustomerName());
+        customer.setDisplayName(request.getDisplayName());
+        customer.setEmail(request.getEmail());
+        customer.setPhone(request.getPhone());
+        customer.setLang(request.getLang());
+        customer.setPan(request.getPan());
+        customer.setGst(request.getGst());
+        customer.setAdvanceAmount(request.getAdvanceAmount());
+        customer.setUpdatedAt(LocalDateTime.now());
+        customer.setUpdateAt(Long.valueOf(userIdStr));
+        
+        customer = customerRepository.save(customer);
+        return customerMapper.toProjection(customer);
+    }
+    
+    @Transactional
+    public void deactivateCustomer(Long customerId) {
+        String userIdStr = securityUtil.getCurrentSub();
+        Integer companyId = securityUtil.getCurrentCompanyId();
+        
+        Customers customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new RuntimeException("Customer not found"));
+            
+        if (!customer.getCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Customer does not belong to your company");
+        }
+        
+        customer.setIsActive(false);
+        customer.setUpdatedAt(LocalDateTime.now());
+        customer.setUpdateAt(Long.valueOf(userIdStr));
+        
+        customerRepository.save(customer);
     }
 }
