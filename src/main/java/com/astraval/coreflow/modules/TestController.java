@@ -15,16 +15,20 @@ public class TestController {
 
     @GetMapping("/hash/{password}")
     public String hashPassword(@PathVariable String password) {
+        try {
+            log.info("INFO: Hash request received for password: {}", password);
+            log.debug("DEBUG: Debugging information for password: {}", password);
+            log.warn("WARN: Password hashing is being used for testing only");
 
-        log.info("INFO: Hash request received for password: {}", password);
-        log.debug("DEBUG: Debugging information for password: {}", password);
-        log.warn("WARN: Password hashing is being used for testing only");
+            // Actual hashing
+            String hashed = passwordEncoder.encode(password);
+            log.info("INFO: Hashed password generated successfully");
 
-        // Actual hashing
-        String hashed = passwordEncoder.encode(password);
-        log.info("INFO: Hashed password generated successfully");
-
-        return hashed;
+            return hashed;
+        } catch (Exception e) {
+            log.error("ERROR: Password hashing failed", e);
+            throw new RuntimeException("Password hashing failed");
+        }
     }
 
     @GetMapping("")

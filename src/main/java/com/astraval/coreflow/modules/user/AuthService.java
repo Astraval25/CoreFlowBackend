@@ -134,18 +134,30 @@ public class AuthService {
                     .getBody();
             
             String userIdStr = claims.getSubject();
-            Integer userId = Integer.valueOf(userIdStr);
+            if (userIdStr == null) {
+                throw new InvalidCredentialsException("Invalid token subject");
+            }
+            
+            Integer userId;
+            try {
+                userId = Integer.valueOf(userIdStr);
+            } catch (NumberFormatException e) {
+                throw new InvalidCredentialsException("Invalid user ID format");
+            }
+            
             String tokenType = claims.get("type", String.class);
             
             if (!"refresh".equals(tokenType)) {
                 throw new InvalidCredentialsException("Invalid token type");
             }
             
-            UserRoleMap roleMap = userRoleMapRepository.findByUserIdAndIsActiveTrue(userId).orElseThrow();
+            UserRoleMap roleMap = userRoleMapRepository.findByUserIdAndIsActiveTrue(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("User role not found"));
             Role role = roleMap.getRole();
             
             // Generate new access token
-            User user = userRepository.findById(userId).orElseThrow();
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidCredentialsException("User not found"));
             
             String newToken = Jwts.builder()
                     .setSubject(userId.toString())

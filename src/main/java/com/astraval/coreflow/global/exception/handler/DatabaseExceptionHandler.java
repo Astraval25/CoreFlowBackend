@@ -16,11 +16,7 @@ public class DatabaseExceptionHandler {
 
     @ExceptionHandler(DatabaseOperationException.class)
     public ResponseEntity<ApiResponse<?>> handleDatabaseOperationError(DatabaseOperationException ex) {
-
-        log.error("Database operation error: {}", ex.getMessage());
-
-        ApiResponse<?> response = ApiResponseFactory.error(ex.getMessage(), 500);
-
-        return ResponseEntity.status(500).body(response);
+        log.error("Database operation error", ex);
+        return ResponseEntity.status(500).body(ApiResponseFactory.error(ex.getMessage(), 500));
     }
 }

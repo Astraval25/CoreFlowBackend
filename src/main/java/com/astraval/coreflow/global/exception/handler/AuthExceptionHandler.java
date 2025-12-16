@@ -17,15 +17,13 @@ public class AuthExceptionHandler {
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiResponse<?>> handleInvalidCredentials(InvalidCredentialsException ex) {
-        log.warn("Auth error: {}", ex.getMessage());
-        ApiResponse<?> response = ApiResponseFactory.error(ex.getMessage(), 400);
-        return ResponseEntity.status(400).body(response);
+        log.warn("Auth error", ex);
+        return ResponseEntity.status(400).body(ApiResponseFactory.error(ex.getMessage(), 400));
     }
 
     @ExceptionHandler(UserNotActiveException.class)
     public ResponseEntity<ApiResponse<?>> handleUserNotActive(UserNotActiveException ex) {
-        log.warn("User not active: {}", ex.getMessage());
-        ApiResponse<?> response = ApiResponseFactory.error(ex.getMessage(), 403);
-        return ResponseEntity.status(403).body(response);
+        log.warn("User not active", ex);
+        return ResponseEntity.status(403).body(ApiResponseFactory.error(ex.getMessage(), 403));
     }
 }

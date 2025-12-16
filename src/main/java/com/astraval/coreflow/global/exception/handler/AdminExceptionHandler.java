@@ -17,15 +17,13 @@ public class AdminExceptionHandler {
 
     @ExceptionHandler(AdminAccessDeniedException.class)
     public ResponseEntity<ApiResponse<?>> handleAdminAccessDenied(AdminAccessDeniedException ex) {
-        log.warn("Admin access denied: {}", ex.getMessage());
-        ApiResponse<?> response = ApiResponseFactory.error(ex.getMessage(), 403);
-        return ResponseEntity.status(403).body(response);
+        log.warn("Admin access denied: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(403).body(ApiResponseFactory.error(ex.getMessage(), 403));
     }
 
     @ExceptionHandler(AdminNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleAdminNotFound(AdminNotFoundException ex) {
-        log.warn("Admin not found: {}", ex.getMessage());
-        ApiResponse<?> response = ApiResponseFactory.error(ex.getMessage(), 404);
-        return ResponseEntity.status(404).body(response);
+        log.warn("Admin not found", ex);
+        return ResponseEntity.status(404).body(ApiResponseFactory.error(ex.getMessage(), 404));
     }
 }

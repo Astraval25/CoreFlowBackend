@@ -58,11 +58,9 @@ public class SecurityConfig {
             response.getWriter().write("""
                 {
                     "error": "unauthorized",
-                    "message": "Authentication required. Please login first.",
-                    "path": "%s"
+                    "message": "Authentication required. Please login first."
                 }
-                """.formatted(request.getRequestURI())
-            );
+                """);
         };
     }
 
@@ -75,15 +73,9 @@ public class SecurityConfig {
             response.getWriter().write("""
                 {
                     "error": "access_denied",
-                    "message": "Insufficient permissions. Requires Admin role.",
-                    "userId": "%s",
-                    "path": "%s"
+                    "message": "Insufficient permissions. Requires Admin role."
                 }
-                """.formatted(
-                    SecurityContextHolder.getContext().getAuthentication().getName(),
-                    request.getRequestURI()
-                )
-            );
+                """);
         };
     }
     

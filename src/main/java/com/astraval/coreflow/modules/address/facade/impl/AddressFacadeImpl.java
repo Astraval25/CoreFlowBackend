@@ -17,6 +17,7 @@ public class AddressFacadeImpl implements AddressFacade {
 
     @Override
     public Address createAddress(Address address) {
+        // Authorization handled by calling service (CustomerService/VendorService)
         return addressService.createAddress(address);
     }
 

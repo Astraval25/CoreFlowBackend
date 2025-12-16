@@ -50,6 +50,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("JWT Filter - Processing token for path: {}, token: {}...", path, token.substring(0, Math.min(20, token.length())));
         
         try {
+            if (jwtSecret == null || jwtSecret.isEmpty()) {
+                log.error("JWT secret is null or empty");
+                filterChain.doFilter(request, response);
+                return;
+            }
+            
             byte[] keyBytes = jwtSecret.getBytes();
             if (keyBytes.length < 32) {
                 byte[] paddedKey = new byte[32];
@@ -57,13 +63,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 keyBytes = paddedKey;
             }
             
-            Claims claims = Jwts.parserBuilder()
-                .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+            Claims claims;
+            try {
+                var signingKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+                if (signingKey == null) {
+                    log.warn("JWT Filter - Signing key creation failed");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                
+                claims = Jwts.parserBuilder()
+                    .setSigningKey(signingKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            } catch (Exception parseException) {
+                log.warn("JWT Filter - Token parsing failed: {}", parseException.getMessage(), parseException);
+                filterChain.doFilter(request, response);
+                return;
+            }
+            
+            if (claims == null) {
+                log.warn("JWT Filter - Claims are null");
+                filterChain.doFilter(request, response);
+                return;
+            }
             
             String userId = claims.getSubject();
+            if (userId == null) {
+                log.warn("JWT Filter - No subject in token");
+                filterChain.doFilter(request, response);
+                return;
+            }
+            
             String roleCode = claims.get("roleCode", String.class);
             
             // ✅ FIX 3: HANDLE NULL roleCode
@@ -84,7 +116,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.info("JWT Filter - ✅ Authenticated user: {} with role: ROLE_{}", userId, roleCode.toUpperCase());
             
         } catch (Exception e) {
-            log.warn("JWT Filter - Invalid token: {}", e.getMessage());
+            log.warn("JWT Filter - Invalid token: {}", e.getMessage(), e);
             // Continue without authentication (will hit .authenticated() rules)
         }
         
