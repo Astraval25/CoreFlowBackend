@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class AdminCompaniesResponseDto {
     private Integer companyId;
     private String companyName;
+    private String userName;
 }

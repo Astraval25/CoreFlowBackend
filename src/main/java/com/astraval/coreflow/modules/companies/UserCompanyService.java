@@ -21,7 +21,7 @@ public class UserCompanyService {
     public List<AdminCompaniesResponseDto> getAllCompaniesByUserId(Integer userId) {
         return userCompanyMapRepository.findByUserUserId(userId)
             .stream()
-            .map(ucm -> companyMapper.toAdminCompanyResponseDto(ucm.getCompany()))
+            .map(ucm -> companyMapper.toAdminCompanyResponseDto(ucm))
             .collect(Collectors.toList());
     }
 }
