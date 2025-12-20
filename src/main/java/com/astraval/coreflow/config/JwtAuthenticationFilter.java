@@ -96,7 +96,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
             
-            String roleCode = claims.get("roleCode", String.class);
+            String roleCode = claims.get("role", String.class);
             
             // ✅ FIX 3: HANDLE NULL roleCode
             if (roleCode == null) {

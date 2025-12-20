@@ -3,6 +3,11 @@ package com.astraval.coreflow.modules.userrolemap;
 import lombok.Data;
 import java.time.LocalDateTime;
 
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+
 import com.astraval.coreflow.modules.role.Role;
 import com.astraval.coreflow.modules.user.User;
 
@@ -41,22 +46,26 @@ public class UserRoleMap {
     @JoinColumn(name = "role_id", nullable = false, insertable = false, updatable = false)
     private Role role;
 
-    // default fields...
     
+    // default fields...
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+    
+    @CreatedBy
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
 
-    @Column(name = "created_by", length = 100, nullable = false)
-    private String createdBy;
-
+    @CreatedDate
     @Column(name = "created_dt", nullable = false)
     private LocalDateTime createdDt;
 
-    @Column(name = "modified_by", length = 100)
-    private String modifiedBy;
+    @LastModifiedBy
+    @Column(name = "modified_by")
+    private Long lastModifiedBy;
 
+    @LastModifiedDate
     @Column(name = "modified_dt")
-    private LocalDateTime modifiedDt;
+    private LocalDateTime lastModifiedDt;
 
 
 }

@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.global.util.SecurityUtil;
+import com.astraval.coreflow.common.util.SecurityUtil;
 import com.astraval.coreflow.modules.address.dto.UpdateAddressRequest;
 import com.astraval.coreflow.modules.address.projection.AddressProjection;
 

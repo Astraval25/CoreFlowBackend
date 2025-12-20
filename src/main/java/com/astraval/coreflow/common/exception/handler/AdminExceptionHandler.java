@@ -1,0 +1,29 @@
+package com.astraval.coreflow.common.exception.handler;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.astraval.coreflow.common.exception.AdminAccessDeniedException;
+import com.astraval.coreflow.common.exception.AdminNotFoundException;
+import com.astraval.coreflow.common.util.ApiResponse;
+import com.astraval.coreflow.common.util.ApiResponseFactory;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestControllerAdvice
+public class AdminExceptionHandler {
+
+    @ExceptionHandler(AdminAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAdminAccessDenied(AdminAccessDeniedException ex) {
+        log.warn("Admin access denied: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(403).body(ApiResponseFactory.error(ex.getMessage(), 403));
+    }
+
+    @ExceptionHandler(AdminNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleAdminNotFound(AdminNotFoundException ex) {
+        log.warn("Admin not found", ex);
+        return ResponseEntity.status(404).body(ApiResponseFactory.error(ex.getMessage(), 404));
+    }
+}
