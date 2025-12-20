@@ -12,7 +12,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyMap;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "users")

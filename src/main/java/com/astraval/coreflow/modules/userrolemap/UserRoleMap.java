@@ -10,6 +10,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import com.astraval.coreflow.modules.role.Role;
 import com.astraval.coreflow.modules.user.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -37,11 +38,13 @@ public class UserRoleMap {
 
     @Column(name = "role_id", nullable = false)
     private Integer roleId;
-
+    
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
     private User user;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false, insertable = false, updatable = false)
     private Role role;

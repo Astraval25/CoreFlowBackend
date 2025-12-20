@@ -37,12 +37,13 @@ public class AuthService {
     public LoginResponse login(@Valid LoginRequest request) {
         Optional<User> userOpt = userService.runSelect(request.getEmail());
         
+        // Check the user name is correct 
         if (userOpt.isEmpty()) {
             throw new InvalidCredentialsException("Invalid credentials...");
         }
-        
         User user = userOpt.get();
         
+        // check the password is correct
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Invalid credentials..");
         }

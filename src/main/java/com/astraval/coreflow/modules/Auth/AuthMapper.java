@@ -24,6 +24,7 @@ public interface AuthMapper {
     @Mapping(source = "role.landingUrl", target = "landingUrl")
     @Mapping(source = "user.defaultCompany.companyId", target = "companyId")
     @Mapping(source = "user.defaultCompany.companyName", target = "companyName")
+    @Mapping(target = "companyIds", ignore = true)
     LoginResponse toLoginResponse(User user, Role role, String token, String refreshToken);
 
     // Optional: Map LoginRequest → User (useful for registration)

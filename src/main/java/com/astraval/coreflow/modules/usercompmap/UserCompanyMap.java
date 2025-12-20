@@ -10,7 +10,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.user.User;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;

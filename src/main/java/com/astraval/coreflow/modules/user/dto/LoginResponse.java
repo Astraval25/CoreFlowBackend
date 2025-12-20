@@ -1,9 +1,11 @@
 package com.astraval.coreflow.modules.user.dto;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Data
+@NoArgsConstructor
 public class LoginResponse {
     private String token;
     private String refreshToken;
@@ -23,5 +25,9 @@ public class LoginResponse {
         this.companyId = companyId;
         this.companyName = companyName;
         this.companyIds = companyIds;
+    }
+    
+    public LoginResponse(String token, String refreshToken, Integer userId, String roleCode, String landingUrl, Integer companyId, String companyName) {
+        this(token, refreshToken, userId, roleCode, landingUrl, companyId, companyName, null);
     }
 }

@@ -3,14 +3,6 @@ package com.astraval.coreflow.modules.role;
 import jakarta.persistence.*;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
-
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-
-
 @Entity
 @Table(name = "roles")
 @Getter
@@ -29,6 +21,4 @@ public class Role {
 
     @Column(name = "landing_url", length = 200)
     private String landingUrl;
-
-
 }
