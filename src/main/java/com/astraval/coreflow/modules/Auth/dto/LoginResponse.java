@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.user.dto;
+package com.astraval.coreflow.modules.Auth.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

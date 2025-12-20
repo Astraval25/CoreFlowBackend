@@ -3,7 +3,7 @@ package com.astraval.coreflow.modules.Auth;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
-import com.astraval.coreflow.modules.user.dto.LoginResponse;
+import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
