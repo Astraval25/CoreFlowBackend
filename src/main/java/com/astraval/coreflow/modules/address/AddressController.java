@@ -3,10 +3,9 @@ package com.astraval.coreflow.modules.address;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import com.astraval.coreflow.global.util.ApiResponse;
-import com.astraval.coreflow.global.util.ApiResponseFactory;
+import com.astraval.coreflow.common.util.ApiResponse;
+import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.address.dto.UpdateAddressRequest;
-import com.astraval.coreflow.modules.address.facade.AddressFacade;
 import com.astraval.coreflow.modules.address.projection.AddressProjection;
 
 import jakarta.validation.Valid;
@@ -16,7 +15,7 @@ import jakarta.validation.Valid;
 public class AddressController {
 
   @Autowired
-  private AddressFacade addressFacade;
+  private AddressService addressFacade;
 
   @GetMapping("/addressId/{addressId}")
   public ApiResponse<AddressProjection> getAddress(@PathVariable Integer addressId) {

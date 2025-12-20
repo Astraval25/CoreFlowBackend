@@ -3,8 +3,14 @@ package com.astraval.coreflow.modules.usercompmap;
 
 import java.time.LocalDateTime;
 
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.user.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,6 +32,8 @@ public class UserCompanyMap {
     @Column(name = "user_comp_map_id")
     private Integer userCompId;
 
+    // @JsonBackReference
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -35,21 +43,24 @@ public class UserCompanyMap {
     private Companies company;
 
     // default fields...
-
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+    
+    @CreatedBy
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
 
-    @Column(name = "created_by", length = 100, nullable = false)
-    private String createdBy;
-
+    @CreatedDate
     @Column(name = "created_dt", nullable = false)
     private LocalDateTime createdDt;
 
-    @Column(name = "modified_by", length = 100)
-    private String modifiedBy;
+    @LastModifiedBy
+    @Column(name = "modified_by")
+    private Long lastModifiedBy;
 
+    @LastModifiedDate
     @Column(name = "modified_dt")
-    private LocalDateTime modifiedDt;
+    private LocalDateTime lastModifiedDt;
 
 
 }

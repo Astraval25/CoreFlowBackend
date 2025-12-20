@@ -1,13 +1,11 @@
 package com.astraval.coreflow.modules.role;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import java.time.LocalDateTime;
-
+import lombok.Getter;
 
 @Entity
 @Table(name = "roles")
-@Data
+@Getter
 public class Role {
 
     @Id
@@ -23,24 +21,4 @@ public class Role {
 
     @Column(name = "landing_url", length = 200)
     private String landingUrl;
-
-    // default fields
-    
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
-
-    @Column(name = "created_by", length = 100, nullable = false)
-    private String createdBy;
-
-    @Column(name = "created_dt", nullable = false)
-    private LocalDateTime createdDt;
-
-    @Column(name = "modified_by", length = 100, nullable = true)
-    private String modifiedBy;
-
-    @Column(name = "modified_dt", nullable = true)
-    private LocalDateTime modifiedDt;
-
-    // @OneToMany(mappedBy = "role")
-    // private List<UserRoleMap> mappedUsers;
 }
