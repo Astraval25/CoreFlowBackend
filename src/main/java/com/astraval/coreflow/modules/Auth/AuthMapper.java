@@ -8,7 +8,6 @@ import org.mapstruct.factory.Mappers;
 import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
 import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
 import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
-import com.astraval.coreflow.modules.Auth.dto.RegisterResponse;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.role.Role;
 import com.astraval.coreflow.modules.user.User;
@@ -27,12 +26,7 @@ public interface AuthMapper {
     @Mapping(target = "companyIds", ignore = true)
     LoginResponse toLoginResponse(User user, Role role, String token, String refreshToken);
 
-    // Optional: Map LoginRequest → User (useful for registration)
-    @BeanMapping(ignoreByDefault = true)
-    @Mapping(source = "email", target = "email")
-    @Mapping(source = "password", target = "password")
-    User toUser(LoginRequest loginRequest);
-
+    // For registration
     @BeanMapping(ignoreByDefault = true)
     @Mapping(source = "firstName", target = "firstName")
     @Mapping(source = "lastName", target = "lastName")
@@ -45,15 +39,4 @@ public interface AuthMapper {
     @Mapping(source = "industry", target = "industry")
     Companies toCompany(RegisterRequest registerRequest);
 
-    @Mapping(source = "user.userId", target = "userId")
-    @Mapping(source = "user.userName", target = "userName")
-    @Mapping(source = "user.email", target = "email")
-    @Mapping(source = "user.firstName", target = "firstName")
-    @Mapping(source = "user.lastName", target = "lastName")
-    @Mapping(source = "company.companyId", target = "companyId")
-    @Mapping(source = "company.companyName", target = "companyName")
-    @Mapping(source = "company.industry", target = "industry")
-    @Mapping(source = "role.roleCode", target = "roleCode")
-    RegisterResponse toRegisterResponse(User user, Companies company, Role role, String accessToken,
-            String refreshToken);
 }

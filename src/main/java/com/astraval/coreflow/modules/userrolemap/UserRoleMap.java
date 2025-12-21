@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.role.Role;
 import com.astraval.coreflow.modules.user.User;
@@ -14,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -25,6 +27,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "user_role_map")
+@EntityListeners(AuditingEntityListener.class)
 @Data
 public class UserRoleMap {
 
@@ -36,8 +39,8 @@ public class UserRoleMap {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
-    @Column(name = "role_id", nullable = false)
-    private Integer roleId;
+    @Column(name = "role_code", nullable = false)
+    private String roleCode;
     
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
@@ -46,7 +49,7 @@ public class UserRoleMap {
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "role_code", nullable = false, insertable = false, updatable = false)
     private Role role;
 
     
