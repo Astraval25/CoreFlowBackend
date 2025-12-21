@@ -4,12 +4,17 @@ import com.astraval.coreflow.common.exception.InvalidCredentialsException;
 import com.astraval.coreflow.common.util.JwtUtil;
 import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
 import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
+import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
+import com.astraval.coreflow.modules.Auth.dto.RegisterResponse;
+import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.user.User;
 import com.astraval.coreflow.modules.user.UserService;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyMap;
 import com.astraval.coreflow.modules.userrolemap.UserRoleMap;
 import com.astraval.coreflow.modules.userrolemap.UserRoleMapRepository;
 
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,21 +38,36 @@ public class AuthService {
 
     @Autowired
     private UserRoleMapRepository userRoleMapRepository;
+    
+    @Autowired
+    private CompanyRepository companyRepository;
 
     public LoginResponse login(@Valid LoginRequest request) {
-        Optional<User> userOpt = userService.runSelect(request.getEmail());
+        Optional<User> userOpt = userService.findUserByEmail(request.getEmail());
         
         // Check the user name is correct 
         if (userOpt.isEmpty()) {
-            throw new InvalidCredentialsException("Invalid credentials...");
+            throw new InvalidCredentialsException("In valid gmail... or User Not Found...");
         }
         User user = userOpt.get();
         
         // check the password is correct
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Invalid credentials..");
+            throw new InvalidCredentialsException("In valid Password..");
         }
         
+        if (user.isVerified() == false) {
+            return new LoginResponse(
+                    null,
+                    null,
+                    user.getUserId().intValue(),
+                    null,
+                    "/verify/user",
+
+                    null,
+                    null);
+        }
+
         // Get user role and companies
         String roleCode = getUserRole(user);
         List<Long> companyIds = getUserCompanyIds(user);
@@ -80,8 +100,7 @@ public class AuthService {
     private List<Long> getUserCompanyIds(User user) {
         return user.getCompanyMapping().stream()
             .filter(mapping -> mapping.getIsActive())
-            .map(UserCompanyMap::getCompany)
-            .map(company -> company.getCompanyId().longValue())
+            .map(mapping -> mapping.getCompany().getCompanyId())
             .toList();
     }
     
@@ -92,4 +111,25 @@ public class AuthService {
         }
         return userRoles.get(0).getRole().getLandingUrl();
     }
+
+    @Transactional
+    public RegisterResponse registerNewUser(RegisterRequest dto) {
+        // 1. Create company
+        Companies newCompany = new Companies();
+        newCompany.setCompanyName(dto.getCompanyName());
+        newCompany.setIndustry(dto.getIndustry());
+        newCompany.setPan(dto.getPan());
+        companyRepository.save(newCompany);
+        // 2. Create user
+
+        // 3. Set default company
+
+        // 4. Assign default role
+
+        // 5. Map user to company
+
+        // 6. Return response
+        return new RegisterResponse();
+    }
+
 }

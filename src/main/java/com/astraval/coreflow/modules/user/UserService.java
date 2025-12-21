@@ -16,7 +16,7 @@ public class UserService {
   }
 
   @Transactional(readOnly = true)
-  public Optional<User> runSelect(String email) {
+  public Optional<User> findUserByEmail(String email) {
     return  userRepository.findActiveUserByEmail(email);
   
   }

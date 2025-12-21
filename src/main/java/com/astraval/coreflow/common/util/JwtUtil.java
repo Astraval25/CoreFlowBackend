@@ -21,7 +21,7 @@ public class JwtUtil {
     @Value("${jwt.refresh.expiration:86400}")
     private int refreshExpiration;
 
-    public String generateToken(Long userId, String role, List<Long> companyIds, Integer defaultCompanyId, String defaultCompanyName) {
+    public String generateToken(Long userId, String role, List<Long> companyIds, Long defaultCompanyId, String defaultCompanyName) {
         List<Object> defaultComp = List.of(defaultCompanyId, defaultCompanyName);
 
         return Jwts.builder()

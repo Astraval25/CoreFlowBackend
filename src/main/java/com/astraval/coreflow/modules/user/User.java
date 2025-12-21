@@ -39,8 +39,11 @@ public class User {
     @Column(name = "contact_no", length = 10)
     private String contactNo;
 
-    @Column(name = "email" ,length = 100, nullable = false)
+    @Column(name = "email", length = 100, nullable = false)
     private String email;
+
+    @Column(name = "verified")
+    private boolean verified = false;
 
     @OneToOne
     @JoinColumn(name = "default_company_id", nullable = false)
