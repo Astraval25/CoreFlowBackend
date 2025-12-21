@@ -15,6 +15,7 @@ import com.astraval.coreflow.modules.usercompmap.UserCompanyMap;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyMapRepository;
 import com.astraval.coreflow.modules.userrolemap.UserRoleMap;
 import com.astraval.coreflow.modules.userrolemap.UserRoleMapRepository;
+import com.astraval.coreflow.modules.otp.OtpService;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -30,16 +31,18 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private UserService userService;
-    private JwtUtil jwtUtil;
-    private PasswordEncoder passwordEncoder;
-    private UserRoleMapRepository userRoleMapRepository;
-    private CompanyRepository companyRepository;
-    private UserCompanyMapRepository userCompanyMapRepository;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRoleMapRepository userRoleMapRepository;
+    private final CompanyRepository companyRepository;
+    private final UserCompanyMapRepository userCompanyMapRepository;
+    private final OtpService otpService;
 
     public AuthService(UserRepository userRepository, UserService userService, JwtUtil jwtUtil,
             PasswordEncoder passwordEncoder, UserRoleMapRepository userRoleMapRepository,
-            CompanyRepository companyRepository, UserCompanyMapRepository userCompanyMapRepository) {
+            CompanyRepository companyRepository, UserCompanyMapRepository userCompanyMapRepository,
+            OtpService otpService) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
@@ -47,6 +50,7 @@ public class AuthService {
         this.userRoleMapRepository = userRoleMapRepository;
         this.companyRepository = companyRepository;
         this.userCompanyMapRepository = userCompanyMapRepository;
+        this.otpService = otpService;
     }
 
 
@@ -140,6 +144,10 @@ public class AuthService {
         
         RegisterResponse response = new RegisterResponse();
         response.setEmail(newUser.getEmail());
+        
+        // Send OTP for email verification
+        otpService.sendOtp(newUser.getEmail());
+        
         return response;
     }
 
