@@ -22,7 +22,14 @@ public class OtpService {
     @Autowired
     private UserRepository userRepository;
 
+    @Transactional
     public void sendOtp(String email) {
+        // Check if user is already verified
+        Optional<User> userOpt = userRepository.findActiveUserByEmail(email);
+        if (userOpt.isPresent() && userOpt.get().isVerified()) {
+            throw new RuntimeException("User already verified");
+        }
+        
         String otp = generateOtp();
         
         otpRepository.deleteByEmail(email);

@@ -17,8 +17,15 @@ public class OtpController {
 
     @PostMapping("/send-otp")
     public ApiResponse<String> sendOtp(@Valid @RequestBody SendOtpRequest request) {
-        otpService.sendOtp(request.getEmail());
-        return ApiResponseFactory.accepted("OTP sent successfully", "OTP sent to " + request.getEmail());
+        try {
+            otpService.sendOtp(request.getEmail());
+            return ApiResponseFactory.accepted("OTP sent successfully", "OTP sent to " + request.getEmail());
+        } catch (RuntimeException e) {
+            if (e.getMessage().equals("User already verified")) {
+                return ApiResponseFactory.badRequest("User already verified");
+            }
+            throw e;
+        }
     }
 
     @PostMapping("/verify-otp")
