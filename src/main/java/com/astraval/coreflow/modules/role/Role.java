@@ -9,11 +9,7 @@ import lombok.Getter;
 public class Role {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="role_id")
-    private Integer roleId;
-
-    @Column(name = "role_code", length = 5)
+    @Column(name = "role_code", length = 50)
     private String roleCode;
 
     @Column(name = "role_name", length = 100, nullable = false)
