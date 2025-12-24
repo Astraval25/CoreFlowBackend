@@ -6,6 +6,7 @@ import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
 import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
 import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
 import com.astraval.coreflow.modules.Auth.dto.RegisterResponse;
+import com.astraval.coreflow.modules.Auth.dto.RefreshTokenRequest;
 
 import jakarta.validation.Valid;
 
@@ -32,6 +33,12 @@ public class AuthController {
     public ApiResponse<RegisterResponse> registerNewUser(@Valid @RequestBody RegisterRequest dto) {
         RegisterResponse response = authService.registerNewUser(dto);
         return ApiResponseFactory.created(response, "Register successful");
+    }
+    
+    @PostMapping("/refresh-token")
+    public ApiResponse<LoginResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        LoginResponse response = authService.refreshToken(request.getRefreshToken());
+        return ApiResponseFactory.accepted(response, "Token refreshed successfully");
     }
     
 }
