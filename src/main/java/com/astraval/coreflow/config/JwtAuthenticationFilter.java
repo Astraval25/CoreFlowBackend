@@ -15,10 +15,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import lombok.extern.slf4j.Slf4j;
 
 
-@Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     
@@ -30,7 +28,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         
         String path = request.getRequestURI();
-        log.info("🔍 JWT Filter START - Path: {}, Method: {}", path, request.getMethod());
         
         // ✅ FIX 1: SKIP PUBLIC ENDPOINTS
         if (path.startsWith("/api/auth/") || path.startsWith("/api/test/")) {
@@ -42,16 +39,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         // ✅ FIX 2: SKIP IF NO TOKEN
         if (token == null) {
-            log.warn("JWT Filter - No token found for path: {}", path);
             filterChain.doFilter(request, response);
             return;
         }
         
-        log.info("JWT Filter - Processing token for path: {}, token: {}...", path, token.substring(0, Math.min(20, token.length())));
         
         try {
             if (jwtSecret == null || jwtSecret.isEmpty()) {
-                log.error("JWT secret is null or empty");
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -67,7 +61,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 var signingKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
                 if (signingKey == null) {
-                    log.warn("JWT Filter - Signing key creation failed");
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -78,20 +71,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .parseClaimsJws(token)
                     .getBody();
             } catch (Exception parseException) {
-                log.warn("JWT Filter - Token parsing failed: {}", parseException.getMessage(), parseException);
                 filterChain.doFilter(request, response);
                 return;
             }
             
             if (claims == null) {
-                log.warn("JWT Filter - Claims are null");
                 filterChain.doFilter(request, response);
                 return;
             }
             
             String userId = claims.getSubject();
             if (userId == null) {
-                log.warn("JWT Filter - No subject in token");
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -100,7 +90,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             // ✅ FIX 3: HANDLE NULL roleCode
             if (roleCode == null) {
-                log.warn("JWT Filter - No roleCode in token for user: {}", userId);
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -113,10 +102,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 new UsernamePasswordAuthenticationToken(userId, null, authorities);
             authentication.setDetails(claims);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.info("JWT Filter - ✅ Authenticated user: {} with role: ROLE_{}", userId, roleCode.toUpperCase());
             
         } catch (Exception e) {
-            log.warn("JWT Filter - Invalid token: {}", e.getMessage(), e);
             // Continue without authentication (will hit .authenticated() rules)
         }
         
