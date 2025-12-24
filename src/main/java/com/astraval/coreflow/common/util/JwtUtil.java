@@ -1,5 +1,6 @@
 package com.astraval.coreflow.common.util;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,15 @@ public class JwtUtil {
                 .setId(UUID.randomUUID().toString())
                 .signWith(Keys.hmacShaKeyFor(getKeyBytes()))
                 .compact();
+    }
+    
+    public Long getUserIdFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(Keys.hmacShaKeyFor(getKeyBytes()))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return Long.parseLong(claims.getSubject());
     }
 
     private byte[] getKeyBytes() {

@@ -1,8 +1,10 @@
 package com.astraval.coreflow.modules.otp;
 
+import com.astraval.coreflow.common.util.EmailUtil;
+import com.astraval.coreflow.modules.emailtemplate.EmailTemplateService;
+import com.astraval.coreflow.modules.emailtemplate.dto.EmailTemplateDetails;
 import com.astraval.coreflow.modules.user.User;
 import com.astraval.coreflow.modules.user.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,14 +15,17 @@ import java.util.Random;
 @Service
 public class OtpService {
 
-    @Autowired
     private OtpRepository otpRepository;
-
-    @Autowired
-    private EmailService emailService;
-
-    @Autowired
+    private EmailUtil emailService;
     private UserRepository userRepository;
+    private EmailTemplateService emailTemplateService;
+
+    public OtpService(OtpRepository otpRepository, EmailUtil emailService, UserRepository userRepository, EmailTemplateService emailTemplateService) {
+        this.otpRepository = otpRepository;
+        this.emailService = emailService;
+        this.userRepository = userRepository;
+        this.emailTemplateService = emailTemplateService;
+    }
 
     @Transactional
     public void sendOtp(String email) {
@@ -40,7 +45,11 @@ public class OtpService {
         otpVerification.setExpiresAt(LocalDateTime.now().plusMinutes(10));
         otpRepository.save(otpVerification);
         
-        emailService.sendOtpEmail(email, otp);
+        // Get Emil Template for OTP sending
+        EmailTemplateDetails details = emailTemplateService.getEmailTemplateByName("OTP Verification");
+        String bodyTextData = details.getBodyText().replace("{{otp}}", otp);
+                
+        emailService.sendTextEmail(email, details.getSubject(), bodyTextData);
     }
 
     @Transactional

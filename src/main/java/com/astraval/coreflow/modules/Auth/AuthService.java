@@ -20,7 +20,6 @@ import com.astraval.coreflow.modules.otp.OtpService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -149,6 +148,33 @@ public class AuthService {
         otpService.sendOtp(newUser.getEmail());
         
         return response;
+    }
+    
+    public LoginResponse refreshToken(String refreshToken) {
+        try {
+            Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+            
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty() || !userOpt.get().getIsActive()) {
+                throw new InvalidCredentialsException("Invalid refresh token");
+            }
+            
+            User user = userOpt.get();
+            UserRoleMap userRole = getUserRoleMap(user);
+            List<Long> companyIds = getUserCompanyIds(user);
+            
+            String newToken = jwtUtil.generateToken(user.getUserId(), userRole.getRole().getRoleCode(), companyIds,
+                user.getDefaultCompany().getCompanyId(), user.getDefaultCompany().getCompanyName());
+            String newRefreshToken = jwtUtil.generateRefreshToken(user.getUserId());
+            
+            return new LoginResponse(
+                newToken, newRefreshToken, user.getUserId().intValue(), userRole.getRole().getRoleCode(),
+                userRole.getRole().getLandingUrl(), user.getDefaultCompany().getCompanyId(),
+                user.getDefaultCompany().getCompanyName(), companyIds
+            );
+        } catch (Exception e) {
+            throw new InvalidCredentialsException("Invalid refresh token");
+        }
     }
 
 }

@@ -5,7 +5,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
 import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
 import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
 import com.astraval.coreflow.modules.companies.Companies;
