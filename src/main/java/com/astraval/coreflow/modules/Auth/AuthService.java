@@ -2,6 +2,7 @@ package com.astraval.coreflow.modules.Auth;
 
 import com.astraval.coreflow.common.exception.InvalidCredentialsException;
 import com.astraval.coreflow.common.util.JwtUtil;
+import com.astraval.coreflow.common.util.LogUtil;
 import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
 import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
 import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
@@ -20,6 +21,7 @@ import com.astraval.coreflow.modules.otp.OtpService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
+import org.slf4j.Logger;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +30,8 @@ import java.util.Optional;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LogUtil.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final UserService userService;
@@ -61,7 +65,10 @@ public class AuthService {
         }
         User user = userOpt.get();
         
+        LogUtil.setUserId(user.getUserId().toString());
+        
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            log.warn("Login failed - invalid password for user: {}", user.getUserId());
             throw new InvalidCredentialsException("Invalid password");
         }
         
@@ -75,12 +82,17 @@ public class AuthService {
         List<Long> companyIds = getUserCompanyIds(user);
         
         if (user.getDefaultCompany() == null) {
+            log.error("User has no default company: {}", user.getUserId());
             throw new InvalidCredentialsException("User has no default company assigned");
         }
+        
+        LogUtil.setCompanyId(String.valueOf(user.getDefaultCompany().getCompanyId()));
         
         String token = jwtUtil.generateToken(user.getUserId(), userRole.getRole().getRoleCode(), companyIds, 
             user.getDefaultCompany().getCompanyId(), user.getDefaultCompany().getCompanyName());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
+        
+        log.info("Login successful for user: {}", user.getUserId());
         
         return new LoginResponse(
             token, refreshToken, user.getUserId().intValue(), userRole.getRole().getRoleCode(),
@@ -106,9 +118,16 @@ public class AuthService {
 
     @Transactional
     public RegisterResponse registerNewUser(RegisterRequest dto) {
-        // Check if user already exists
+        // Check if user already exists by email
         if (userService.findUserByEmail(dto.getEmail()).isPresent()) {
+            log.warn("Registration failed - email already exists: {}", dto.getEmail());
             throw new InvalidCredentialsException("User with this email already exists");
+        }
+        
+        // Check if username already exists
+        if (userRepository.findByUserNameAndIsActiveTrue(dto.getUserName()).isPresent()) {
+            log.warn("Registration failed - username already exists: {}", dto.getUserName());
+            throw new InvalidCredentialsException("Username already exists");
         }
         
         // 1. Create company
@@ -146,6 +165,7 @@ public class AuthService {
         
         // Send OTP for email verification
         otpService.sendOtp(newUser.getEmail());
+        log.info("Registration completed for user: {}", newUser.getUserId());
         
         return response;
     }
@@ -153,9 +173,11 @@ public class AuthService {
     public LoginResponse refreshToken(String refreshToken) {
         try {
             Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+            LogUtil.setUserId(userId.toString());
             
             Optional<User> userOpt = userRepository.findById(userId);
             if (userOpt.isEmpty() || !userOpt.get().getIsActive()) {
+                log.warn("Token refresh failed - invalid user: {}", userId);
                 throw new InvalidCredentialsException("Invalid refresh token");
             }
             
@@ -173,6 +195,7 @@ public class AuthService {
                 user.getDefaultCompany().getCompanyName(), companyIds
             );
         } catch (Exception e) {
+            log.error("Token refresh failed: {}", e.getMessage());
             throw new InvalidCredentialsException("Invalid refresh token");
         }
     }
