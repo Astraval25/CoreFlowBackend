@@ -23,14 +23,31 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         long start = System.currentTimeMillis();
+        String clientIp = getClientIpAddress(req);
 
         filterChain.doFilter(req, res);
 
         long time = System.currentTimeMillis() - start;
 
-        log.info("Request processed: method={}, status={}, time={}ms", 
+        log.info("Request processed: method={}, uri={}, ip={}, status={}, time={}ms", 
                 req.getMethod(),
+                req.getRequestURI(),
+                clientIp,
                 res.getStatus(),
                 time);
+    }
+    
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+        
+        return request.getRemoteAddr();
     }
 }

@@ -55,6 +55,9 @@ dependencies {
 	implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	
+	// logging
+	implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+	
 	// compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'

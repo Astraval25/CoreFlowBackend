@@ -17,5 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
         WHERE u.email = :email
             """)
     Optional<User> findActiveUserByEmail(@Param("email") String email);
+    
+    Optional<User> findByUserNameAndIsActiveTrue(@Param("userName") String userName);
 
 }
