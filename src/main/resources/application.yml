@@ -34,18 +34,8 @@ jwt:
 
 logging:
   level:
-    com.app: INFO
-    org.springframework.security: WARN
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql.BasicBinder: WARN
-    org.springframework.web: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/coreflow.log
-  logback:
-    rollingpolicy:
-      max-file-size: 10MB
-      max-history: 30
-      total-size-cap: 1GB
+    com.astraval.coreflow: INFO
+    org.springframework.security: ERROR
+    org.hibernate: ERROR
+    org.springframework.web: ERROR
+    org.apache.tomcat: ERROR
