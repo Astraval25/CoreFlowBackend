@@ -1,15 +1,29 @@
 package com.astraval.coreflow.modules.customer;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.astraval.coreflow.modules.companies.Companies;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "customers")
-@Data
+@EntityListeners(AuditingEntityListener.class)
 public class Customers {
 
     @Id
@@ -23,10 +37,10 @@ public class Customers {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_comp_id")
-    private Companies customerCompany;
+    private Companies customerCompany = null;
 
     @Column(name = "accepted_invitation_id")
-    private String acceptedInvitationId;
+    private String acceptedInvitationId = null;
 
     @Column(name = "customer_name", nullable = false)
     private String customerName;
@@ -51,6 +65,9 @@ public class Customers {
 
     @Column(name = "advance_amount")
     private BigDecimal advanceAmount;
+    
+    @Column(name = "same_as_billing_address")
+    private boolean sameAsBillingAddress;
 
     @Column(name = "billing_addr_id")
     private String billingAddrId;
@@ -58,18 +75,24 @@ public class Customers {
     @Column(name = "shipping_addr_id")
     private String shippingAddrId;
 
-    @Column(name = "is_active")
-    private Boolean isActive;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "created_by")
+    
+    // default fields...
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+    
+    @CreatedBy
+    @Column(name = "created_by", nullable = false)
     private Long createdBy;
 
-    @Column(name = "update_at")
-    private Long updateAt;
+    @CreatedDate
+    @Column(name = "created_dt", nullable = false)
+    private LocalDateTime createdDt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @LastModifiedBy
+    @Column(name = "modified_by")
+    private Long lastModifiedBy;
+
+    @LastModifiedDate
+    @Column(name = "modified_dt")
+    private LocalDateTime lastModifiedDt;
 }

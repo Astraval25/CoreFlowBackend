@@ -1,14 +1,14 @@
 package com.astraval.coreflow.modules.address;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.annotation.ReadOnlyProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.common.util.SecurityUtil;
-import com.astraval.coreflow.modules.address.dto.UpdateAddressRequest;
+import com.astraval.coreflow.modules.address.dto.CreateUpdateAddressDto;
 import com.astraval.coreflow.modules.address.projection.AddressProjection;
 
-import java.time.LocalDateTime;
 
 @Service
 public class AddressService {
@@ -26,7 +26,7 @@ public class AddressService {
     public Address createAddress(Address address) {
         return addressRepository.save(address);
     }
-    
+    @ReadOnlyProperty 
     public AddressProjection getAddressById(Integer addressId) {
         String currentUserId = securityUtil.getCurrentSub();
         
@@ -45,7 +45,7 @@ public class AddressService {
     }
     
     @Transactional
-    public AddressProjection updateAddress(Integer addressId, UpdateAddressRequest request) {
+    public AddressProjection updateAddress(Integer addressId, CreateUpdateAddressDto request) {
         String userIdStr = securityUtil.getCurrentSub();
         
         Address address = addressRepository.findById(addressId)
@@ -69,8 +69,6 @@ public class AddressService {
         address.setPincode(request.getPincode());
         address.setPhone(request.getPhone());
         address.setEmail(request.getEmail());
-        address.setModifiedBy(userIdStr);
-        address.setModifiedDt(LocalDateTime.now());
         
         address = addressRepository.save(address);
         return addressMapper.toProjection(address);
@@ -88,8 +86,6 @@ public class AddressService {
         }
         
         address.setIsActive(false);
-        address.setModifiedBy(userIdStr);
-        address.setModifiedDt(LocalDateTime.now());
         
         addressRepository.save(address);
     }
