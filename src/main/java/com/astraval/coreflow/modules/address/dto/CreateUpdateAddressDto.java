@@ -1,10 +1,12 @@
 package com.astraval.coreflow.modules.address.dto;
 
 import lombok.Data;
+
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 @Data
-public class UpdateAddressRequest {
+public class CreateUpdateAddressDto {
     private String attentionName;
     
     @NotBlank(message = "Country is required")
@@ -23,5 +25,7 @@ public class UpdateAddressRequest {
     
     private Integer pincode;
     private String phone;
+    
+    @Email(message = "Invalid email format")
     private String email;
 }

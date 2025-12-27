@@ -1,18 +1,29 @@
 package com.astraval.coreflow.modules.address;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
+
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+@Getter
+@Setter
+@EntityListeners(AuditingEntityListener.class)
 @Entity
 @Table(name = "address")
-@Data
 public class Address {
 
     @Id
@@ -46,19 +57,25 @@ public class Address {
 
     @Column(name = "email", length = 128)
     private String email;
+    
 
+    // default fields...
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @CreatedBy
     @Column(name = "created_by", nullable = false)
-    private String createdBy;
+    private Long createdBy;
 
+    @CreatedDate
     @Column(name = "created_dt", nullable = false)
     private LocalDateTime createdDt;
 
+    @LastModifiedBy
     @Column(name = "modified_by")
-    private String modifiedBy;
+    private Long lastModifiedBy;
 
+    @LastModifiedDate
     @Column(name = "modified_dt")
-    private LocalDateTime modifiedDt;
+    private LocalDateTime lastModifiedDt;
 }

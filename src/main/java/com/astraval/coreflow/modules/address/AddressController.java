@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.address.dto.UpdateAddressRequest;
+import com.astraval.coreflow.modules.address.dto.CreateUpdateAddressDto;
 import com.astraval.coreflow.modules.address.projection.AddressProjection;
 
 import jakarta.validation.Valid;
@@ -28,7 +28,7 @@ public class AddressController {
   }
   
   @PutMapping("/addressId/{addressId}")
-  public ApiResponse<AddressProjection> updateAddress(@PathVariable Integer addressId, @Valid @RequestBody UpdateAddressRequest request) {
+  public ApiResponse<AddressProjection> updateAddress(@PathVariable Integer addressId, @Valid @RequestBody CreateUpdateAddressDto request) {
     try {
       AddressProjection address = addressFacade.updateAddress(addressId, request);
       return ApiResponseFactory.accepted(address, "Address updated successfully");
