@@ -75,6 +75,24 @@ public class AddressService {
     }
     
     @Transactional
+    public void updateAddress(Integer addressId, Address updatedAddress) {
+        Address address = addressRepository.findById(addressId)
+            .orElseThrow(() -> new RuntimeException("Address not found"));
+            
+        address.setAttentionName(updatedAddress.getAttentionName());
+        address.setCountry(updatedAddress.getCountry());
+        address.setLine1(updatedAddress.getLine1());
+        address.setLine2(updatedAddress.getLine2());
+        address.setCity(updatedAddress.getCity());
+        address.setState(updatedAddress.getState());
+        address.setPincode(updatedAddress.getPincode());
+        address.setPhone(updatedAddress.getPhone());
+        address.setEmail(updatedAddress.getEmail());
+        
+        addressRepository.save(address);
+    }
+    
+    @Transactional
     public void deactivateAddress(Integer addressId) {
         String userIdStr = securityUtil.getCurrentSub();
         

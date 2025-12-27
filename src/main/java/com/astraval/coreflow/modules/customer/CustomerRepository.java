@@ -1,6 +1,7 @@
 package com.astraval.coreflow.modules.customer;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,11 +18,25 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
            "COALESCE(cc.companyName, ''), c.email) " +
            "FROM Customers c " +
            "LEFT JOIN c.customerCompany cc " +
-           "WHERE c.company.companyId = :companyId " +
+                  "WHERE c.company.companyId = :companyId " +
            "ORDER BY c.displayName")
     List<CustomerSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
     
-    List<Customers> findByCompanyCompanyIdAndIsActiveOrderByDisplayName(Long companyId, Boolean isActive);
+    @Query("SELECT new com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto(" +
+                  "c.customerId, c.displayName, " +
+                  "COALESCE(cc.companyName, ''), c.email) " +
+                  "FROM Customers c " +
+                  "LEFT JOIN c.customerCompany cc " +
+                  "WHERE c.company.companyId = :companyId " +
+                  "AND COALESCE(c.isActive, FALSE) = :isActive " +
+                  "ORDER BY c.displayName")
+    List<CustomerSummaryDto> findByCompanyCompanyIdAndIsActiveOrderByDisplayName(
+                  @Param("companyId") Long companyId, @Param("isActive") Boolean isActive);
     
     List<Customers> findByCompanyCompanyIdOrderByDisplayName(Long companyId);
+
+    Optional<Customers> findByCustomerIdAndCompanyCompanyId(
+                  Long customerId,
+                  Long companyId);
+
 }

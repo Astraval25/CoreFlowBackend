@@ -15,6 +15,7 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.astraval.coreflow.modules.address.Address;
 import com.astraval.coreflow.modules.companies.Companies;
 
 @Getter
@@ -69,11 +70,13 @@ public class Customers {
     @Column(name = "same_as_billing_address")
     private boolean sameAsBillingAddress;
 
-    @Column(name = "billing_addr_id")
-    private String billingAddrId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "billing_addr_id")
+    private Address billingAddrId;
 
-    @Column(name = "shipping_addr_id")
-    private String shippingAddrId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shipping_addr_id")
+    private Address shippingAddrId;
 
     
     // default fields...

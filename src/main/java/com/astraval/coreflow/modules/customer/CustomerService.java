@@ -12,7 +12,6 @@ import com.astraval.coreflow.modules.address.AddressService;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateUpdateCustomerDto;
-import com.astraval.coreflow.modules.customer.dto.CustomerDetailDto;
 import com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto;
 
 @Service
@@ -29,9 +28,6 @@ public class CustomerService {
     
     @Autowired
     private AddressMapper addressMapper;
-
-    @Autowired
-    private CustomerMapper customerMapper;
 
     @Transactional
     public Long createCustomer(Long companyId, CreateUpdateCustomerDto request) {
@@ -55,13 +51,13 @@ public class CustomerService {
             if (request.getBillingAddress() != null) {
                 Address billingAddress = addressMapper.toAddress(request.getBillingAddress());
                 Address savedBillingAddress = addressService.createAddress(billingAddress);
-                customer.setBillingAddrId(savedBillingAddress.getAddressId().toString());
+                customer.setBillingAddrId(savedBillingAddress);
             }
 
             if (request.getShippingAddress() != null && !request.isSameAsBillingAddress()) {
                 Address shippingAddress = addressMapper.toAddress(request.getShippingAddress());
                 Address savedShippingAddress = addressService.createAddress(shippingAddress);
-                customer.setShippingAddrId(savedShippingAddress.getAddressId().toString());
+                customer.setShippingAddrId(savedShippingAddress);
             } else if (request.isSameAsBillingAddress() && customer.getBillingAddrId() != null) {
                 customer.setShippingAddrId(customer.getBillingAddrId());
             }
@@ -74,7 +70,7 @@ public class CustomerService {
     }
 
     @Transactional
-    public void updateCustomer(Long customerId, CreateUpdateCustomerDto request) {
+    public void updateCustomer(Long companyId, Long customerId, CreateUpdateCustomerDto request) {
         try {
             Customers customer = customerRepository.findById(customerId)
                     .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
@@ -87,6 +83,33 @@ public class CustomerService {
             customer.setPan(request.getPan());
             customer.setGst(request.getGst());
             customer.setAdvanceAmount(request.getAdvanceAmount());
+            customer.setSameAsBillingAddress(request.isSameAsBillingAddress());
+
+            // Update billing address
+            if (request.getBillingAddress() != null) {
+                if (customer.getBillingAddrId() != null) {
+                    addressService.updateAddress(customer.getBillingAddrId().getAddressId(), 
+                            addressMapper.toAddress(request.getBillingAddress()));
+                } else {
+                    Address billingAddress = addressService.createAddress(addressMapper.toAddress(request.getBillingAddress()));
+                    customer.setBillingAddrId(billingAddress);
+                }
+            }
+
+            // Update shipping address
+            if (request.getShippingAddress() != null && !request.isSameAsBillingAddress()) {
+                if (customer.getShippingAddrId() != null) {
+                    addressService.updateAddress(customer.getShippingAddrId().getAddressId(), 
+                            addressMapper.toAddress(request.getShippingAddress()));
+                } else {
+                    Address shippingAddress = addressService.createAddress(addressMapper.toAddress(request.getShippingAddress()));
+                    customer.setShippingAddrId(shippingAddress);
+                }
+            } else if (request.isSameAsBillingAddress()) {
+                customer.setShippingAddrId(customer.getBillingAddrId());
+            }
+
+            customerRepository.save(customer);
             
         } catch (Exception e) {
             throw new RuntimeException("Failed to update customer: " + e.getMessage(), e);
@@ -97,7 +120,7 @@ public class CustomerService {
         return customerRepository.findByCompanyIdSummary(companyId);
     }
 
-    public List<Customers> getActiveCustomersByCompany(Long companyId) {
+    public List<CustomerSummaryDto> getActiveCustomersByCompany(Long companyId) {
         return customerRepository.findByCompanyCompanyIdAndIsActiveOrderByDisplayName(companyId, true);
     }
 
@@ -105,10 +128,10 @@ public class CustomerService {
         return customerRepository.findAll();
     }
 
-    public CustomerDetailDto getCustomerById(Long customerId) {
-        Customers customer = customerRepository.findById(customerId)
+    public Customers getCustomerById(Long companyId, Long customerId) {
+        Customers customer = customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
-        return customerMapper.toDetailDto(customer);
+        return customer;
     }
 
     @Transactional
