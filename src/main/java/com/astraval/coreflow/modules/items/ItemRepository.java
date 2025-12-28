@@ -1,0 +1,34 @@
+package com.astraval.coreflow.modules.items;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
+
+@Repository
+public interface ItemRepository extends JpaRepository<Items, Long> {
+    
+    @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
+           "i.itemId, i.itemName, i.itemCode, i.category, i.unit, " +
+           "i.sellingPrice, i.itemType, i.stockQuantity, i.isActive) " +
+           "FROM Items i " +
+           "WHERE i.company.companyId = :companyId " +
+           "ORDER BY i.itemName")
+    List<ItemSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
+    
+    @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
+           "i.itemId, i.itemName, i.itemCode, i.category, i.unit, " +
+           "i.sellingPrice, i.itemType, i.stockQuantity, i.isActive) " +
+           "FROM Items i " +
+           "WHERE i.company.companyId = :companyId " +
+           "AND i.isActive = true " +
+           "ORDER BY i.itemName")
+    List<ItemSummaryDto> findActiveByCompanyIdSummary(@Param("companyId") Long companyId);
+
+    Optional<Items> findByItemIdAndCompanyCompanyId(Long itemId, Long companyId);
+}
