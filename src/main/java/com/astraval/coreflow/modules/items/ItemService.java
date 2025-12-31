@@ -20,8 +20,6 @@ public class ItemService {
     @Autowired
     private CompanyRepository companyRepository;
 
-    @Autowired
-    private ItemMapper itemMapper;
 
     @Transactional
     public Long createItem(Long companyId, CreateUpdateItemDto request) {
