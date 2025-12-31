@@ -2,7 +2,6 @@ package com.astraval.coreflow.modules.orderitemdetails;
 
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.ManyToAny;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
