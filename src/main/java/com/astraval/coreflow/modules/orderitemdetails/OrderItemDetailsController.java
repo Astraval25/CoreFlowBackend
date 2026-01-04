@@ -24,7 +24,7 @@ public class OrderItemDetailsController {
             @PathVariable Long companyId,
             @PathVariable Long orderId,
             @PathVariable Long orderItemId,
-            @RequestBody Map<String, Integer> quantityUpdate) {
+            @RequestBody Map<String, Double> quantityUpdate) {
         try {
             orderItemDetailsService.updateOrderItemQuantity(orderItemId, quantityUpdate.get("quantity"));
             return ApiResponseFactory.updated(null, "Order item quantity updated successfully");

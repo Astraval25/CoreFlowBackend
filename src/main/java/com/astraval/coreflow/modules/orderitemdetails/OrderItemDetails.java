@@ -9,10 +9,13 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.items.Items;
+import com.astraval.coreflow.modules.items.UnitType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,6 +24,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -47,19 +51,26 @@ public class OrderItemDetails {
   private Items itemId;
   
   @Column(name = "quantity")
-  private Integer quantity;
+  private Double quantity;
   
   @Column(name = "base_price")
-  private Double basePrice;
+  private BigDecimal basePrice;
   
   @Column(name = "updated_price")
   private Double updatedPrice;
   
   @Column(name = "unit_of_measure")
-  private String unitOfMeasure;
+  @Enumerated(EnumType.STRING)
+  private UnitType unitOfMeasure;
+
+  @Column(name = "item_total")
+  private Double itemTotal;
+
+  @Column(name = "ready_status")
+  private Double readyStatus;
   
   @Column(name= "status")
-  private String status = "ORDER_CREATED";
+  private String status = null;
   
   
   // Default fields...

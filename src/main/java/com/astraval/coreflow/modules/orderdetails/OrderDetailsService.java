@@ -1,6 +1,7 @@
 package com.astraval.coreflow.modules.orderdetails;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,10 +11,13 @@ import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.ItemRepository;
+import com.astraval.coreflow.modules.items.Items;
 import com.astraval.coreflow.modules.orderauditlog.OrderAuditLogService;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
+import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsMapper;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
+import com.astraval.coreflow.modules.orderitemdetails.dto.CreateOrderItem;
 
 @Service
 public class OrderDetailsService {
@@ -62,11 +66,29 @@ public class OrderDetailsService {
         orderDetails.setOrderNumber(orderNumber);
         
         OrderDetails savedOrder = orderDetailsRepository.save(orderDetails);
-        
+        AtomicReference<Double> orderTotalAmount = new AtomicReference<>(0.0);
         // Create order items
-        // createOrder.getCreateOrderItems().forEach(createOrderItem -> {
-            
-        // });
+        createOrder.getOrderItems().forEach(newOrderItem -> {
+            OrderItemDetails orderItem = new OrderItemDetails();
+            Items item = itemRepository.findById(newOrderItem.getItemId())
+                    .orElseThrow(() -> new RuntimeException("Item not found"));
+
+            orderItem.setOrderId(savedOrder.getOrderId());
+            orderItem.setItemId(item);
+            orderItem.setQuantity(newOrderItem.getQuantity());
+            orderItem.setBasePrice(item.getSellingPrice());
+            orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
+            orderItem.setUnitOfMeasure(item.getUnit());
+            orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());
+            orderItem.setReadyStatus(0.0);
+            orderItem.setStatus(null); // as of now no need for item level status tracking
+            orderTotalAmount.updateAndGet(current -> current + orderItem.getItemTotal());
+            orderItemDetailsService.createOrderItem(orderItem);
+        });
+        
+        // Update order total amount
+        savedOrder.setOrderAmount(orderTotalAmount.get());
+        orderDetailsRepository.save(savedOrder);
         
         // Log order creation
         // orderAuditLogService.logOrderCreation(savedOrder.getOrderId());

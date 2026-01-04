@@ -32,11 +32,11 @@ public class OrderItemDetailsService {
     }
     
     @Transactional
-    public void updateOrderItemQuantity(Long orderItemId, Integer newQuantity) {
+    public void updateOrderItemQuantity(Long orderItemId, Double newQuantity) {
         OrderItemDetails orderItem = orderItemDetailsRepository.findById(orderItemId)
                 .orElseThrow(() -> new RuntimeException("Order item not found"));
         
-        Integer oldQuantity = orderItem.getQuantity();
+        Double oldQuantity = orderItem.getQuantity();
         orderItem.setQuantity(newQuantity);
         orderItemDetailsRepository.save(orderItem);
         

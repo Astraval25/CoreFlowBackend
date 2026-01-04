@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.orderdetails.dto;
+package com.astraval.coreflow.modules.orderitemdetails.dto;
 
 import lombok.Data;
 
