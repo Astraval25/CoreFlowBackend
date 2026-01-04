@@ -4,5 +4,6 @@ public record CustomerSummaryDto(
     Long customerId,
     String displayName,
     String customerCompanyName,
-    String email) {
+    String email,
+    Boolean isActive) {
 }

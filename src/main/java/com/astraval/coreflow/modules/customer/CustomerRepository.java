@@ -15,21 +15,21 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto(" +
            "c.customerId, c.displayName, " +
-           "COALESCE(cc.companyName, ''), c.email) " +
+           "COALESCE(cc.companyName, ''), c.email, c.isActive) " +
            "FROM Customers c " +
            "LEFT JOIN c.customerCompany cc " +
-                  "WHERE c.company.companyId = :companyId " +
+           "WHERE c.company.companyId = :companyId " +
            "ORDER BY c.displayName")
     List<CustomerSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto(" +
-                  "c.customerId, c.displayName, " +
-                  "COALESCE(cc.companyName, ''), c.email) " +
-                  "FROM Customers c " +
-                  "LEFT JOIN c.customerCompany cc " +
-                  "WHERE c.company.companyId = :companyId " +
-                  "AND COALESCE(c.isActive, FALSE) = :isActive " +
-                  "ORDER BY c.displayName")
+           "c.customerId, c.displayName, " +
+           "COALESCE(cc.companyName, ''), c.email, c.isActive) " +
+           "FROM Customers c " +
+           "LEFT JOIN c.customerCompany cc " +
+           "WHERE c.company.companyId = :companyId " +
+           "AND COALESCE(c.isActive, FALSE) = :isActive " +
+           "ORDER BY c.displayName")
     List<CustomerSummaryDto> findByCompanyCompanyIdAndIsActiveOrderByDisplayName(
                   @Param("companyId") Long companyId, @Param("isActive") Boolean isActive);
     
