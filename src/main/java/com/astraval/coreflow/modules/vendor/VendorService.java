@@ -98,16 +98,16 @@ public class VendorService {
             }
 
             // Update shipping address
-            if (request.getShippingAddress() != null && !request.isSameAsBillingAddress()) {
-                if (vendor.getShippingAddrId() != null) {
+            if (request.isSameAsBillingAddress()) {
+                vendor.setShippingAddrId(vendor.getBillingAddrId());
+            } else if (request.getShippingAddress() != null) {
+                if (vendor.getShippingAddrId() != null && !vendor.getShippingAddrId().equals(vendor.getBillingAddrId())) {
                     addressService.updateAddress(vendor.getShippingAddrId().getAddressId(), 
                             addressMapper.toAddress(request.getShippingAddress()));
                 } else {
                     Address shippingAddress = addressService.createAddress(addressMapper.toAddress(request.getShippingAddress()));
                     vendor.setShippingAddrId(shippingAddress);
                 }
-            } else if (request.isSameAsBillingAddress()) {
-                vendor.setShippingAddrId(vendor.getBillingAddrId());
             }
 
             vendorRepository.save(vendor);

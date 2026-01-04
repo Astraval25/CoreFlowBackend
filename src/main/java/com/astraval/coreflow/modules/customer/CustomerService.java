@@ -97,16 +97,16 @@ public class CustomerService {
             }
 
             // Update shipping address
-            if (request.getShippingAddress() != null && !request.isSameAsBillingAddress()) {
-                if (customer.getShippingAddrId() != null) {
+            if (request.isSameAsBillingAddress()) {
+                customer.setShippingAddrId(customer.getBillingAddrId());
+            } else if (request.getShippingAddress() != null) {
+                if (customer.getShippingAddrId() != null && !customer.getShippingAddrId().equals(customer.getBillingAddrId())) {
                     addressService.updateAddress(customer.getShippingAddrId().getAddressId(), 
                             addressMapper.toAddress(request.getShippingAddress()));
                 } else {
                     Address shippingAddress = addressService.createAddress(addressMapper.toAddress(request.getShippingAddress()));
                     customer.setShippingAddrId(shippingAddress);
                 }
-            } else if (request.isSameAsBillingAddress()) {
-                customer.setShippingAddrId(customer.getBillingAddrId());
             }
 
             customerRepository.save(customer);
