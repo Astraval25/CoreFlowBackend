@@ -9,11 +9,14 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.customer.Customers;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -34,10 +37,12 @@ public class OrderDetails {
 
   @Id
   @Column(name = "order_id")
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long orderId;
   
   @Column(name = "order_number")
-  private String orderNumber;  // ORD-YYYYMM-SEQ
+  private String orderNumber; // ORD-YYYYMM-SEQ - to generate this number use "SELECT
+                              // generate_order_number(:companyId);" function in database
 
   @Column(name = "order_date")
   private LocalDateTime orderDate;
@@ -50,6 +55,10 @@ public class OrderDetails {
   @JoinColumn(name = "buyer_company")
   private Companies buyerCompany;
   
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "customer")
+  private Customers customers;
+
   @Column(name = "order_amount")
   private Double orderAmount;
   
@@ -62,6 +71,9 @@ public class OrderDetails {
   @Column(name = "delivery_charge")
   private Double deliveryCharge;
   
+  @Column(name = "total_amount")
+  private Double totalAmount;
+
   @Column(name = "order_status")
   private String orderStatus;
   

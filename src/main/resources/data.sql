@@ -77,3 +77,31 @@ CoreFlow Team',
     1,
     NOW ()
   );
+
+-- - To Generate Sequence number for each order  
+CREATE TABLE company_order_sequence (
+  company_id BIGINT,
+  period CHAR(6), -- MMYYYY
+  last_value BIGINT,
+  PRIMARY KEY (company_id, period)
+);
+
+
+CREATE OR REPLACE FUNCTION generate_order_number(p_company_id BIGINT)
+RETURNS TEXT AS $$
+DECLARE
+  v_period TEXT := TO_CHAR(NOW(), 'MMYYYY');
+  v_next BIGINT;
+BEGIN
+  INSERT INTO company_order_sequence(company_id, period, last_value)
+  VALUES (p_company_id, v_period, 1)
+  ON CONFLICT (company_id, period)
+  DO UPDATE SET last_value = company_order_sequence.last_value + 1
+  RETURNING last_value INTO v_next;
+
+  RETURN 'ORD-' || v_period || '-' || v_next;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT generate_order_number(:companyId);
+
