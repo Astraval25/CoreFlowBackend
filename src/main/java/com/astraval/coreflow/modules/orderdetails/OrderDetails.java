@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.customer.Customers;
+import com.astraval.coreflow.modules.vendor.Vendors;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,23 +45,26 @@ public class OrderDetails {
   private String orderNumber; // ORD-YYYYMM-SEQ - to generate this number use "SELECT
                               // generate_order_number(:companyId);" function in database
 
+  @CreatedDate
   @Column(name = "order_date")
   private LocalDateTime orderDate;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "seller_company")
-  private Companies sellerCompany;
+  private Companies sellerCompany = null;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "buyer_company")
-  private Companies buyerCompany;
-  
+  private Companies buyerCompany = null;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "customer")
-  private Customers customers;
+  private Customers customers = null;
+  
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "vendor")
+  private Vendors vendors = null;
 
-  @Column(name = "order_amount")
-  private Double orderAmount;
   
   @Column(name = "tax_amount")
   private Double taxAmount;
@@ -70,6 +74,9 @@ public class OrderDetails {
   
   @Column(name = "delivery_charge")
   private Double deliveryCharge;
+  
+  @Column(name = "order_amount")
+  private Double orderAmount;    // total excluding tax and discount
   
   @Column(name = "total_amount")
   private Double totalAmount;

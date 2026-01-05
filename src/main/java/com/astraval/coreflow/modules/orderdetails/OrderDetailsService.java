@@ -12,12 +12,9 @@ import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.ItemRepository;
 import com.astraval.coreflow.modules.items.Items;
-import com.astraval.coreflow.modules.orderauditlog.OrderAuditLogService;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
-import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsMapper;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
-import com.astraval.coreflow.modules.orderitemdetails.dto.CreateOrderItem;
 
 @Service
 public class OrderDetailsService {
@@ -36,13 +33,7 @@ public class OrderDetailsService {
     
     @Autowired
     private OrderItemDetailsService orderItemDetailsService;
-    
-    @Autowired
-    private OrderItemDetailsMapper orderItemDetailsMapper;
-    
-    @Autowired
-    private OrderAuditLogService orderAuditLogService;
-    
+        
     @Autowired
     private CustomerRepository customerRepository;
     
@@ -87,15 +78,15 @@ public class OrderDetailsService {
         });
         
         // Update order total amount
-        savedOrder.setOrderAmount(orderTotalAmount.get());
+        savedOrder.setOrderAmount(orderTotalAmount.get() + createOrder.getDeliveryCharge());
+        savedOrder.setTotalAmount(orderTotalAmount.get() - createOrder.getDiscountAmount() + createOrder.getTaxAmount());
         orderDetailsRepository.save(savedOrder);
         
-        // Log order creation
-        // orderAuditLogService.logOrderCreation(savedOrder.getOrderId());
         
         return savedOrder.getOrderId();
     }
 
+    // Helper functions...
     private String getNextSequenceNumber(Long companyId) {
         return orderDetailsRepository.generateOrderNumber(companyId);
     }

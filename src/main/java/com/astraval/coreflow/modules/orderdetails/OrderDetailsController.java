@@ -13,6 +13,8 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/companies")
@@ -22,7 +24,7 @@ public class OrderDetailsController {
     private OrderDetailsService orderDetailsService;
     
     
-    @PostMapping("/{companyId}/orders")
+    @PostMapping("/{companyId}/orders") // Create New Order
     public ApiResponse<Map<String, Long>> createOrder(
             @PathVariable Long companyId,
             @Valid @RequestBody CreateOrder createOrder) {
@@ -36,5 +38,11 @@ public class OrderDetailsController {
         }
     }
     
+    @GetMapping("/{companyId}/orders") // List All Order by Company Id
+    public String getMethodName(
+            @PathVariable Long companyId) {
+                
+        return new String();
+    }
 
 }
