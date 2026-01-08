@@ -10,6 +10,7 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.items.dto.CreateUpdateItemDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
+import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
 
 @Service
 public class ItemService {
@@ -20,25 +21,24 @@ public class ItemService {
     @Autowired
     private CompanyRepository companyRepository;
 
+    @Autowired
+    private ItemMapper itemMapper;
+
 
     @Transactional
     public Long createItem(Long companyId, CreateUpdateItemDto request) {
         try {
+            // Validate that either salesPrice or purchasePrice is provided
+            if (request.getSalesPrice() == null && request.getPurchasePrice() == null) {
+                throw new RuntimeException("Either sales price or purchase price is required");
+            }
+
             Companies company = companyRepository.findById(companyId)
                     .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
 
             Items item = new Items();
             item.setCompany(company);
-            item.setItemName(request.getItemName());
-            item.setItemCode(request.getItemCode());
-            item.setDescription(request.getDescription());
-            item.setCategory(request.getCategory());
-            item.setUnit(request.getUnit());
-            item.setSellingPrice(request.getSellingPrice());
-            item.setItemType(request.getItemType());
-            item.setHsnCode(request.getHsnCode());
-            item.setTaxRate(request.getTaxRate());
-            item.setStockQuantity(request.getStockQuantity());
+            itemMapper.mapDtoToEntity(request, item);
 
             return itemRepository.save(item).getItemId();
 
@@ -48,21 +48,12 @@ public class ItemService {
     }
 
     @Transactional
-    public void updateItem(Long companyId, Long itemId, CreateUpdateItemDto request) {
+    public void updateItem(Long companyId, Long itemId, UpdateItemDto request) {
         try {
             Items item = itemRepository.findByItemIdAndCompanyCompanyId(itemId, companyId)
                     .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
 
-            item.setItemName(request.getItemName());
-            item.setItemCode(request.getItemCode());
-            item.setDescription(request.getDescription());
-            item.setCategory(request.getCategory());
-            item.setUnit(request.getUnit());
-            item.setSellingPrice(request.getSellingPrice());
-            item.setItemType(request.getItemType());
-            item.setHsnCode(request.getHsnCode());
-            item.setTaxRate(request.getTaxRate());
-            item.setStockQuantity(request.getStockQuantity());
+            itemMapper.mapUpdateDtoToEntity(request, item);
 
             itemRepository.save(item);
             

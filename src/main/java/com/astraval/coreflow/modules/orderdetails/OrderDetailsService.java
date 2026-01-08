@@ -67,7 +67,7 @@ public class OrderDetailsService {
             orderItem.setOrderId(savedOrder.getOrderId());
             orderItem.setItemId(item);
             orderItem.setQuantity(newOrderItem.getQuantity());
-            orderItem.setBasePrice(item.getSellingPrice());
+            orderItem.setBasePrice(item.getSalesPrice() != null ? item.getSalesPrice() : item.getPurchasePrice());
             orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
             orderItem.setUnitOfMeasure(item.getUnit());
             orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());

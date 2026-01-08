@@ -18,6 +18,7 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.items.dto.CreateUpdateItemDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
+import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
 
 import jakarta.validation.Valid;
 
@@ -86,7 +87,7 @@ public class ItemController {
     // Update
     @PutMapping("/{companyId}/items/{id}")
     public ApiResponse<Items> updateItem(@PathVariable Long companyId, @PathVariable Long id,
-            @Valid @RequestBody CreateUpdateItemDto request) {
+            @RequestBody UpdateItemDto request) {
         try {
             itemService.updateItem(companyId, id, request);
             return ApiResponseFactory.updated(null, "Item updated successfully");
