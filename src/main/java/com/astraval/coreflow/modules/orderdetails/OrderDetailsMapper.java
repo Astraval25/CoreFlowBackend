@@ -1,5 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails;
 
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
@@ -12,6 +13,7 @@ public interface OrderDetailsMapper {
 
     OrderDetailsMapper INSTANCE = Mappers.getMapper(OrderDetailsMapper.class);
 
+    @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "orderId", ignore = true)
     @Mapping(target = "orderNumber", ignore = true)
     @Mapping(target = "orderDate", ignore = true)
