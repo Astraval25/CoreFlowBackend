@@ -29,7 +29,6 @@ public class ItemMapper {
         item.setPurchasePrice(dto.getPurchasePrice());
         item.setHsnCode(dto.getHsnCode());
         item.setTaxRate(dto.getTaxRate());
-        item.setStockQuantity(dto.getStockQuantity());
 
         if (dto.getPreferredCustomerId() != null) {
             Customers customer = customerRepository.findById(dto.getPreferredCustomerId())
@@ -55,7 +54,6 @@ public class ItemMapper {
         if (dto.getPurchasePrice() != null) item.setPurchasePrice(dto.getPurchasePrice());
         if (dto.getHsnCode() != null) item.setHsnCode(dto.getHsnCode());
         if (dto.getTaxRate() != null) item.setTaxRate(dto.getTaxRate());
-        if (dto.getStockQuantity() != null) item.setStockQuantity(dto.getStockQuantity());
 
         // Handle preferred customer - check if field is present in request
         if (hasField(dto, "preferredCustomerId")) {

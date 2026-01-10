@@ -42,8 +42,8 @@ public class OrderDetailsService {
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
         
-        Customers toCustomers = customerRepository.findById(createOrder.getCustomId())
-                .orElseThrow(() -> new RuntimeException("Company not found"));
+        Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
         
                 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
@@ -51,6 +51,10 @@ public class OrderDetailsService {
         orderDetails.setBuyerCompany(toCustomers.getCustomerCompany());
         orderDetails.setCustomers(toCustomers);
         orderDetails.setOrderDate(LocalDateTime.now());
+        orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
+        orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
+        orderDetails.setTaxAmount(createOrder.getTaxAmount());
+        orderDetails.setHasBill(createOrder.isHasBill());
         
         // Generate order number
         String orderNumber = getNextSequenceNumber(companyId);
@@ -69,7 +73,6 @@ public class OrderDetailsService {
             orderItem.setQuantity(newOrderItem.getQuantity());
             orderItem.setBasePrice(item.getSalesPrice() != null ? item.getSalesPrice() : item.getPurchasePrice());
             orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
-            orderItem.setUnitOfMeasure(item.getUnit());
             orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());
             orderItem.setReadyStatus(0.0);
             orderItem.setStatus(null); // as of now no need for item level status tracking
@@ -78,8 +81,10 @@ public class OrderDetailsService {
         });
         
         // Update order total amount
-        savedOrder.setOrderAmount(orderTotalAmount.get() + createOrder.getDeliveryCharge());
-        savedOrder.setTotalAmount(orderTotalAmount.get() - createOrder.getDiscountAmount() + createOrder.getTaxAmount());
+        Double orderAmount = orderTotalAmount.get() + createOrder.getDeliveryCharge();
+        Double totalAmount = orderAmount - createOrder.getDiscountAmount() + createOrder.getTaxAmount();
+        savedOrder.setOrderAmount(orderAmount);
+        savedOrder.setTotalAmount(totalAmount);
         orderDetailsRepository.save(savedOrder);
         
         

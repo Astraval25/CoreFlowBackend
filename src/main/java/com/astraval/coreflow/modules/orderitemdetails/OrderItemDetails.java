@@ -50,6 +50,9 @@ public class OrderItemDetails {
   @JoinColumn(name = "item_id")
   private Items itemId;
   
+  @JoinColumn(name = "item_description")
+  private String itemDescription;
+  
   @Column(name = "quantity")
   private Double quantity;
   
@@ -59,10 +62,6 @@ public class OrderItemDetails {
   @Column(name = "updated_price")
   private Double updatedPrice;
   
-  @Column(name = "unit_of_measure")
-  @Enumerated(EnumType.STRING)
-  private UnitType unitOfMeasure;
-
   @Column(name = "item_total")
   private Double itemTotal;
 

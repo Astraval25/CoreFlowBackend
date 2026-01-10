@@ -77,9 +77,6 @@ public class Items {
     @Column(name = "tax_rate")
     private BigDecimal taxRate;
 
-    @Column(name = "stock_quantity")
-    private BigDecimal stockQuantity;
-
     // Default flags and audit fields
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

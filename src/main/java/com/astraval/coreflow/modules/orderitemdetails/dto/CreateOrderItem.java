@@ -7,6 +7,9 @@ import lombok.Data;
 public class CreateOrderItem {
   @NotNull(message = "Item is required")
   private Long itemId;
+  
+  private String itemDescription;
+
   @NotNull(message = "Quantity is required")
   private Double quantity;
 

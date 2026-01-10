@@ -12,7 +12,7 @@ import lombok.Data;
 public class CreateOrder {
 
   @NotNull(message = "Customer id is required")
-  private Long customId;
+  private Long customerId;
   
   private Double taxAmount;
   private Double discountAmount;
@@ -21,5 +21,8 @@ public class CreateOrder {
   private Double deliveryCharge;
   
   @NotNull(message = "Add atleast one item to create order is required")
-  private List<CreateOrderItem> OrderItems;
+  private List<CreateOrderItem> orderItems;
+  
+  @NotNull(message = "Has bill is required")
+  private boolean hasBill;
 }

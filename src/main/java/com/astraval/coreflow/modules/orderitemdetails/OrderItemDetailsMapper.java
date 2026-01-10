@@ -5,6 +5,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
+import com.astraval.coreflow.modules.items.Items;
 import com.astraval.coreflow.modules.orderitemdetails.dto.CreateOrderItem;
 import com.astraval.coreflow.modules.orderitemdetails.dto.OrderItemResponse;
 
@@ -17,7 +18,7 @@ public interface OrderItemDetailsMapper {
     @Mapping(target = "orderItemId", ignore = true)
     @Mapping(target = "orderId", ignore = true)
     @Mapping(target = "itemId", ignore = true)
-    @Mapping(target = "status", constant = "PENDING")
+    @Mapping(target = "status", constant = "CONFIRMED")
     @Mapping(target = "isActive", constant = "true")
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDt", ignore = true)
@@ -27,4 +28,8 @@ public interface OrderItemDetailsMapper {
     
     @Mapping(source = "itemId.itemName", target = "itemName")
     OrderItemResponse toOrderItemResponse(OrderItemDetails orderItemDetails);
+
+    default Long map(Items items) {
+        return items != null ? items.getItemId() : null;
+    }
 }

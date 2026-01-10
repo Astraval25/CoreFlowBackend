@@ -84,6 +84,9 @@ public class OrderDetails {
   @Column(name = "order_status")
   private String orderStatus;
   
+  @Column(name = "has_bill")
+  private Boolean hasBill = false;
+  
 
   
   // Default fields...

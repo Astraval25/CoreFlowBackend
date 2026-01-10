@@ -35,7 +35,3 @@ jwt:
 logging:
   level:
     com.astraval.coreflow: INFO
-    org.springframework.security: ERROR
-    org.hibernate: ERROR
-    org.springframework.web: ERROR
-    org.apache.tomcat: ERROR
