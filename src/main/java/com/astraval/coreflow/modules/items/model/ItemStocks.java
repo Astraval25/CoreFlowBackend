@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

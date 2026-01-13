@@ -10,17 +10,21 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.items.dto.CreateUpdateItemDto;
+import com.astraval.coreflow.modules.items.dto.CreateItemDto;
+import com.astraval.coreflow.modules.items.dto.CreateItemRequest;
+import com.astraval.coreflow.modules.items.dto.ItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
+import com.astraval.coreflow.modules.items.dto.UpdateItemRequest;
+import com.astraval.coreflow.modules.items.model.Items;
 
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/companies")
@@ -30,16 +34,23 @@ public class ItemController {
     private ItemService itemService;
 
     // Create item
-    @PostMapping("/{companyId}/items")
-    public ApiResponse<Map<String, Long>> createItem(@PathVariable Long companyId,
-            @Valid @RequestBody CreateUpdateItemDto request) {
+    @PostMapping(value = "/{companyId}/items", consumes = {"multipart/form-data"})
+    public ApiResponse<Map<String, Long>> createItem(
+            @PathVariable Long companyId,
+            @RequestParam("item") String itemJson,
+            @RequestParam(value = "file", required = false) MultipartFile file) {
         try {
-            Long itemId = itemService.createItem(companyId, request);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            CreateItemDto request = mapper.readValue(itemJson, CreateItemDto.class);
+            
+            Long itemId = itemService.createItem(companyId, request, file);
             return ApiResponseFactory.created(
                     Map.of("itemId", itemId),
                     "Item created successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
+        } catch (Exception e) {
+            return ApiResponseFactory.error("Failed to process request: " + e.getMessage(), 400);
         }
     }
 
@@ -75,9 +86,9 @@ public class ItemController {
     }
 
     @GetMapping("/{companyId}/items/{id}") // get item detail (check company id and item id both)
-    public ApiResponse<Items> getItemById(@PathVariable Long companyId, @PathVariable Long id) {
+    public ApiResponse<ItemDetailDto> getItemById(@PathVariable Long companyId, @PathVariable Long id) {
         try {
-            Items item = itemService.getItemById(companyId, id);
+            ItemDetailDto item = itemService.getItemDetail(companyId, id);
             return ApiResponseFactory.accepted(item, "Item retrieved successful");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
@@ -85,14 +96,22 @@ public class ItemController {
     }
 
     // Update
-    @PutMapping("/{companyId}/items/{id}")
-    public ApiResponse<Items> updateItem(@PathVariable Long companyId, @PathVariable Long id,
-            @RequestBody UpdateItemDto request) {
+    @PutMapping(value = "/{companyId}/items/{id}", consumes = {"multipart/form-data"})
+    public ApiResponse<Items> updateItem(
+            @PathVariable Long companyId, 
+            @PathVariable Long id,
+            @RequestParam("item") String itemJson,
+            @RequestParam(value = "file", required = false) MultipartFile file) {
         try {
-            itemService.updateItem(companyId, id, request);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            UpdateItemDto request = mapper.readValue(itemJson, UpdateItemDto.class);
+            
+            itemService.updateItem(companyId, id, request, file);
             return ApiResponseFactory.updated(null, "Item updated successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
+        } catch (Exception e) {
+            return ApiResponseFactory.error("Failed to process request: " + e.getMessage(), 400);
         }
     }
 

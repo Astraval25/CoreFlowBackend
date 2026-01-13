@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -17,6 +18,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.customer.Customers;
+import com.astraval.coreflow.modules.items.ItemType;
+import com.astraval.coreflow.modules.items.UnitType;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Getter
@@ -76,6 +79,9 @@ public class Items {
 
     @Column(name = "tax_rate")
     private BigDecimal taxRate;
+
+    @Column(name = "fs_id")
+    private String fsId;
 
     // Default flags and audit fields
     @Column(name = "is_active", nullable = false)

@@ -8,14 +8,11 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.astraval.coreflow.modules.items.Items;
-import com.astraval.coreflow.modules.items.UnitType;
+import com.astraval.coreflow.modules.items.model.Items;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -93,3 +90,4 @@ public class OrderItemDetails {
   private LocalDateTime lastModifiedDt;
 }
 
+ 

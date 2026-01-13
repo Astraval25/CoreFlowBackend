@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class CreateUpdateItemDto {
+public class CreateItemDto {
 
     @NotBlank(message = "Item name is required")
     private String itemName;
@@ -38,6 +38,4 @@ public class CreateUpdateItemDto {
     private String hsnCode;
 
     private BigDecimal taxRate;
-
-    private BigDecimal stockQuantity;
 }

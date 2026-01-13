@@ -1,16 +1,27 @@
 package com.astraval.coreflow.modules.items;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
-import com.astraval.coreflow.modules.items.dto.CreateUpdateItemDto;
+import com.astraval.coreflow.modules.filestorage.FileStorage;
+import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
+import com.astraval.coreflow.modules.filestorage.FileStorageService;
+import com.astraval.coreflow.modules.items.dto.CreateItemDto;
+import com.astraval.coreflow.modules.items.dto.ItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
+import com.astraval.coreflow.modules.items.model.ItemStocks;
+import com.astraval.coreflow.modules.items.model.Items;
+import com.astraval.coreflow.modules.items.repo.ItemRepository;
+import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
 
 @Service
 public class ItemService {
@@ -24,11 +35,19 @@ public class ItemService {
     @Autowired
     private ItemMapper itemMapper;
 
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private FileStorageRepository fileStorageRepository;
+
+    @Autowired
+    private ItemStocksRepository itemStocksRepository;
+
 
     @Transactional
-    public Long createItem(Long companyId, CreateUpdateItemDto request) {
+    public Long createItem(Long companyId, CreateItemDto request, MultipartFile file) {
         try {
-            // Validate that either salesPrice or purchasePrice is provided
             if (request.getSalesPrice() == null && request.getPurchasePrice() == null) {
                 throw new RuntimeException("Either sales price or purchase price is required");
             }
@@ -40,7 +59,25 @@ public class ItemService {
             item.setCompany(company);
             itemMapper.mapDtoToEntity(request, item);
 
-            return itemRepository.save(item).getItemId();
+            // Handle file upload if provided
+            if (file != null && !file.isEmpty()) {
+                FileStorage fileStorage = fileStorageService.saveFile(file, "ITEM", companyId.toString());
+                FileStorage savedFile = fileStorageRepository.save(fileStorage);
+                item.setFsId(savedFile.getFsId());
+            }
+
+            Items savedItem = itemRepository.save(item);
+
+            // Create initial stock entry
+            ItemStocks itemStock = new ItemStocks();
+            itemStock.setItem(savedItem);
+            itemStock.setCompany(company);
+            itemStock.setAvailableQty(BigDecimal.ZERO);
+            itemStock.setReservedQty(BigDecimal.ZERO);
+            itemStock.setLastUpdated(LocalDateTime.now());
+            itemStocksRepository.save(itemStock);
+
+            return savedItem.getItemId();
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to create item: " + e.getMessage(), e);
@@ -48,12 +85,19 @@ public class ItemService {
     }
 
     @Transactional
-    public void updateItem(Long companyId, Long itemId, UpdateItemDto request) {
+    public void updateItem(Long companyId, Long itemId, UpdateItemDto request, MultipartFile file) {
         try {
             Items item = itemRepository.findByItemIdAndCompanyCompanyId(itemId, companyId)
                     .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
 
             itemMapper.mapUpdateDtoToEntity(request, item);
+
+            // Handle file upload if provided
+            if (file != null && !file.isEmpty()) {
+                FileStorage fileStorage = fileStorageService.saveFile(file, "ITEM", itemId.toString());
+                FileStorage savedFile = fileStorageRepository.save(fileStorage);
+                item.setFsId(savedFile.getFsId());
+            }
 
             itemRepository.save(item);
             
@@ -77,6 +121,37 @@ public class ItemService {
     public Items getItemById(Long companyId, Long itemId) {
         return itemRepository.findByItemIdAndCompanyCompanyId(itemId, companyId)
                 .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
+    }
+
+    public ItemDetailDto getItemDetail(Long companyId, Long itemId) {
+        Items item = itemRepository.findByItemIdAndCompanyCompanyId(itemId, companyId)
+                .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
+        
+        ItemDetailDto dto = new ItemDetailDto();
+        dto.setItemId(item.getItemId());
+        dto.setItemName(item.getItemName());
+        dto.setItemDisplayName(item.getItemDisplayName());
+        dto.setItemType(item.getItemType());
+        dto.setUnit(item.getUnit());
+        dto.setSalesPrice(item.getSalesPrice());
+        dto.setSalesDescription(item.getSalesDescription());
+        dto.setPreferredCustomer(item.getPreferredCustomer() != null ? item.getPreferredCustomer().getCustomerName() : null);
+        dto.setPreferredCustomerId(item.getPreferredCustomer() != null ? item.getPreferredCustomer().getCustomerId() : null);
+        dto.setPreferredCustomerDisplayName(item.getPreferredCustomer() != null ? item.getPreferredCustomer().getDisplayName() : null);
+        dto.setPurchasePrice(item.getPurchasePrice());
+        dto.setPurchaseDescription(item.getPurchaseDescription());
+        dto.setPreferredVendorId(item.getPreferredVendor() != null ? item.getPreferredVendor().getVendorId() : null);
+        dto.setPreferredVendorDisplayName(item.getPreferredVendor() != null ? item.getPreferredVendor().getDisplayName() : null);
+        dto.setHsnCode(item.getHsnCode());
+        dto.setTaxRate(item.getTaxRate());
+        dto.setFsId(item.getFsId());
+        dto.setIsActive(item.getIsActive());
+        dto.setCreatedBy(item.getCreatedBy());
+        dto.setCreatedDt(item.getCreatedDt());
+        dto.setLastModifiedBy(item.getLastModifiedBy());
+        dto.setLastModifiedDt(item.getLastModifiedDt());
+        
+        return dto;
     }
 
     @Transactional

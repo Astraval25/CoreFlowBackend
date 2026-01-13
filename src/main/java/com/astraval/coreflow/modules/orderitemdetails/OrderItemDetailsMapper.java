@@ -5,7 +5,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-import com.astraval.coreflow.modules.items.Items;
+import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.orderitemdetails.dto.CreateOrderItem;
 import com.astraval.coreflow.modules.orderitemdetails.dto.OrderItemResponse;
 
@@ -26,6 +26,7 @@ public interface OrderItemDetailsMapper {
     @Mapping(target = "lastModifiedDt", ignore = true)
     OrderItemDetails toOrderItemDetails(CreateOrderItem createOrderItem);
     
+    @BeanMapping(ignoreByDefault = true)
     @Mapping(source = "itemId.itemName", target = "itemName")
     OrderItemResponse toOrderItemResponse(OrderItemDetails orderItemDetails);
 

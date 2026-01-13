@@ -5,7 +5,8 @@ import org.springframework.stereotype.Component;
 
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
-import com.astraval.coreflow.modules.items.dto.CreateUpdateItemDto;
+import com.astraval.coreflow.modules.items.dto.CreateItemDto;
+import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
@@ -18,7 +19,7 @@ public class ItemMapper {
     @Autowired
     private VendorRepository vendorRepository;
 
-    public void mapDtoToEntity(CreateUpdateItemDto dto, Items item) {
+    public void mapDtoToEntity(CreateItemDto dto, Items item) {
         item.setItemName(dto.getItemName());
         item.setItemDisplayName(dto.getItemDisplayName());
         item.setItemType(dto.getItemType());
@@ -33,12 +34,18 @@ public class ItemMapper {
         if (dto.getPreferredCustomerId() != null) {
             Customers customer = customerRepository.findById(dto.getPreferredCustomerId())
                     .orElseThrow(() -> new RuntimeException("Preferred customer not found with ID: " + dto.getPreferredCustomerId()));
+            if (customer.getCompany().getCompanyId() != item.getCompany().getCompanyId()) {
+                throw new RuntimeException("Customer does not belong to the same company");
+            }
             item.setPreferredCustomer(customer);
         }
 
         if (dto.getPreferredVendorId() != null) {
             Vendors vendor = vendorRepository.findById(dto.getPreferredVendorId())
                     .orElseThrow(() -> new RuntimeException("Preferred vendor not found with ID: " + dto.getPreferredVendorId()));
+            if (vendor.getCompany().getCompanyId() != item.getCompany().getCompanyId()) {
+                throw new RuntimeException("Vendor does not belong to the same company");
+            }
             item.setPreferredVendor(vendor);
         }
     }
@@ -60,6 +67,9 @@ public class ItemMapper {
             if (dto.getPreferredCustomerId() != null) {
                 Customers customer = customerRepository.findById(dto.getPreferredCustomerId())
                         .orElseThrow(() -> new RuntimeException("Preferred customer not found with ID: " + dto.getPreferredCustomerId()));
+                if (!customer.getCompany().getCompanyId().equals(item.getCompany().getCompanyId())) {
+                    throw new RuntimeException("Customer does not belong to the same company");
+                }
                 item.setPreferredCustomer(customer);
             } else {
                 item.setPreferredCustomer(null);
@@ -71,6 +81,9 @@ public class ItemMapper {
             if (dto.getPreferredVendorId() != null) {
                 Vendors vendor = vendorRepository.findById(dto.getPreferredVendorId())
                         .orElseThrow(() -> new RuntimeException("Preferred vendor not found with ID: " + dto.getPreferredVendorId()));
+                if (!vendor.getCompany().getCompanyId().equals(item.getCompany().getCompanyId())) {
+                    throw new RuntimeException("Vendor does not belong to the same company");
+                }
                 item.setPreferredVendor(vendor);
             } else {
                 item.setPreferredVendor(null);

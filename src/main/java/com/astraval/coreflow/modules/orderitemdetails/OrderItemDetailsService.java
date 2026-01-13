@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.items.ItemRepository;
-import com.astraval.coreflow.modules.items.Items;
+import com.astraval.coreflow.modules.items.model.Items;
+import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.orderitemdetails.dto.CreateOrderItem;
 
 @Service
