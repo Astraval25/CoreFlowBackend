@@ -1,0 +1,26 @@
+package com.astraval.coreflow.modules.orderdetails;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.astraval.coreflow.modules.orderdetails.dto.OrderSummaryDto;
+
+@Repository
+public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long>{
+  
+    @Query("SELECT new com.astraval.coreflow.modules.orderdetails.dto.OrderSummaryDto(" +
+           "o.orderId, o.orderNumber, o.orderDate, " +
+           "o.sellerCompany.companyName, o.buyerCompany.companyName, " +
+           "o.orderAmount, o.orderStatus) " +
+           "FROM OrderDetails o " +
+           "WHERE o.sellerCompany.companyId = :companyId OR o.buyerCompany.companyId = :companyId " +
+           "ORDER BY o.orderDate DESC")
+    List<OrderSummaryDto> findOrdersByCompanyId(@Param("companyId") Long companyId);
+        
+    @Query(value = "SELECT generate_order_number(?1)", nativeQuery = true)
+    String generateOrderNumber(@Param("companyId") Long companyId);
+}

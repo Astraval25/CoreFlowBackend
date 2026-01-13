@@ -4,7 +4,7 @@ public enum UnitType {
     KG,
     LITER,
     INCH,
-    PIECE,
+    PCS,
     METER,
     GRAM,
     MILLILITER

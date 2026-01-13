@@ -5,30 +5,21 @@ import java.math.BigDecimal;
 import com.astraval.coreflow.modules.items.ItemType;
 import com.astraval.coreflow.modules.items.UnitType;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class CreateUpdateItemDto {
+public class UpdateItemDto {
 
-    @NotBlank(message = "Item name is required")
     private String itemName;
-
-    private String itemCode;
-
-    private String description;
-
-    private String category;
-
-    private UnitType unit;
-
-    private BigDecimal sellingPrice;
-
+    private String itemDisplayName;
     private ItemType itemType;
-
+    private UnitType unit;
+    private String salesDescription;
+    private BigDecimal salesPrice;
+    private Long preferredCustomerId;
+    private String purchaseDescription;
+    private BigDecimal purchasePrice;
+    private Long preferredVendorId;
     private String hsnCode;
-
     private BigDecimal taxRate;
-
-    private Integer stockQuantity;
 }

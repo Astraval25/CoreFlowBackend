@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -16,6 +17,10 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.customer.Customers;
+import com.astraval.coreflow.modules.items.ItemType;
+import com.astraval.coreflow.modules.items.UnitType;
+import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Getter
 @Setter
@@ -38,25 +43,36 @@ public class Items {
     @Column(name = "item_name", nullable = false)
     private String itemName;
 
-    @Column(name = "item_code")
-    private String itemCode;
-
-    @Column(name = "description")
-    private String description;
-
-    @Column(name = "category")
-    private String category;
-
-    @Column(name = "unit")
-    @Enumerated(EnumType.STRING)
-    private UnitType unit;
-
-    @Column(name = "selling_price")
-    private BigDecimal sellingPrice;
+    @Column(name = "item_display_name", nullable = false)
+    private String itemDisplayName;
 
     @Column(name = "item_type")
     @Enumerated(EnumType.STRING)
-    private ItemType itemType;
+    private ItemType itemType; // GOODS / SERVICE
+
+    @Column(name = "unit")
+    @Enumerated(EnumType.STRING)
+    private UnitType unit; // KG / ML / PCS
+
+    @Column(name = "sales_description")
+    private String salesDescription;
+
+    @Column(name = "sales_price")
+    private BigDecimal salesPrice;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preferred_customer_id")
+    private Customers preferredCustomer;
+
+    @Column(name = "purchase_description")
+    private String purchaseDescription;
+
+    @Column(name = "purchase_price")
+    private BigDecimal purchasePrice;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preferred_vendor_id")
+    private Vendors preferredVendor;
 
     @Column(name = "hsn_code")
     private String hsnCode;
@@ -64,13 +80,13 @@ public class Items {
     @Column(name = "tax_rate")
     private BigDecimal taxRate;
 
-    @Column(name = "stock_quantity")
-    private Integer stockQuantity;
+    @Column(name = "fs_id")
+    private String fsId;
 
-    // default fields...
+    // Default flags and audit fields
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
-    
+
     @CreatedBy
     @Column(name = "created_by", nullable = false)
     private Long createdBy;

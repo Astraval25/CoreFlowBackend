@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.repo;
 
 import java.util.List;
 import java.util.Optional;
@@ -9,21 +9,26 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
+import com.astraval.coreflow.modules.items.model.Items;
 
 @Repository
 public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
-           "i.itemId, i.itemName, i.itemCode, i.category, i.unit, " +
-           "i.sellingPrice, i.itemType, i.stockQuantity, i.isActive) " +
+           "i.itemId, i.itemName, i.itemDisplayName, i.itemType, i.unit, " +
+           "i.salesPrice, i.preferredCustomer.customerId, i.preferredCustomer.customerName, " +
+           "i.purchasePrice, i.preferredVendor.vendorId, i.preferredVendor.vendorName, " +
+           "i.isActive) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "ORDER BY i.itemName")
     List<ItemSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
-           "i.itemId, i.itemName, i.itemCode, i.category, i.unit, " +
-           "i.sellingPrice, i.itemType, i.stockQuantity, i.isActive) " +
+           "i.itemId, i.itemName, i.itemDisplayName, i.itemType, i.unit, " +
+           "i.salesPrice, i.preferredCustomer.customerId, i.preferredCustomer.customerName, " +
+           "i.purchasePrice, i.preferredVendor.vendorId, i.preferredVendor.vendorName, " +
+           "i.isActive) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +

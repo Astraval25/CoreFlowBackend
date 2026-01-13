@@ -28,14 +28,15 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-  expiration: 3600  # 1 hour in seconds
+  expiration: 60 # 3600  # 1 hour in seconds
   refresh:
     expiration: 86400  # 24 hours in seconds
 
 logging:
   level:
     com.astraval.coreflow: INFO
-    org.springframework.security: ERROR
-    org.hibernate: ERROR
-    org.springframework.web: ERROR
-    org.apache.tomcat: ERROR
+
+app:
+  file:
+    upload:
+      item-images: uploads/item_img

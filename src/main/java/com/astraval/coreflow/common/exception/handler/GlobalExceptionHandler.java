@@ -43,9 +43,27 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ApiResponse<String>> handleParseError(HttpMessageNotReadableException ex) {
+    String message = "Invalid request format";
+    String rootCause = ex.getRootCause() != null ? ex.getRootCause().getMessage() : ex.getMessage();
+    
+    if (rootCause.contains("ItemType")) {
+      message = getEnumErrorMessage("itemType", com.astraval.coreflow.modules.items.ItemType.class);
+    } else if (rootCause.contains("UnitType")) {
+      message = getEnumErrorMessage("unit", com.astraval.coreflow.modules.items.UnitType.class);
+    } else if (rootCause.contains("JSON")) {
+      message = "Malformed JSON request";
+    }
+    
     return new ResponseEntity<>(
-        new ApiResponse<>(false, 400, "Malformed JSON request", ex.getMessage()),
+        new ApiResponse<>(false, 400, message, null),
         HttpStatus.BAD_REQUEST);
+  }
+  
+  private String getEnumErrorMessage(String fieldName, Class<? extends Enum<?>> enumClass) {
+    String[] values = java.util.Arrays.stream(enumClass.getEnumConstants())
+        .map(Enum::name)
+        .toArray(String[]::new);
+    return String.format("Invalid %s. Valid values are: %s", fieldName, String.join(", ", values));
   }
 
 }
