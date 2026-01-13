@@ -39,7 +39,7 @@ public class ApiResponseFactory {
     }
     
     public static <T> ApiResponse<T> validation(T data, String message) {
-        return new ApiResponse<>(false, 400, message, data);
+        return new ApiResponse<>(false, 444, message, data);
     }
     
 }
