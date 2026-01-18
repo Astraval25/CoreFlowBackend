@@ -4,5 +4,6 @@ public record VendorSummaryDto(
     Long vendorId,
     String displayName,
     String vendorCompanyName,
-    String email) {
+    String email,
+    Double dueAmount) {
 }

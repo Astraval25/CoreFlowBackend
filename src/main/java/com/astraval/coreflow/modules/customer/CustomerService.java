@@ -44,7 +44,7 @@ public class CustomerService {
             customer.setLang(request.getLang());
             customer.setPan(request.getPan());
             customer.setGst(request.getGst());
-            customer.setAdvanceAmount(request.getAdvanceAmount());
+            customer.setDueAmount(request.getDueAmount());
             customer.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Create addresses if provided
@@ -82,7 +82,7 @@ public class CustomerService {
             customer.setLang(request.getLang());
             customer.setPan(request.getPan());
             customer.setGst(request.getGst());
-            customer.setAdvanceAmount(request.getAdvanceAmount());
+            customer.setDueAmount(request.getDueAmount());
             customer.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Update billing address

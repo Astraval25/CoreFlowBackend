@@ -64,8 +64,8 @@ public class Vendors {
     @Column(name = "gst")
     private String gst;
 
-    @Column(name = "advance_amount")
-    private BigDecimal advanceAmount;
+    @Column(name = "due_amount")
+    private BigDecimal dueAmount;
     
     @Column(name = "same_as_billing_address")
     private boolean sameAsBillingAddress;

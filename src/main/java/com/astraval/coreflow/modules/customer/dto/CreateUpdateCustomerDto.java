@@ -1,6 +1,5 @@
 package com.astraval.coreflow.modules.customer.dto;
 
-import java.math.BigDecimal;
 
 import com.astraval.coreflow.config.validation.ValidPAN;
 import com.astraval.coreflow.modules.address.dto.CreateUpdateAddressDto;
@@ -30,7 +29,7 @@ public class CreateUpdateCustomerDto {
 
   private String gst;
 
-  private BigDecimal advanceAmount;
+  private Double dueAmount;
   
   private boolean sameAsBillingAddress;
   

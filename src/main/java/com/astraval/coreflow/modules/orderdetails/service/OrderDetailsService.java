@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.orderdetails;
+package com.astraval.coreflow.modules.orderdetails.service;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicReference;
@@ -12,7 +12,10 @@ import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
+import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
+import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
+import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 
@@ -87,6 +90,8 @@ public class OrderDetailsService {
         savedOrder.setTotalAmount(totalAmount);
         orderDetailsRepository.save(savedOrder);
         
+        toCustomers.setDueAmount(toCustomers.getDueAmount() + totalAmount);
+        customerRepository.save(toCustomers);
         
         return savedOrder.getOrderId();
     }
