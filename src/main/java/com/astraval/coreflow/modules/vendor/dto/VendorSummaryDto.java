@@ -5,6 +5,6 @@ public record VendorSummaryDto(
     String displayName,
     String vendorCompanyName,
     String email,
-    Double dueAmount) {
-    Boolean isActive) {
+    Double dueAmount,
+    Boolean isActive){
 }
