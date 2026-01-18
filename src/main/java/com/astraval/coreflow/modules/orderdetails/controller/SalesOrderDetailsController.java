@@ -12,27 +12,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
-import com.astraval.coreflow.modules.orderdetails.dto.OrderSummaryDto;
-import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
+import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
+import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
+import com.astraval.coreflow.modules.orderdetails.service.SalesOrderDetailsService;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
 @RequestMapping("/api/companies")
-public class OrderDetailsController {
+public class SalesOrderDetailsController {
   
     @Autowired
-    private OrderDetailsService orderDetailsService;
+    private SalesOrderDetailsService orderDetailsService;
     
     
     @PostMapping("/{companyId}/orders") // Create New Order
     public ApiResponse<Map<String, Long>> createOrder(
             @PathVariable Long companyId,
-            @Valid @RequestBody CreateOrder createOrder) {
+            @Valid @RequestBody CreateSalesOrder createOrder) {
         try {
-            Long orderId = orderDetailsService.createOrder(companyId, createOrder);
+            Long orderId = orderDetailsService.createSalesOrder(companyId, createOrder);
             return ApiResponseFactory.created(
                     Map.of("orderId", orderId),
                     "Order created successfully");
@@ -42,9 +42,9 @@ public class OrderDetailsController {
     }
     
     @GetMapping("/{companyId}/orders") // List All Order by Company Id
-    private ApiResponse<List<OrderSummaryDto>> getOrderSummaryByCompanyId (@PathVariable Long companyId, OrderSummaryDto orderSummaryDto){
+    private ApiResponse<List<SalesOrderSummaryDto>> getOrderSummaryByCompanyId (@PathVariable Long companyId, SalesOrderSummaryDto orderSummaryDto){
         try {
-            List<OrderSummaryDto> result = orderDetailsService.getOrderSummaryByCompanyId(companyId);
+            List<SalesOrderSummaryDto> result = orderDetailsService.getOrderSummaryByCompanyId(companyId);
             return ApiResponseFactory.accepted(result, "Order retrieved successfully");
         } catch (Exception e) {
             return ApiResponseFactory.error(e.getMessage(), 406);

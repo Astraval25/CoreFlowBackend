@@ -8,7 +8,7 @@ import com.astraval.coreflow.modules.orderitemdetails.dto.OrderItemResponse;
 import lombok.Data;
 
 @Data
-public class OrderResponse {
+public class SalesOrderResponse {
   private Long orderId;
   private String orderNumber;
   private LocalDateTime orderDate;

@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
@@ -15,18 +14,18 @@ import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
-import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
-import com.astraval.coreflow.modules.orderdetails.dto.OrderSummaryDto;
+import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
+import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
-import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
+import com.astraval.coreflow.modules.orderdetails.repo.SalesOrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 
 @Service
-public class OrderDetailsService {
+public class SalesOrderDetailsService {
   
     @Autowired
-    private OrderDetailsRepository orderDetailsRepository;
+    private SalesOrderDetailsRepository orderDetailsRepository;
     
     @Autowired
     private CompanyRepository companyRepository;
@@ -44,7 +43,7 @@ public class OrderDetailsService {
     private CustomerRepository customerRepository;
     
     @Transactional
-    public Long createOrder(Long companyId, CreateOrder createOrder) {
+    public Long createSalesOrder(Long companyId, CreateSalesOrder createOrder) {
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
         
@@ -100,15 +99,12 @@ public class OrderDetailsService {
     }
     
     
-
-    // ---> Helper functions
+    public List<SalesOrderSummaryDto> getOrderSummaryByCompanyId(Long companyId) {
+      return orderDetailsRepository.findOrdersByCompanyId(companyId);
+    }
+    
+    // -----------------------> Helper functions
     private String getNextSequenceNumber(Long companyId) {
         return orderDetailsRepository.generateOrderNumber(companyId);
-    }
-
-
-
-    public List<OrderSummaryDto> getOrderSummaryByCompanyId(Long companyId) {
-      return orderDetailsRepository.findOrdersByCompanyId(companyId);
     }
 }
