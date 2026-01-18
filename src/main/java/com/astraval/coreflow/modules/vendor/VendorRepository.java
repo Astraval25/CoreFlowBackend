@@ -14,8 +14,12 @@ import com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto;
 public interface VendorRepository extends JpaRepository<Vendors, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto(" +
-           "v.vendorId, v.displayName, " +
-           "COALESCE(vc.companyName, ''), v.email, v.isActive) " +
+           "v.vendorId, " +
+           "v.displayName, " +
+           "COALESCE(vc.companyName, ''), " +
+           "v.email, " + 
+           "v.dueAmount, " +
+           "v.isActive) " +
            "FROM Vendors v " +
            "LEFT JOIN v.vendorCompany vc " +
                   "WHERE v.company.companyId = :companyId " +
@@ -23,8 +27,11 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
     List<VendorSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto(" +
-                  "v.vendorId, v.displayName, " +
-                  "COALESCE(vc.companyName, ''), v.email, v.isActive) " +
+                  "v.vendorId, " +
+                  "v.displayName, " +
+                  "COALESCE(vc.companyName, ''), " +
+                  "v.email, " +
+                  "v.dueAmount, v.isActive) " +
                   "FROM Vendors v " +
                   "LEFT JOIN v.vendorCompany vc " +
                   "WHERE v.company.companyId = :companyId " +
