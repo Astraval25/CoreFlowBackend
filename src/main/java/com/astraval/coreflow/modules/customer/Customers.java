@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.CreatedBy;
@@ -64,8 +63,8 @@ public class Customers {
     @Column(name = "gst")
     private String gst;
 
-    @Column(name = "advance_amount")
-    private BigDecimal advanceAmount;
+    @Column(name = "due_amount")
+    private Double dueAmount;
     
     @Column(name = "same_as_billing_address")
     private boolean sameAsBillingAddress;

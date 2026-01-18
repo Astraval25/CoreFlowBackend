@@ -45,7 +45,7 @@ public class VendorService {
             vendor.setLang(request.getLang());
             vendor.setPan(request.getPan());
             vendor.setGst(request.getGst());
-            vendor.setAdvanceAmount(request.getAdvanceAmount());
+            vendor.setDueAmount(request.getDueAmount());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Create addresses if provided
@@ -83,7 +83,7 @@ public class VendorService {
             vendor.setLang(request.getLang());
             vendor.setPan(request.getPan());
             vendor.setGst(request.getGst());
-            vendor.setAdvanceAmount(request.getAdvanceAmount());
+            vendor.setDueAmount(request.getDueAmount());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Update billing address

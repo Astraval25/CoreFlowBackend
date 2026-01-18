@@ -1,9 +1,10 @@
-package com.astraval.coreflow.modules.orderdetails;
+package com.astraval.coreflow.modules.orderdetails.mapper;
 
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
 import com.astraval.coreflow.modules.orderdetails.dto.OrderResponse;
 

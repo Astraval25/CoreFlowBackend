@@ -30,7 +30,7 @@ public class CreateUpdateVendorDto {
 
   private String gst;
 
-  private BigDecimal advanceAmount;
+  private BigDecimal dueAmount;
   
   private boolean sameAsBillingAddress;
   
