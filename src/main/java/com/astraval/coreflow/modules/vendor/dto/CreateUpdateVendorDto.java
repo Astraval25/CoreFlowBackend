@@ -1,7 +1,5 @@
 package com.astraval.coreflow.modules.vendor.dto;
 
-import java.math.BigDecimal;
-
 import com.astraval.coreflow.config.validation.ValidPAN;
 import com.astraval.coreflow.modules.address.dto.CreateUpdateAddressDto;
 

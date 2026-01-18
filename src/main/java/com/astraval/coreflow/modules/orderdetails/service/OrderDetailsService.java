@@ -1,11 +1,13 @@
 package com.astraval.coreflow.modules.orderdetails.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
@@ -14,6 +16,7 @@ import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
+import com.astraval.coreflow.modules.orderdetails.dto.OrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
@@ -95,9 +98,17 @@ public class OrderDetailsService {
         
         return savedOrder.getOrderId();
     }
+    
+    
 
-    // Helper functions...
+    // ---> Helper functions
     private String getNextSequenceNumber(Long companyId) {
         return orderDetailsRepository.generateOrderNumber(companyId);
+    }
+
+
+
+    public List<OrderSummaryDto> getOrderSummaryByCompanyId(Long companyId) {
+      return orderDetailsRepository.findOrdersByCompanyId(companyId);
     }
 }

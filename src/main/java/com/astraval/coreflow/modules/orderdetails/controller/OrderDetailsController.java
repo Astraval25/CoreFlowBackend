@@ -1,5 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
+import com.astraval.coreflow.modules.orderdetails.dto.OrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
 
 import jakarta.validation.Valid;
@@ -40,10 +42,13 @@ public class OrderDetailsController {
     }
     
     @GetMapping("/{companyId}/orders") // List All Order by Company Id
-    public String getMethodName(
-            @PathVariable Long companyId) {
-                
-        return new String();
+    private ApiResponse<List<OrderSummaryDto>> getOrderSummaryByCompanyId (@PathVariable Long companyId, OrderSummaryDto orderSummaryDto){
+        try {
+            List<OrderSummaryDto> result = orderDetailsService.getOrderSummaryByCompanyId(companyId);
+            return ApiResponseFactory.accepted(result, "Order retrieved successfully");
+        } catch (Exception e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
     }
 
 }

@@ -7,7 +7,8 @@ public record OrderSummaryDto(
     String orderNumber,
     LocalDateTime orderDate,
     String sellerCompanyName,
-    String buyerCompanyName,
-    Double orderAmount,
+    String customerName,
+    Double totalAmount,
+    Double paidAmount,
     String orderStatus) {
 }
