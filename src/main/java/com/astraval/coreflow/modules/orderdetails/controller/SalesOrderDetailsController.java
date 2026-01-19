@@ -6,12 +6,14 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
+import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
 import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.service.SalesOrderDetailsService;
@@ -24,7 +26,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class SalesOrderDetailsController {
   
     @Autowired
-    private SalesOrderDetailsService orderDetailsService;
+    private SalesOrderDetailsService salesOrderDetailsService;
     
     
     @PostMapping("/{companyId}/orders") // Create New Order
@@ -32,7 +34,7 @@ public class SalesOrderDetailsController {
             @PathVariable Long companyId,
             @Valid @RequestBody CreateSalesOrder createOrder) {
         try {
-            Long orderId = orderDetailsService.createSalesOrder(companyId, createOrder);
+            Long orderId = salesOrderDetailsService.createSalesOrder(companyId, createOrder);
             return ApiResponseFactory.created(
                     Map.of("orderId", orderId),
                     "Order created successfully");
@@ -44,11 +46,33 @@ public class SalesOrderDetailsController {
     @GetMapping("/{companyId}/orders") // List All Order by Company Id
     private ApiResponse<List<SalesOrderSummaryDto>> getOrderSummaryByCompanyId (@PathVariable Long companyId, SalesOrderSummaryDto orderSummaryDto){
         try {
-            List<SalesOrderSummaryDto> result = orderDetailsService.getOrderSummaryByCompanyId(companyId);
+            List<SalesOrderSummaryDto> result = salesOrderDetailsService.getOrderSummaryByCompanyId(companyId);
             return ApiResponseFactory.accepted(result, "Order retrieved successfully");
         } catch (Exception e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
 
+    @GetMapping("/{companyId}/orders/{orderId}") // View Order details by Order id
+    private ApiResponse<OrderDetails> viewOrderDetailsByOrderId(@PathVariable Long companyId,
+            @PathVariable Long orderId) {
+        try {
+            OrderDetails orderDetails = salesOrderDetailsService.getOrderDetailsByOrderId(companyId, orderId);
+            return ApiResponseFactory.accepted(orderDetails, "Order retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 420);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}") // Update Order details by Order id
+    private ApiResponse<Map<String, Long>> updateOrderDetailsByOrderId(@PathVariable Long companyId,
+            @PathVariable Long orderId) {
+        try {
+            return ApiResponseFactory.created(
+                    Map.of("orderId", orderId),
+                    "Order Updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
 }

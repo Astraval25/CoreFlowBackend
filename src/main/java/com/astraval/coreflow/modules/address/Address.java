@@ -34,28 +34,28 @@ public class Address {
     @Column(name = "attention_name", length = 128)
     private String attentionName;
 
-    @Column(name = "country", length = 128, nullable = false)
+    @Column(name = "country")
     private String country;
 
-    @Column(name = "line1", length = 256, nullable = false)
+    @Column(name = "line1")
     private String line1;
 
-    @Column(name = "line2", length = 256)
+    @Column(name = "line2")
     private String line2;
 
-    @Column(name = "city", length = 128, nullable = false)
+    @Column(name = "city")
     private String city;
 
-    @Column(name = "state", length = 128, nullable = false)
+    @Column(name = "state")
     private String state;
 
-    @Column(name = "pincode", nullable = false)
+    @Column(name = "pincode")
     private Integer pincode;
 
-    @Column(name = "phone", length = 128)
+    @Column(name = "phone")
     private String phone;
 
-    @Column(name = "email", length = 128)
+    @Column(name = "email")
     private String email;
     
 

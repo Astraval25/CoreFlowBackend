@@ -25,7 +25,7 @@ import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 public class SalesOrderDetailsService {
   
     @Autowired
-    private SalesOrderDetailsRepository orderDetailsRepository;
+    private SalesOrderDetailsRepository salesOrderDetailsRepository;
     
     @Autowired
     private CompanyRepository companyRepository;
@@ -65,7 +65,7 @@ public class SalesOrderDetailsService {
         String orderNumber = getNextSequenceNumber(companyId);
         orderDetails.setOrderNumber(orderNumber);
         
-        OrderDetails savedOrder = orderDetailsRepository.save(orderDetails);
+        OrderDetails savedOrder = salesOrderDetailsRepository.save(orderDetails);
         AtomicReference<Double> orderTotalAmount = new AtomicReference<>(0.0);
         // Create order items
         createOrder.getOrderItems().forEach(newOrderItem -> {
@@ -90,7 +90,7 @@ public class SalesOrderDetailsService {
         Double totalAmount = orderAmount - createOrder.getDiscountAmount() + createOrder.getTaxAmount();
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
-        orderDetailsRepository.save(savedOrder);
+        salesOrderDetailsRepository.save(savedOrder);
         
         toCustomers.setDueAmount(toCustomers.getDueAmount() + totalAmount);
         customerRepository.save(toCustomers);
@@ -100,11 +100,17 @@ public class SalesOrderDetailsService {
     
     
     public List<SalesOrderSummaryDto> getOrderSummaryByCompanyId(Long companyId) {
-      return orderDetailsRepository.findOrdersByCompanyId(companyId);
+      return salesOrderDetailsRepository.findOrdersByCompanyId(companyId);
+    }
+    
+    public OrderDetails getOrderDetailsByOrderId(Long companyId, Long orderId){
+        return salesOrderDetailsRepository
+                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
     }
     
     // -----------------------> Helper functions
     private String getNextSequenceNumber(Long companyId) {
-        return orderDetailsRepository.generateOrderNumber(companyId);
+        return salesOrderDetailsRepository.generateOrderNumber(companyId);
     }
 }

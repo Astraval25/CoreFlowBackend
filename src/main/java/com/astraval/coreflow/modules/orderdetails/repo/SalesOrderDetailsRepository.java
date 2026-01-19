@@ -1,6 +1,7 @@
 package com.astraval.coreflow.modules.orderdetails.repo;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -29,4 +30,6 @@ public interface SalesOrderDetailsRepository extends JpaRepository<OrderDetails,
         
     @Query(value = "SELECT generate_order_number(?1)", nativeQuery = true)
     String generateOrderNumber(@Param("companyId") Long companyId);
+    
+    Optional<OrderDetails> findByOrderIdAndSellerCompany_CompanyId(Long orderId, Long companyId);
 }
