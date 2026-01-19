@@ -4,9 +4,11 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
@@ -32,4 +34,9 @@ public interface SalesOrderDetailsRepository extends JpaRepository<OrderDetails,
     String generateOrderNumber(@Param("companyId") Long companyId);
     
     Optional<OrderDetails> findByOrderIdAndSellerCompany_CompanyId(Long orderId, Long companyId);
+    
+    @Modifying
+    @Transactional
+    @Query("UPDATE OrderDetails o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.sellerCompany.companyId = :companyId")
+    void updateOrderStatus(@Param("orderId") Long orderId, @Param("companyId") Long companyId, @Param("status") String status);
 }

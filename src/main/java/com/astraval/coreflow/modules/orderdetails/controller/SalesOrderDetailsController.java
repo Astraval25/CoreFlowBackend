@@ -19,6 +19,7 @@ import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.service.SalesOrderDetailsService;
 
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
@@ -71,6 +72,36 @@ public class SalesOrderDetailsController {
             return ApiResponseFactory.created(
                     Map.of("orderId", orderId),
                     "Order Updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @DeleteMapping("/{companyId}/orders/{orderId}")  // Delete Order by Order id
+    public ApiResponse<String> deleteOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            salesOrderDetailsService.deleteOrder(companyId, orderId);
+            return ApiResponseFactory.accepted("Order deleted successfully", "Order deleted successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/deactivate") // Deactivate Order by Order id
+    public ApiResponse<String> deactivateOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            salesOrderDetailsService.deactivateOrder(companyId, orderId);
+            return ApiResponseFactory.accepted("Order deactivated successfully", "Order deactivated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/activate")
+    public ApiResponse<String> activateOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            salesOrderDetailsService.activateOrder(companyId, orderId);
+            return ApiResponseFactory.accepted("Order activated successfully", "Order activated successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
