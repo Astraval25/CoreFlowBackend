@@ -1,6 +1,7 @@
 package com.astraval.coreflow.modules.orderdetails.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,17 +14,18 @@ import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
-import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
+import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
+import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
-import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
+import com.astraval.coreflow.modules.orderdetails.repo.SalesOrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 
 @Service
-public class OrderDetailsService {
+public class SalesOrderDetailsService {
   
     @Autowired
-    private OrderDetailsRepository orderDetailsRepository;
+    private SalesOrderDetailsRepository salesOrderDetailsRepository;
     
     @Autowired
     private CompanyRepository companyRepository;
@@ -41,7 +43,7 @@ public class OrderDetailsService {
     private CustomerRepository customerRepository;
     
     @Transactional
-    public Long createOrder(Long companyId, CreateOrder createOrder) {
+    public Long createSalesOrder(Long companyId, CreateSalesOrder createOrder) {
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
         
@@ -63,7 +65,7 @@ public class OrderDetailsService {
         String orderNumber = getNextSequenceNumber(companyId);
         orderDetails.setOrderNumber(orderNumber);
         
-        OrderDetails savedOrder = orderDetailsRepository.save(orderDetails);
+        OrderDetails savedOrder = salesOrderDetailsRepository.save(orderDetails);
         AtomicReference<Double> orderTotalAmount = new AtomicReference<>(0.0);
         // Create order items
         createOrder.getOrderItems().forEach(newOrderItem -> {
@@ -88,16 +90,53 @@ public class OrderDetailsService {
         Double totalAmount = orderAmount - createOrder.getDiscountAmount() + createOrder.getTaxAmount();
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
-        orderDetailsRepository.save(savedOrder);
+        salesOrderDetailsRepository.save(savedOrder);
         
         toCustomers.setDueAmount(toCustomers.getDueAmount() + totalAmount);
         customerRepository.save(toCustomers);
         
         return savedOrder.getOrderId();
     }
-
-    // Helper functions...
+    
+    
+    public List<SalesOrderSummaryDto> getOrderSummaryByCompanyId(Long companyId) {
+      return salesOrderDetailsRepository.findOrdersByCompanyId(companyId);
+    }
+    
+    public OrderDetails getOrderDetailsByOrderId(Long companyId, Long orderId){
+        return salesOrderDetailsRepository
+                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+    }
+    
+    @Transactional
+    public void deleteOrder(Long companyId, Long orderId) {
+        OrderDetails order = salesOrderDetailsRepository
+                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        salesOrderDetailsRepository.delete(order);
+    }
+    
+    @Transactional
+    public void deactivateOrder(Long companyId, Long orderId) {
+        OrderDetails order = salesOrderDetailsRepository
+                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setIsActive(false);
+        salesOrderDetailsRepository.save(order);
+    }
+    
+    @Transactional
+    public void activateOrder(Long companyId, Long orderId) {
+        OrderDetails order = salesOrderDetailsRepository
+                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setIsActive(true);
+        salesOrderDetailsRepository.save(order);
+    }
+    
+    // -----------------------> Helper functions
     private String getNextSequenceNumber(Long companyId) {
-        return orderDetailsRepository.generateOrderNumber(companyId);
+        return salesOrderDetailsRepository.generateOrderNumber(companyId);
     }
 }

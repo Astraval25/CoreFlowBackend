@@ -144,12 +144,12 @@ public class ItemService {
         dto.setPreferredVendorDisplayName(item.getPreferredVendor() != null ? item.getPreferredVendor().getDisplayName() : null);
         dto.setHsnCode(item.getHsnCode());
         dto.setTaxRate(item.getTaxRate());
-        dto.setFsId(item.getFsId());
         dto.setIsActive(item.getIsActive());
         dto.setCreatedBy(item.getCreatedBy());
         dto.setCreatedDt(item.getCreatedDt());
         dto.setLastModifiedBy(item.getLastModifiedBy());
         dto.setLastModifiedDt(item.getLastModifiedDt());
+        dto.setItemImage(item.getFsId());
         
         return dto;
     }

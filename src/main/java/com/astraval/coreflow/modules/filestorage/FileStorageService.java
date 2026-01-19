@@ -1,10 +1,16 @@
 package com.astraval.coreflow.modules.filestorage;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,6 +21,12 @@ public class FileStorageService {
 
     @Value("${app.file.upload.item-images}")
     private String itemImagePath;
+
+    private final FileStorageRepository repo;
+
+    public FileStorageService(FileStorageRepository repo) {
+        this.repo = repo;
+    }
 
     public FileStorage saveFile(MultipartFile file, String ownerType, String ownerId) throws IOException {
         // Create directory if not exists
@@ -42,8 +54,12 @@ public class FileStorageService {
         fileStorage.setOriginalName(originalName);
         fileStorage.setStoredName(storedName);
         fileStorage.setFilePath(filePath.toString());
-        fileStorage.setFileUrl("/uploads/item_img/" + storedName);
-        fileStorage.setMimeType(file.getContentType());
+        fileStorage.setFileUrl(itemImagePath + storedName);
+        String mime = file.getContentType();
+        if (mime == null || !mime.contains("/")) {
+            mime = "application/octet-stream";
+        }
+        fileStorage.setMimeType(mime);
         fileStorage.setFileSize(file.getSize());
         fileStorage.setChecksum(checksum);
         fileStorage.setStorageProvider("LOCAL");
@@ -64,6 +80,31 @@ public class FileStorageService {
             return sb.toString();
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    public ResponseEntity<Resource> getFileObject(String fsId) {
+
+        FileStorage fs = repo.findByFsId(fsId)
+                .orElseThrow(() -> new RuntimeException("File metadata not found"));
+
+        try {
+            Path path = Paths.get(fs.getFilePath());
+            Resource resource = new UrlResource(path.toUri());
+
+            if (!resource.exists()) {
+                throw new RuntimeException("File missing on disk");
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(fs.getMimeType()))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + fs.getOriginalName() + "\"")
+                    .contentLength(fs.getFileSize())
+                    .body(resource);
+
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Invalid file path", e);
         }
     }
 }

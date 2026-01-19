@@ -2,12 +2,13 @@ package com.astraval.coreflow.modules.orderdetails.dto;
 
 import java.time.LocalDateTime;
 
-public record OrderSummaryDto(
+public record SalesOrderSummaryDto(
     Long orderId,
     String orderNumber,
     LocalDateTime orderDate,
     String sellerCompanyName,
-    String buyerCompanyName,
-    Double orderAmount,
+    String customerName,
+    Double totalAmount,
+    Double paidAmount,
     String orderStatus) {
 }

@@ -11,7 +11,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 @Data
-public class CreateOrder {
+public class CreateSalesOrder {
 
   @NotNull(message = "Customer id is required")
   private Long customerId;

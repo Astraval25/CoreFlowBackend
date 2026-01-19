@@ -26,10 +26,10 @@ public class ItemDetailDto {
     private String preferredVendorDisplayName;
     private String hsnCode;
     private BigDecimal taxRate;
-    private String fsId;
     private Boolean isActive;
     private Long createdBy;
     private LocalDateTime createdDt;
     private Long lastModifiedBy;
     private LocalDateTime lastModifiedDt;
+    private String itemImage;
 }

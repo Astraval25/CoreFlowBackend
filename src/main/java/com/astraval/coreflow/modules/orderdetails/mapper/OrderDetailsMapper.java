@@ -5,8 +5,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
-import com.astraval.coreflow.modules.orderdetails.dto.CreateOrder;
-import com.astraval.coreflow.modules.orderdetails.dto.OrderResponse;
+import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
+import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderResponse;
 
 @Mapper(componentModel = "spring")
 public interface OrderDetailsMapper {
@@ -23,10 +23,10 @@ public interface OrderDetailsMapper {
     @Mapping(target = "createdDt", ignore = true)
     @Mapping(target = "lastModifiedBy", ignore = true)
     @Mapping(target = "lastModifiedDt", ignore = true)
-    OrderDetails toOrderDetails(CreateOrder createOrder);
+    OrderDetails toOrderDetails(CreateSalesOrder createOrder);
 
     @Mapping(source = "sellerCompany.companyName", target = "sellerCompanyName")
     @Mapping(source = "buyerCompany.companyName", target = "buyerCompanyName")
     @Mapping(target = "orderItems", ignore = true)
-    OrderResponse toOrderResponse(OrderDetails orderDetails);
+    SalesOrderResponse toOrderResponse(OrderDetails orderDetails);
 }
