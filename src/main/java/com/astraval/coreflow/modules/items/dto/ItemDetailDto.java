@@ -12,7 +12,7 @@ import lombok.Data;
 public class ItemDetailDto {
     private Long itemId;
     private String itemName;
-    private String itemDisplayName;
+
     private ItemType itemType;
     private UnitType unit;
     private BigDecimal salesPrice;

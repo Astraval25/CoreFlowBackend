@@ -130,7 +130,6 @@ public class ItemService {
         ItemDetailDto dto = new ItemDetailDto();
         dto.setItemId(item.getItemId());
         dto.setItemName(item.getItemName());
-        dto.setItemDisplayName(item.getItemDisplayName());
         dto.setItemType(item.getItemType());
         dto.setUnit(item.getUnit());
         dto.setSalesPrice(item.getSalesPrice());

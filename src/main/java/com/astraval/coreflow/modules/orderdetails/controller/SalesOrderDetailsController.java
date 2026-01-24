@@ -30,7 +30,7 @@ public class SalesOrderDetailsController {
     private SalesOrderDetailsService salesOrderDetailsService;
     
     
-    @PostMapping("/{companyId}/orders") // Create New Order
+    @PostMapping("/{companyId}/sales/orders") // Create New Order
     public ApiResponse<Map<String, Long>> createOrder(
             @PathVariable Long companyId,
             @Valid @RequestBody CreateSalesOrder createOrder) {
@@ -44,7 +44,7 @@ public class SalesOrderDetailsController {
         }
     }
     
-    @GetMapping("/{companyId}/orders") // List All Order by Company Id
+    @GetMapping("/{companyId}/sales/orders") // List All Order by Company Id
     private ApiResponse<List<SalesOrderSummaryDto>> getOrderSummaryByCompanyId (@PathVariable Long companyId, SalesOrderSummaryDto orderSummaryDto){
         try {
             List<SalesOrderSummaryDto> result = salesOrderDetailsService.getOrderSummaryByCompanyId(companyId);
@@ -54,7 +54,7 @@ public class SalesOrderDetailsController {
         }
     }
 
-    @GetMapping("/{companyId}/orders/{orderId}") // View Order details by Order id
+    @GetMapping("/{companyId}/sales/orders/{orderId}") // View Order details by Order id
     private ApiResponse<OrderDetails> viewOrderDetailsByOrderId(@PathVariable Long companyId,
             @PathVariable Long orderId) {
         try {
@@ -65,7 +65,7 @@ public class SalesOrderDetailsController {
         }
     }
 
-    @PutMapping("/{companyId}/orders/{orderId}") // Update Order details by Order id
+    @PutMapping("/{companyId}/sales/orders/{orderId}") // Update Order details by Order id
     private ApiResponse<Map<String, Long>> updateOrderDetailsByOrderId(@PathVariable Long companyId,
             @PathVariable Long orderId) {
         try {
@@ -77,7 +77,7 @@ public class SalesOrderDetailsController {
         }
     }
 
-    @DeleteMapping("/{companyId}/orders/{orderId}")  // Delete Order by Order id
+    @DeleteMapping("/{companyId}/sales/orders/{orderId}") // Delete Order by Order id
     public ApiResponse<String> deleteOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
         try {
             salesOrderDetailsService.deleteOrder(companyId, orderId);
@@ -87,7 +87,7 @@ public class SalesOrderDetailsController {
         }
     }
 
-    @PutMapping("/{companyId}/orders/{orderId}/deactivate") // Deactivate Order by Order id
+    @PutMapping("/{companyId}/sales/orders/{orderId}/deactivate") // Deactivate Order by Order id
     public ApiResponse<String> deactivateOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
         try {
             salesOrderDetailsService.deactivateOrder(companyId, orderId);
@@ -97,7 +97,7 @@ public class SalesOrderDetailsController {
         }
     }
 
-    @PutMapping("/{companyId}/orders/{orderId}/activate")
+    @PutMapping("/{companyId}/sales/orders/{orderId}/activate")
     public ApiResponse<String> activateOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
         try {
             salesOrderDetailsService.activateOrder(companyId, orderId);

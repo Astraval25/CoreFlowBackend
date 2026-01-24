@@ -11,7 +11,7 @@ import lombok.Data;
 public class UpdateItemDto {
 
     private String itemName;
-    private String itemDisplayName;
+
     private ItemType itemType;
     private UnitType unit;
     private String salesDescription;

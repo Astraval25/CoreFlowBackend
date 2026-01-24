@@ -42,8 +42,7 @@ public class Items {
     @Column(name = "item_name", nullable = false)
     private String itemName;
 
-    @Column(name = "item_display_name", nullable = false)
-    private String itemDisplayName;
+
 
     @Column(name = "item_type")
     @Enumerated(EnumType.STRING)

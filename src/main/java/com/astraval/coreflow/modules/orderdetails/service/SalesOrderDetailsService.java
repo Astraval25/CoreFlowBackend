@@ -105,14 +105,14 @@ public class SalesOrderDetailsService {
     
     public OrderDetails getOrderDetailsByOrderId(Long companyId, Long orderId){
         return salesOrderDetailsRepository
-                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
     }
     
     @Transactional
     public void deleteOrder(Long companyId, Long orderId) {
         OrderDetails order = salesOrderDetailsRepository
-                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         salesOrderDetailsRepository.delete(order);
     }
@@ -120,7 +120,7 @@ public class SalesOrderDetailsService {
     @Transactional
     public void deactivateOrder(Long companyId, Long orderId) {
         OrderDetails order = salesOrderDetailsRepository
-                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setIsActive(false);
         salesOrderDetailsRepository.save(order);
@@ -129,7 +129,7 @@ public class SalesOrderDetailsService {
     @Transactional
     public void activateOrder(Long companyId, Long orderId) {
         OrderDetails order = salesOrderDetailsRepository
-                .findByOrderIdAndSellerCompany_CompanyId(orderId, companyId)
+                .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setIsActive(true);
         salesOrderDetailsRepository.save(order);

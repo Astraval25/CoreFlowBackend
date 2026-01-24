@@ -8,7 +8,6 @@ import com.astraval.coreflow.modules.items.UnitType;
 public record ItemSummaryDto(
     Long itemId,
     String itemName,
-    String itemDisplayName,
     ItemType itemType,
     UnitType unit,
     BigDecimal salesPrice,
