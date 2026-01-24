@@ -21,7 +21,6 @@ public class ItemMapper {
 
     public void mapDtoToEntity(CreateItemDto dto, Items item) {
         item.setItemName(dto.getItemName());
-        item.setItemDisplayName(dto.getItemDisplayName());
         item.setItemType(dto.getItemType());
         item.setUnit(dto.getUnit());
         item.setSalesDescription(dto.getSalesDescription());
@@ -52,7 +51,6 @@ public class ItemMapper {
 
     public void mapUpdateDtoToEntity(com.astraval.coreflow.modules.items.dto.UpdateItemDto dto, Items item) {
         if (dto.getItemName() != null) item.setItemName(dto.getItemName());
-        if (dto.getItemDisplayName() != null) item.setItemDisplayName(dto.getItemDisplayName());
         if (dto.getItemType() != null) item.setItemType(dto.getItemType());
         if (dto.getUnit() != null) item.setUnit(dto.getUnit());
         if (dto.getSalesDescription() != null) item.setSalesDescription(dto.getSalesDescription());

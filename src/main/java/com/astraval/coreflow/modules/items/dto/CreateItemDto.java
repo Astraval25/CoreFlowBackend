@@ -15,8 +15,7 @@ public class CreateItemDto {
     @NotBlank(message = "Item name is required")
     private String itemName;
 
-    @NotBlank(message = "Item display name is required")
-    private String itemDisplayName;
+
 
     @NotNull(message = "Item type is required")
     private ItemType itemType;
