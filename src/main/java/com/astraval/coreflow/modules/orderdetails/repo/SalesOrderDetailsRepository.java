@@ -14,29 +14,44 @@ import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
 
 @Repository
-public interface SalesOrderDetailsRepository extends JpaRepository<OrderDetails, Long>{
-  
-    @Query("SELECT new com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto(" +
-            "o.orderId, " +
-            "o.orderNumber," +
-            "o.orderDate, " +
-            "o.sellerCompany.companyName, " +
-            "o.customers.displayName, " +
-            "o.orderAmount, " +
-            "o.paidAmount, " +
-            "o.orderStatus) " +
-            "FROM OrderDetails o " +
-            "WHERE o.sellerCompany.companyId = :companyId OR o.buyerCompany.companyId = :companyId " +
-            "ORDER BY o.orderDate DESC")
+public interface SalesOrderDetailsRepository extends JpaRepository<OrderDetails, Long> {
+
+    @Query("""
+            SELECT new com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto(
+                o.orderId,
+                o.orderNumber,
+                o.orderDate,
+                bc.companyName,
+                v.displayName,
+                o.orderAmount,
+                o.paidAmount,
+                o.orderStatus,
+                o.isActive
+            )
+            FROM OrderDetails o
+                LEFT JOIN o.buyerCompany bc
+                LEFT JOIN o.vendors v
+                WHERE o.sellerCompany.companyId = :companyId 
+                ORDER BY o.orderDate DESC
+            """)
     List<SalesOrderSummaryDto> findOrdersByCompanyId(@Param("companyId") Long companyId);
-        
+
     @Query(value = "SELECT generate_order_number(?1)", nativeQuery = true)
     String generateOrderNumber(@Param("companyId") Long companyId);
-    
-    Optional<OrderDetails> findByOrderIdAndSellerCompany_CompanyId(Long orderId, Long companyId);
-    
+
+    @Query("""
+            SELECT o FROM OrderDetails o
+            WHERE o.orderId = :orderId
+            AND (
+                 o.sellerCompany.companyId = :companyId
+                 OR o.buyerCompany.companyId = :companyId
+            )
+            """)
+    Optional<OrderDetails> findOrderForCompany(@Param("orderId") Long orderId, @Param("companyId") Long companyId);
+
     @Modifying
     @Transactional
     @Query("UPDATE OrderDetails o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.sellerCompany.companyId = :companyId")
-    void updateOrderStatus(@Param("orderId") Long orderId, @Param("companyId") Long companyId, @Param("status") String status);
+    void updateOrderStatus(@Param("orderId") Long orderId, @Param("companyId") Long companyId,
+            @Param("status") String status);
 }
