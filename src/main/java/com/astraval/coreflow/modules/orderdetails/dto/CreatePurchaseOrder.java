@@ -13,8 +13,8 @@ import lombok.Data;
 @Data
 public class CreatePurchaseOrder {
 
-  @NotNull(message = "Customer id is required")
-  private Long customerId;
+  @NotNull(message = "Vendor id is required")
+  private Long vendorId;
   
   @PositiveOrZero(message = "Tax amount must be positive or zero")
   private Double taxAmount;

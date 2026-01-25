@@ -13,13 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
 import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
+import com.astraval.coreflow.modules.orderdetails.dto.UpdateSalesOrder;
 import com.astraval.coreflow.modules.orderdetails.service.SalesOrderDetailsService;
 
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
@@ -54,56 +53,17 @@ public class SalesOrderDetailsController {
         }
     }
 
-    @GetMapping("/{companyId}/sales/orders/{orderId}") // View Order details by Order id
-    private ApiResponse<OrderDetails> viewOrderDetailsByOrderId(@PathVariable Long companyId,
-            @PathVariable Long orderId) {
-        try {
-            OrderDetails orderDetails = salesOrderDetailsService.getOrderDetailsByOrderId(companyId, orderId);
-            return ApiResponseFactory.accepted(orderDetails, "Order retrieved successfully");
-        } catch (RuntimeException e) {
-            return ApiResponseFactory.error(e.getMessage(), 420);
-        }
-    }
-
     @PutMapping("/{companyId}/sales/orders/{orderId}") // Update Order details by Order id
-    private ApiResponse<Map<String, Long>> updateOrderDetailsByOrderId(@PathVariable Long companyId,
-            @PathVariable Long orderId) {
+    public ApiResponse<Map<String, Long>> updateOrderDetailsByOrderId(@PathVariable Long companyId,
+            @PathVariable Long orderId, @Valid @RequestBody UpdateSalesOrder updateOrder) {
         try {
-            return ApiResponseFactory.created(
+            salesOrderDetailsService.updateSalesOrder(companyId, orderId, updateOrder);
+            return ApiResponseFactory.accepted(
                     Map.of("orderId", orderId),
-                    "Order Updated successfully");
+                    "Order updated successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
 
-    @DeleteMapping("/{companyId}/sales/orders/{orderId}") // Delete Order by Order id
-    public ApiResponse<String> deleteOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
-        try {
-            salesOrderDetailsService.deleteOrder(companyId, orderId);
-            return ApiResponseFactory.accepted("Order deleted successfully", "Order deleted successfully");
-        } catch (RuntimeException e) {
-            return ApiResponseFactory.error(e.getMessage(), 406);
-        }
-    }
-
-    @PutMapping("/{companyId}/sales/orders/{orderId}/deactivate") // Deactivate Order by Order id
-    public ApiResponse<String> deactivateOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
-        try {
-            salesOrderDetailsService.deactivateOrder(companyId, orderId);
-            return ApiResponseFactory.accepted("Order deactivated successfully", "Order deactivated successfully");
-        } catch (RuntimeException e) {
-            return ApiResponseFactory.error(e.getMessage(), 406);
-        }
-    }
-
-    @PutMapping("/{companyId}/sales/orders/{orderId}/activate")
-    public ApiResponse<String> activateOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
-        try {
-            salesOrderDetailsService.activateOrder(companyId, orderId);
-            return ApiResponseFactory.accepted("Order activated successfully", "Order activated successfully");
-        } catch (RuntimeException e) {
-            return ApiResponseFactory.error(e.getMessage(), 406);
-        }
-    }
 }

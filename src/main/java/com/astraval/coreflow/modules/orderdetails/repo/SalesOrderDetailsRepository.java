@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails.repo;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -35,19 +34,6 @@ public interface SalesOrderDetailsRepository extends JpaRepository<OrderDetails,
                 ORDER BY o.orderDate DESC
             """)
     List<SalesOrderSummaryDto> findOrdersByCompanyId(@Param("companyId") Long companyId);
-
-    @Query(value = "SELECT generate_order_number(?1)", nativeQuery = true)
-    String generateOrderNumber(@Param("companyId") Long companyId);
-
-    @Query("""
-            SELECT o FROM OrderDetails o
-            WHERE o.orderId = :orderId
-            AND (
-                 o.sellerCompany.companyId = :companyId
-                 OR o.buyerCompany.companyId = :companyId
-            )
-            """)
-    Optional<OrderDetails> findOrderForCompany(@Param("orderId") Long orderId, @Param("companyId") Long companyId);
 
     @Modifying
     @Transactional
