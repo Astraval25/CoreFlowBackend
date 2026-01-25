@@ -22,6 +22,8 @@ import com.astraval.coreflow.modules.orderdetails.repo.SalesOrderDetailsReposito
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
+import com.astraval.coreflow.modules.orderdetails.dto.UpdateSalesOrder;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 
 @Service
@@ -131,6 +133,80 @@ public class SalesOrderDetailsService {
     
     public List<SalesOrderSummaryDto> getOrderSummaryByCompanyId(Long companyId) {
       return salesOrderDetailsRepository.findOrdersByCompanyId(companyId);
+    }
+    
+    @Transactional
+    public void updateSalesOrder(Long companyId, Long orderId, UpdateSalesOrder updateOrder) {
+        // Validation
+        Companies sellerCompany = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+        
+        OrderDetails existingOrder = salesOrderDetailsRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        if (!existingOrder.getSellerCompany().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Order does not belong to the requesting company");
+        }
+        
+        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
+        if (companyAssets == null) {
+            throw new RuntimeException("No assets found for company");
+        }
+        
+        if (companyAssets.getCustomers() == null || !Arrays.asList(companyAssets.getCustomers()).contains(updateOrder.getCustomerId())) {
+            throw new RuntimeException("Customer does not belong to the requesting company");
+        }
+        
+        updateOrder.getOrderItems().forEach(orderItem -> {
+            if (companyAssets.getItems() == null || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
+                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
+            }
+        });
+        
+        Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        
+        // Update order details
+        existingOrder.setCustomers(toCustomers);
+        existingOrder.setBuyerCompany(toCustomers.getCustomerCompany());
+        existingOrder.setDeliveryCharge(updateOrder.getDeliveryCharge());
+        existingOrder.setDiscountAmount(updateOrder.getDiscountAmount());
+        existingOrder.setTaxAmount(updateOrder.getTaxAmount());
+        existingOrder.setHasBill(updateOrder.isHasBill());
+        
+        // Delete existing order items
+        orderItemDetailsService.deleteOrderItemsByOrderId(orderId);
+        
+        // Create new order items
+        AtomicReference<Double> orderTotalAmount = new AtomicReference<>(0.0);
+        updateOrder.getOrderItems().forEach(newOrderItem -> {
+            OrderItemDetails orderItem = new OrderItemDetails();
+            Items item = itemRepository.findById(newOrderItem.getItemId())
+                    .orElseThrow(() -> new RuntimeException("Item not found"));
+
+            orderItem.setOrderId(existingOrder.getOrderId());
+            orderItem.setItemId(item);
+            orderItem.setQuantity(newOrderItem.getQuantity());
+            orderItem.setBasePrice(item.getSalesPrice() != null ? item.getSalesPrice() : item.getPurchasePrice());
+            orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
+            orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());
+            orderItem.setReadyStatus(0.0);
+            orderItem.setStatus(null);
+            orderTotalAmount.updateAndGet(current -> current + orderItem.getItemTotal());
+            orderItemDetailsService.createOrderItem(orderItem);
+        });
+        
+        // Update totals
+        Double orderAmount = orderTotalAmount.get() + updateOrder.getDeliveryCharge();
+        Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
+        
+        // Adjust customer due amount
+        toCustomers.setDueAmount(toCustomers.getDueAmount() - existingOrder.getTotalAmount() + totalAmount);
+        customerRepository.save(toCustomers);
+        
+        existingOrder.setOrderAmount(orderAmount);
+        existingOrder.setTotalAmount(totalAmount);
+        salesOrderDetailsRepository.save(existingOrder);
     }
     
 }

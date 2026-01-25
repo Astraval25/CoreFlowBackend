@@ -16,20 +16,24 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
-           "i.salesPrice, i.preferredCustomer.customerId, i.preferredCustomer.customerName, " +
-           "i.purchasePrice, i.preferredVendor.vendorId, i.preferredVendor.vendorName, " +
+           "i.salesPrice, pc.customerId, pc.customerName, " +
+           "i.purchasePrice, pv.vendorId, pv.vendorName, " +
            "i.isActive) " +
            "FROM Items i " +
+           "LEFT JOIN i.preferredCustomer pc " +
+           "LEFT JOIN i.preferredVendor pv " +
            "WHERE i.company.companyId = :companyId " +
            "ORDER BY i.itemName")
     List<ItemSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
-           "i.salesPrice, i.preferredCustomer.customerId, i.preferredCustomer.customerName, " +
-           "i.purchasePrice, i.preferredVendor.vendorId, i.preferredVendor.vendorName, " +
+           "i.salesPrice, pc.customerId, pc.customerName, " +
+           "i.purchasePrice, pv.vendorId, pv.vendorName, " +
            "i.isActive) " +
            "FROM Items i " +
+           "LEFT JOIN i.preferredCustomer pc " +
+           "LEFT JOIN i.preferredVendor pv " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
            "ORDER BY i.itemName")

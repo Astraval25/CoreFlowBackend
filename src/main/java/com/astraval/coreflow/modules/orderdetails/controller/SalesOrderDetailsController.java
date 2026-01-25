@@ -15,6 +15,7 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
 import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
+import com.astraval.coreflow.modules.orderdetails.dto.UpdateSalesOrder;
 import com.astraval.coreflow.modules.orderdetails.service.SalesOrderDetailsService;
 
 import jakarta.validation.Valid;
@@ -53,12 +54,13 @@ public class SalesOrderDetailsController {
     }
 
     @PutMapping("/{companyId}/sales/orders/{orderId}") // Update Order details by Order id
-    private ApiResponse<Map<String, Long>> updateOrderDetailsByOrderId(@PathVariable Long companyId,
-            @PathVariable Long orderId) {
+    public ApiResponse<Map<String, Long>> updateOrderDetailsByOrderId(@PathVariable Long companyId,
+            @PathVariable Long orderId, @Valid @RequestBody UpdateSalesOrder updateOrder) {
         try {
-            return ApiResponseFactory.created(
+            salesOrderDetailsService.updateSalesOrder(companyId, orderId, updateOrder);
+            return ApiResponseFactory.accepted(
                     Map.of("orderId", orderId),
-                    "Order Updated successfully");
+                    "Order updated successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

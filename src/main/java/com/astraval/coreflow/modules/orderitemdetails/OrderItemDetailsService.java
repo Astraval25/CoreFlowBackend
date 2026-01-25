@@ -39,4 +39,9 @@ public class OrderItemDetailsService {
         
         return orderItemDetailsRepository.save(orderItem);
     }
+    
+    @Transactional
+    public void deleteOrderItemsByOrderId(Long orderId) {
+        orderItemDetailsRepository.deleteByOrderId(orderId);
+    }
 }
