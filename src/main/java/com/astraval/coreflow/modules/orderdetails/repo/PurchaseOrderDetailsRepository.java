@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails.repo;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -33,16 +32,5 @@ public interface PurchaseOrderDetailsRepository extends JpaRepository<OrderDetai
           ORDER BY o.orderDate DESC
       """)
   List<PurchaseOrderSummaryDto> findPurchaseOrdersByCompanyId(@Param("companyId") Long companyId);
-
-
-  @Query("""
-      SELECT o FROM OrderDetails o
-      WHERE o.orderId = :orderId
-      AND (
-           o.sellerCompany.companyId = :companyId
-           OR o.buyerCompany.companyId = :companyId
-      )
-      """)
-  Optional<OrderDetails> findOrderForCompany(@Param("orderId") Long orderId, @Param("companyId") Long companyId);
 
 }

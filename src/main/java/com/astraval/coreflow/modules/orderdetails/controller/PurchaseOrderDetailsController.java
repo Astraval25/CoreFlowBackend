@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.dto.PurchaseOrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.service.PurchaseOrderDetailsService;
 
@@ -29,17 +28,6 @@ public class PurchaseOrderDetailsController {
       return ApiResponseFactory.accepted(result, "Order retrieved successfully");
     } catch (Exception e) {
       return ApiResponseFactory.error(e.getMessage(), 406);
-    }
-  }
-
-  @GetMapping("/{companyId}/purchase/orders/{orderId}") // View Order details by Order id
-  private ApiResponse<OrderDetails> viewOrderDetailsByOrderId(@PathVariable Long companyId,
-      @PathVariable Long orderId) {
-    try {
-      OrderDetails orderDetails = purchaseOrderDetailsService.getOrderDetailsByOrderId(companyId, orderId);
-      return ApiResponseFactory.accepted(orderDetails, "Order retrieved successfully");
-    } catch (RuntimeException e) {
-      return ApiResponseFactory.error(e.getMessage(), 420);
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.astraval.coreflow.modules.orderdetails.service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,12 +21,17 @@ import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
 import com.astraval.coreflow.modules.orderdetails.repo.SalesOrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 
 @Service
 public class SalesOrderDetailsService {
   
     @Autowired
     private SalesOrderDetailsRepository salesOrderDetailsRepository;
+    
+    @Autowired
+    private OrderDetailsService orderDetailsService;
     
     @Autowired
     private CompanyRepository companyRepository;
@@ -42,14 +48,38 @@ public class SalesOrderDetailsService {
     @Autowired
     private CustomerRepository customerRepository;
     
+    @Autowired
+    private UserCompanyAssetsRepository userCompanyAssetsRepository;
+    
     @Transactional
     public Long createSalesOrder(Long companyId, CreateSalesOrder createOrder) {
+        
+        // Access Validation
+        // 1. check the companyId is exist
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
+        
+        // Get company assets from view
+        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
+        if (companyAssets == null) {
+            throw new RuntimeException("No assets found for company");
+        }
+        
+        // 2. check the customerId exists and belongs to the requesting company
+        if (companyAssets.getCustomers() == null || !Arrays.asList(companyAssets.getCustomers()).contains(createOrder.getCustomerId())) {
+            throw new RuntimeException("Customer does not belong to the requesting company");
+        }
         
         Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
         
+        // 3. check the orderItems.items exist and belong to the requesting company 
+        createOrder.getOrderItems().forEach(orderItem -> {
+            if (companyAssets.getItems() == null || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
+                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
+            }
+        });
+        // Access Validation Done if all ok then only allow to create.
                 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
         orderDetails.setSellerCompany(sellerCompany);
@@ -62,7 +92,7 @@ public class SalesOrderDetailsService {
         orderDetails.setHasBill(createOrder.isHasBill());
         
         // Generate order number
-        String orderNumber = getNextSequenceNumber(companyId);
+        String orderNumber = orderDetailsService.getNextSequenceNumber(companyId);
         orderDetails.setOrderNumber(orderNumber);
         
         OrderDetails savedOrder = salesOrderDetailsRepository.save(orderDetails);
@@ -103,40 +133,4 @@ public class SalesOrderDetailsService {
       return salesOrderDetailsRepository.findOrdersByCompanyId(companyId);
     }
     
-    public OrderDetails getOrderDetailsByOrderId(Long companyId, Long orderId){
-        return salesOrderDetailsRepository
-                .findOrderForCompany(orderId, companyId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-    }
-    
-    @Transactional
-    public void deleteOrder(Long companyId, Long orderId) {
-        OrderDetails order = salesOrderDetailsRepository
-                .findOrderForCompany(orderId, companyId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        salesOrderDetailsRepository.delete(order);
-    }
-    
-    @Transactional
-    public void deactivateOrder(Long companyId, Long orderId) {
-        OrderDetails order = salesOrderDetailsRepository
-                .findOrderForCompany(orderId, companyId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setIsActive(false);
-        salesOrderDetailsRepository.save(order);
-    }
-    
-    @Transactional
-    public void activateOrder(Long companyId, Long orderId) {
-        OrderDetails order = salesOrderDetailsRepository
-                .findOrderForCompany(orderId, companyId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setIsActive(true);
-        salesOrderDetailsRepository.save(order);
-    }
-    
-    // -----------------------> Helper functions
-    private String getNextSequenceNumber(Long companyId) {
-        return salesOrderDetailsRepository.generateOrderNumber(companyId);
-    }
 }
