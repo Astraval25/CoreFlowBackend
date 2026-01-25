@@ -23,7 +23,6 @@ import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
 import com.astraval.coreflow.modules.orderdetails.dto.UpdateSalesOrder;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 
 @Service
@@ -138,7 +137,7 @@ public class SalesOrderDetailsService {
     @Transactional
     public void updateSalesOrder(Long companyId, Long orderId, UpdateSalesOrder updateOrder) {
         // Validation
-        Companies sellerCompany = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
         
         OrderDetails existingOrder = salesOrderDetailsRepository.findById(orderId)

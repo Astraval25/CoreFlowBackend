@@ -134,7 +134,7 @@ public class PurchaseOrderDetailsService {
   @Transactional
   public void updatePurchaseOrder(Long companyId, Long orderId, UpdatePurchaseOrder updateOrder) {
       // Validation
-      Companies buyerCompany = companyRepository.findById(companyId)
+      companyRepository.findById(companyId)
               .orElseThrow(() -> new RuntimeException("Company not found"));
       
       OrderDetails existingOrder = purchaseOrderDetailsRepository.findById(orderId)
