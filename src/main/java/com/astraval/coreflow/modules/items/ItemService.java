@@ -21,6 +21,8 @@ import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
 import com.astraval.coreflow.modules.items.model.ItemStocks;
 import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
+import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
+import com.astraval.coreflow.modules.items.dto.SellableItemDto;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
 
 @Service
@@ -175,5 +177,13 @@ public class ItemService {
             throw new RuntimeException("Item not found with ID: " + itemId);
         }
         itemRepository.deleteById(itemId);
+    }
+    
+    public List<SellableItemDto> getSellableItemsByCompany(Long companyId) {
+        return itemRepository.findSellableItemsByCompanyId(companyId);
+    }
+    
+    public List<PurchasableItemDto> getPurchasableItemsByCompany(Long companyId) {
+        return itemRepository.findPurchasableItemsByCompanyId(companyId);
     }
 }

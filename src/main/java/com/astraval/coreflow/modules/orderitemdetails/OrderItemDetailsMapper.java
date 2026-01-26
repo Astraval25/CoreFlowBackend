@@ -18,7 +18,7 @@ public interface OrderItemDetailsMapper {
     @Mapping(target = "orderItemId", ignore = true)
     @Mapping(target = "orderId", ignore = true)
     @Mapping(target = "itemId", ignore = true)
-    @Mapping(target = "status", constant = "CONFIRMED")
+    @Mapping(target = "status", constant = "OPEN")
     @Mapping(target = "isActive", constant = "true")
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdDt", ignore = true)
