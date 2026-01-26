@@ -75,4 +75,15 @@ public class OrderDetailsController {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
+    
+    // Update Order Status.
+    @PutMapping("/{companyId}/orders/{orderId}/confirm")
+    public ApiResponse<String> confirmOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, "CONFIRM_ORDER");
+            return ApiResponseFactory.accepted("Order confirmed successfully", "Order confirmed successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
 }

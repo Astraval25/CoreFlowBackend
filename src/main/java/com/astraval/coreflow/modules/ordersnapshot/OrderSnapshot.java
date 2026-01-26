@@ -46,6 +46,9 @@ public class OrderSnapshot {
   private String orderNumber; // ORD-YYYYMM-SEQ - to generate this number use "SELECT
                               // generate_order_number(:companyId);" function in database
 
+  @Column(name = "order_reference")
+  private Long orderReference; // Reference to the original OrderDetails ID
+
   @CreatedDate
   @Column(name = "order_date")
   private LocalDateTime orderDate;

@@ -6,12 +6,27 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
+import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
+import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
+import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsRepository;
+import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
+import com.astraval.coreflow.modules.ordersnapshot.service.OrderSnapshotService;
+import com.astraval.coreflow.modules.ordersnapshot.repo.OrderSnapshotRepository;
 
 @Service
 public class OrderDetailsService {
   
     @Autowired
     private OrderDetailsRepository orderDetailsRepository;
+    
+    @Autowired
+    private OrderSnapshotRepository orderSnapshotRepository;
+    
+    @Autowired
+    private OrderItemSnapshotService orderItemSnapshotService;
+    
+    @Autowired
+    private OrderItemDetailsRepository orderItemDetailsRepository;
     
     
     
@@ -45,6 +60,62 @@ public class OrderDetailsService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setIsActive(true);
         orderDetailsRepository.save(order);
+    }
+    
+    @Transactional
+    public void updateOrderStatus(Long companyId, Long orderId, String newStatus) {
+        OrderDetails order = orderDetailsRepository
+                .findOrderForCompany(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        if (!"OPEN".equals(order.getOrderStatus())) {
+            throw new RuntimeException("Order status can only be updated from OPEN status");
+        }
+        
+        // Create snapshot before updating status
+        createOrderSnapshot(order);
+        
+        order.setOrderStatus(newStatus);
+        orderDetailsRepository.save(order);
+    }
+    
+    private void createOrderSnapshot(OrderDetails order) {
+        // Create order snapshot
+        OrderSnapshot snapshot = new OrderSnapshot();
+        snapshot.setOrderReference(order.getOrderId());
+        snapshot.setOrderNumber(order.getOrderNumber());
+        snapshot.setOrderDate(order.getOrderDate());
+        snapshot.setSellerCompany(order.getSellerCompany());
+        snapshot.setBuyerCompany(order.getBuyerCompany());
+        snapshot.setCustomers(order.getCustomers());
+        snapshot.setVendors(order.getVendors());
+        snapshot.setTaxAmount(order.getTaxAmount());
+        snapshot.setDiscountAmount(order.getDiscountAmount());
+        snapshot.setDeliveryCharge(order.getDeliveryCharge());
+        snapshot.setOrderAmount(order.getOrderAmount());
+        snapshot.setTotalAmount(order.getTotalAmount());
+        snapshot.setPaidAmount(order.getPaidAmount());
+        snapshot.setOrderStatus(order.getOrderStatus());
+        snapshot.setHasBill(order.getHasBill());
+        snapshot.setIsActive(order.getIsActive());
+        
+        OrderSnapshot savedSnapshot = orderSnapshotRepository.save(snapshot);
+        
+        // Create order item snapshots
+        orderItemDetailsRepository.findByOrderId(order.getOrderId()).forEach(orderItem -> {
+            OrderItemSnapshot itemSnapshot = new OrderItemSnapshot();
+            itemSnapshot.setOrderId(savedSnapshot.getOrderId());
+            itemSnapshot.setItemId(orderItem.getItemId());
+            itemSnapshot.setQuantity(orderItem.getQuantity());
+            itemSnapshot.setBasePrice(orderItem.getBasePrice());
+            itemSnapshot.setUpdatedPrice(orderItem.getUpdatedPrice());
+            itemSnapshot.setItemTotal(orderItem.getItemTotal());
+            itemSnapshot.setReadyStatus(orderItem.getReadyStatus());
+            itemSnapshot.setStatus(orderItem.getStatus());
+            itemSnapshot.setIsActive(orderItem.getIsActive());
+            
+            orderItemSnapshotService.createOrderItem(itemSnapshot);
+        });
     }
     
     // -----------------------> Helper functions

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 // import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
@@ -29,6 +30,19 @@ public class OrderSnapshotController {
         try {
             OrderSnapshot orderSnapshot = orderSnapshotService.getOrderSnapshotByOrderId(companyId, orderId);
             return ApiResponseFactory.accepted(orderSnapshot, "Order retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 420);
+        }
+    }
+    
+    @GetMapping("/{companyId}/orders/snapshot") // Get Order Snapshot by order reference and status
+    public ApiResponse<OrderSnapshot> getSnapshotByOrderReferenceAndStatus(
+            @PathVariable Long companyId,
+            @RequestParam Long orderReference,
+            @RequestParam String status) {
+        try {
+            OrderSnapshot orderSnapshot = orderSnapshotService.getSnapshotByOrderReferenceAndStatus(companyId, orderReference, status);
+            return ApiResponseFactory.accepted(orderSnapshot, "Order snapshot retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
         }

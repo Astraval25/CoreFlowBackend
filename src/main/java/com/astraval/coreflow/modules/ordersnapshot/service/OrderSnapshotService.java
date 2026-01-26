@@ -49,4 +49,10 @@ public class OrderSnapshotService {
     public String getNextSequenceNumber(Long companyId) {
         return orderSnapshotRepository.generateOrderNumber(companyId);
     }
+    
+    public OrderSnapshot getSnapshotByOrderReferenceAndStatus(Long companyId, Long orderReference, String status) {
+        return orderSnapshotRepository
+                .findByOrderReferenceAndStatus(orderReference, status, companyId)
+                .orElseThrow(() -> new RuntimeException("Order snapshot not found"));
+    }
 }

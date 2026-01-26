@@ -32,4 +32,17 @@ public interface OrderSnapshotRepository extends JpaRepository<OrderSnapshot, Lo
      @Query("UPDATE OrderSnapshot o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.sellerCompany.companyId = :companyId")
      void updateOrderStatus(@Param("orderId") Long orderId, @Param("companyId") Long companyId,
                @Param("status") String status);
+     
+     @Query("""
+               SELECT o FROM OrderSnapshot o
+               WHERE o.orderReference = :orderReference
+               AND o.orderStatus = :status
+               AND (
+                    o.sellerCompany.companyId = :companyId
+                    OR o.buyerCompany.companyId = :companyId
+               )
+               """)
+     Optional<OrderSnapshot> findByOrderReferenceAndStatus(@Param("orderReference") Long orderReference, 
+                                                           @Param("status") String status, 
+                                                           @Param("companyId") Long companyId);
 }
