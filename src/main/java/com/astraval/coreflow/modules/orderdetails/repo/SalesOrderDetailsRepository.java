@@ -21,15 +21,15 @@ public interface SalesOrderDetailsRepository extends JpaRepository<OrderDetails,
                 o.orderNumber,
                 o.orderDate,
                 bc.companyName,
-                v.displayName,
-                o.orderAmount,
+                c.displayName,
+                o.totalAmount,
                 o.paidAmount,
                 o.orderStatus,
                 o.isActive
             )
             FROM OrderDetails o
                 LEFT JOIN o.buyerCompany bc
-                LEFT JOIN o.vendors v
+                LEFT JOIN o.customers c
                 WHERE o.sellerCompany.companyId = :companyId 
                 ORDER BY o.orderDate DESC
             """)

@@ -18,14 +18,12 @@ import com.astraval.coreflow.modules.orderdetails.dto.CreatePurchaseOrder;
 import com.astraval.coreflow.modules.orderdetails.dto.PurchaseOrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
 import com.astraval.coreflow.modules.orderdetails.repo.PurchaseOrderDetailsRepository;
-import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.orderdetails.dto.UpdatePurchaseOrder;
-import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Service
@@ -121,7 +119,7 @@ public class PurchaseOrderDetailsService {
       savedOrder.setTotalAmount(totalAmount);
       purchaseOrderDetailsRepository.save(savedOrder);
       
-      vendor.setDueAmount(vendor.getDueAmount() + totalAmount);
+      vendor.setDueAmount((vendor.getDueAmount() != null ? vendor.getDueAmount() : 0.0) + totalAmount);
       vendorRepository.save(vendor);
       
       return savedOrder.getOrderId();
@@ -197,7 +195,9 @@ public class PurchaseOrderDetailsService {
       Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
       
       // Adjust vendor due amount
-      vendor.setDueAmount(vendor.getDueAmount() - existingOrder.getTotalAmount() + totalAmount);
+      Double currentDueAmount = vendor.getDueAmount() != null ? vendor.getDueAmount() : 0.0;
+      Double existingOrderTotal = existingOrder.getTotalAmount() != null ? existingOrder.getTotalAmount() : 0.0;
+      vendor.setDueAmount(currentDueAmount - existingOrderTotal + totalAmount);
       vendorRepository.save(vendor);
       
       existingOrder.setOrderAmount(orderAmount);

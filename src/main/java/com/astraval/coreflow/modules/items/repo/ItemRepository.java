@@ -9,6 +9,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
+import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
+import com.astraval.coreflow.modules.items.dto.SellableItemDto;
 import com.astraval.coreflow.modules.items.model.Items;
 
 @Repository
@@ -40,4 +42,26 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     List<ItemSummaryDto> findActiveByCompanyIdSummary(@Param("companyId") Long companyId);
 
     Optional<Items> findByItemIdAndCompanyCompanyId(Long itemId, Long companyId);
+    
+    @Query("SELECT new com.astraval.coreflow.modules.items.dto.SellableItemDto(" +
+           "i.itemId, i.itemName, i.salesDescription, i.salesPrice, " +
+           "pc.customerName, i.taxRate, i.hsnCode) " +
+           "FROM Items i " +
+           "LEFT JOIN i.preferredCustomer pc " +
+           "WHERE i.company.companyId = :companyId " +
+           "AND i.isActive = true " +
+           "AND i.salesPrice IS NOT NULL " +
+           "ORDER BY i.itemName")
+    List<SellableItemDto> findSellableItemsByCompanyId(@Param("companyId") Long companyId);
+    
+    @Query("SELECT new com.astraval.coreflow.modules.items.dto.PurchasableItemDto(" +
+           "i.itemId, i.itemName, i.purchaseDescription, i.purchasePrice, " +
+           "pv.vendorName, i.taxRate, i.hsnCode) " +
+           "FROM Items i " +
+           "LEFT JOIN i.preferredVendor pv " +
+           "WHERE i.company.companyId = :companyId " +
+           "AND i.isActive = true " +
+           "AND i.purchasePrice IS NOT NULL " +
+           "ORDER BY i.itemName")
+    List<PurchasableItemDto> findPurchasableItemsByCompanyId(@Param("companyId") Long companyId);
 }

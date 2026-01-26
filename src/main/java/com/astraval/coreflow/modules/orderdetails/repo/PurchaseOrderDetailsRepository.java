@@ -19,15 +19,15 @@ public interface PurchaseOrderDetailsRepository extends JpaRepository<OrderDetai
           o.orderNumber,
           o.orderDate,
           sc.companyName,
-          c.displayName,
-          o.orderAmount,
+          v.displayName,
+          o.totalAmount,
           o.paidAmount,
           o.orderStatus,
           o.isActive
       )
       FROM OrderDetails o
           LEFT JOIN o.sellerCompany sc
-          LEFT JOIN o.customers c
+          LEFT JOIN o.vendors v
           WHERE o.buyerCompany.companyId = :companyId
           ORDER BY o.orderDate DESC
       """)

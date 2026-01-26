@@ -84,7 +84,7 @@ public class SalesOrderDetailsService {
                 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
         orderDetails.setSellerCompany(sellerCompany);
-        orderDetails.setBuyerCompany(toCustomers.getCustomerCompany());
+        orderDetails.setBuyerCompany(toCustomers.getCustomerCompany() != null ? toCustomers.getCustomerCompany() : sellerCompany);
         orderDetails.setCustomers(toCustomers);
         orderDetails.setOrderDate(LocalDateTime.now());
         orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
@@ -167,7 +167,7 @@ public class SalesOrderDetailsService {
         
         // Update order details
         existingOrder.setCustomers(toCustomers);
-        existingOrder.setBuyerCompany(toCustomers.getCustomerCompany());
+        existingOrder.setBuyerCompany(toCustomers.getCustomerCompany() != null ? toCustomers.getCustomerCompany() : existingOrder.getSellerCompany());
         existingOrder.setDeliveryCharge(updateOrder.getDeliveryCharge());
         existingOrder.setDiscountAmount(updateOrder.getDiscountAmount());
         existingOrder.setTaxAmount(updateOrder.getTaxAmount());
