@@ -15,6 +15,7 @@ import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
 import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderSummaryDto;
 import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
@@ -91,6 +92,7 @@ public class SalesOrderDetailsService {
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
         orderDetails.setHasBill(createOrder.isHasBill());
+        orderDetails.setOrderStatus(OrderStatus.getSalesOrder()); // Set the order status to "Sales order".
         
         // Generate order number
         String orderNumber = orderDetailsService.getNextSequenceNumber(companyId);

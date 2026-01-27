@@ -5,12 +5,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsRepository;
 import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
-import com.astraval.coreflow.modules.ordersnapshot.service.OrderSnapshotService;
 import com.astraval.coreflow.modules.ordersnapshot.repo.OrderSnapshotRepository;
 
 @Service
@@ -68,8 +68,8 @@ public class OrderDetailsService {
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         
-        if (!"OPEN".equals(order.getOrderStatus())) {
-            throw new RuntimeException("Order status can only be updated from OPEN status");
+        if (!OrderStatus.getNewOrder().equals(order.getOrderStatus())) {  // before updating check the order is in "New Order" status.
+            throw new RuntimeException("Order status can only be updated from Open status");
         }
         
         // Create snapshot before updating status
@@ -79,6 +79,7 @@ public class OrderDetailsService {
         orderDetailsRepository.save(order);
     }
     
+    @Transactional
     private void createOrderSnapshot(OrderDetails order) {
         // Create order snapshot
         OrderSnapshot snapshot = new OrderSnapshot();

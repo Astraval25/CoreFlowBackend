@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -76,11 +77,11 @@ public class OrderDetailsController {
         }
     }
     
-    // Update Order Status.
+    // Update Order Status to CONFIRM ORDER.
     @PutMapping("/{companyId}/orders/{orderId}/confirm")
     public ApiResponse<String> confirmOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
         try {
-            orderDetailsService.updateOrderStatus(companyId, orderId, "CONFIRM_ORDER");
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getSalesOrder());
             return ApiResponseFactory.accepted("Order confirmed successfully", "Order confirmed successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
