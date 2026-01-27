@@ -77,12 +77,22 @@ public class OrderDetailsController {
         }
     }
     
-    // Update Order Status to CONFIRM ORDER.
-    @PutMapping("/{companyId}/orders/{orderId}/confirm")
-    public ApiResponse<String> confirmOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+    // Update Order Status.
+    @PutMapping("/{companyId}/orders/{orderId}/sales-order")
+    public ApiResponse<String> convertToSalesOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
         try {
-            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getSalesOrder());
+            orderDetailsService.updateOrderStatusWithOrderSnapshot(companyId, orderId, OrderStatus.getOrder());
             return ApiResponseFactory.accepted("Order confirmed successfully", "Order confirmed successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/viewed")
+    public ApiResponse<String> viewedOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getViewed());
+            return ApiResponseFactory.accepted("Order status changed to viewed.", "Order status changed to viewed.");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

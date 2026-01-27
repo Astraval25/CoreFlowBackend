@@ -92,7 +92,7 @@ public class SalesOrderDetailsService {
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
         orderDetails.setHasBill(createOrder.isHasBill());
-        orderDetails.setOrderStatus(OrderStatus.getSalesOrder()); // Set the order status to "Sales order".
+        orderDetails.setOrderStatus(OrderStatus.getOrder()); // Set the order status to "Sales order".
         
         // Generate order number
         String orderNumber = orderDetailsService.getNextSequenceNumber(companyId);

@@ -68,7 +68,17 @@ public class OrderDetailsService {
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         
-        if (!OrderStatus.getNewOrder().equals(order.getOrderStatus())) {  // before updating check the order is in "New Order" status.
+        order.setOrderStatus(newStatus);
+        orderDetailsRepository.save(order);
+    }
+    
+    @Transactional
+    public void updateOrderStatusWithOrderSnapshot(Long companyId, Long orderId, String newStatus) {
+        OrderDetails order = orderDetailsRepository
+                .findOrderForCompany(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        if (!OrderStatus.getViewed().equals(order.getOrderStatus())) {  // before updating check the order is in "Viewed" status.
             throw new RuntimeException("Order status can only be updated from Open status");
         }
         

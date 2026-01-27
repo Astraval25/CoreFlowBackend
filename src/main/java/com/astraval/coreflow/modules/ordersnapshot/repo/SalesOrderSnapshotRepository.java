@@ -30,7 +30,7 @@ public interface SalesOrderSnapshotRepository extends JpaRepository<OrderSnapsho
             FROM OrderSnapshot o
                 LEFT JOIN o.buyerCompany bc
                 LEFT JOIN o.customers c
-                WHERE o.sellerCompany.companyId = :companyId
+                WHERE o.sellerCompany.companyId = :companyId OR o.buyerCompany.companyId = :companyId
                 ORDER BY o.orderDate DESC
             """)
     List<SalesOrderSummaryDto> findOrdersByCompanyId(@Param("companyId") Long companyId);
