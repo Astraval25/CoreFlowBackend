@@ -25,6 +25,8 @@ import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
 import com.astraval.coreflow.modules.orderdetails.dto.UpdateSalesOrder;
 import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
+import com.astraval.coreflow.modules.vendor.VendorService;
+import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Service
 public class SalesOrderDetailsService {
@@ -52,6 +54,9 @@ public class SalesOrderDetailsService {
     
     @Autowired
     private UserCompanyAssetsRepository userCompanyAssetsRepository;
+    
+    @Autowired
+    private VendorService vendorService;
     
     @Transactional
     public Long createSalesOrder(Long companyId, CreateSalesOrder createOrder) {
@@ -84,9 +89,16 @@ public class SalesOrderDetailsService {
         // Access Validation Done if all ok then only allow to create.
                 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
+        // Main id setting...
         orderDetails.setSellerCompany(sellerCompany);
-        orderDetails.setBuyerCompany(toCustomers.getCustomerCompany() != null ? toCustomers.getCustomerCompany() : sellerCompany);
         orderDetails.setCustomers(toCustomers);
+        if(toCustomers.getCustomerCompany() != null){
+            orderDetails.setBuyerCompany(toCustomers.getCustomerCompany());
+            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+            Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
+            orderDetails.setVendors(buyerVendor);
+        }
+        
         orderDetails.setOrderDate(LocalDateTime.now());
         orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());

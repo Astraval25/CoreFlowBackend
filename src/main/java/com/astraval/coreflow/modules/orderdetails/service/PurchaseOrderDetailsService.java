@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.customer.CustomerService;
+import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
@@ -52,6 +54,10 @@ public class PurchaseOrderDetailsService {
 
     @Autowired
     private UserCompanyAssetsRepository userCompanyAssetsRepository;
+    
+    @Autowired
+    private CustomerService customerService;
+    
 
     @Transactional
     public Long createPurchaseOrder(Long companyId, CreatePurchaseOrder createOrder) {
@@ -72,7 +78,7 @@ public class PurchaseOrderDetailsService {
             throw new RuntimeException("Vendor does not belong to the requesting company");
         }
 
-        Vendors vendor = vendorRepository.findById(createOrder.getVendorId())
+        Vendors myVendor = vendorRepository.findById(createOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
         // Check items belong to company
@@ -82,11 +88,23 @@ public class PurchaseOrderDetailsService {
                 throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
             }
         });
+                
 
+        
+        
         OrderDetails orderDetails = orderDetailsMapper.toPurchaseOrderDetails(createOrder);
+        // Main id setting...
         orderDetails.setBuyerCompany(buyerCompany);
-        orderDetails.setSellerCompany(vendor.getVendorCompany());
-        orderDetails.setVendors(vendor);
+        orderDetails.setVendors(myVendor);
+        if (myVendor.getVendorCompany() != null) {
+            orderDetails.setSellerCompany(myVendor.getVendorCompany());
+            // Find buyer company's customer id by order company id
+            Long vendorsCustomerCompanyId = myVendor.getVendorCompany().getCompanyId();
+            Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
+            orderDetails.setCustomers(sellerCustomer);
+        }
+        
+        
         orderDetails.setOrderDate(LocalDateTime.now());
         orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
@@ -123,8 +141,8 @@ public class PurchaseOrderDetailsService {
         savedOrder.setTotalAmount(totalAmount);
         purchaseOrderDetailsRepository.save(savedOrder);
 
-        vendor.setDueAmount((vendor.getDueAmount() != null ? vendor.getDueAmount() : 0.0) + totalAmount);
-        vendorRepository.save(vendor);
+        myVendor.setDueAmount((myVendor.getDueAmount() != null ? myVendor.getDueAmount() : 0.0) + totalAmount);
+        vendorRepository.save(myVendor);
 
         return savedOrder.getOrderId();
     }

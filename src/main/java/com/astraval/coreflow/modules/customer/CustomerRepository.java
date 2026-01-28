@@ -39,4 +39,7 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
                   Long customerId,
                   Long companyId);
 
+
+    Optional<Customers> findByCompanyCompanyIdAndCustomerCompanyCompanyId(Long companyId, Long customerCompanyId);
+
 }

@@ -45,4 +45,10 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
     Optional<Vendors> findByVendorIdAndCompanyCompanyId(
                   Long vendorId,
                   Long companyId);
+
+    Optional<Vendors> findByCompanyCompanyIdAndVendorCompanyCompanyId(
+                  Long companyId,
+                  Long vendorCompanyId);
+
+
 }
