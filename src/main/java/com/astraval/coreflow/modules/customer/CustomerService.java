@@ -157,4 +157,12 @@ public class CustomerService {
         }
         customerRepository.deleteById(customerId);
     }
+
+    // get customer by company id and customerCompany_id
+    public Customers getSellersCustomerId(Long companyId, Long customerCompanyId) {
+        return customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(companyId, customerCompanyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer " + customerCompanyId + " not found for company ID: " + companyId));
+    }
+
 }

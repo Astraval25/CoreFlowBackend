@@ -158,4 +158,10 @@ public class VendorService {
         }
         vendorRepository.deleteById(vendorId);
     }
+
+    public Vendors getBuyerVendorId( Long companyId, Long customersVendorId) {
+        return vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(companyId, 
+                customersVendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor " + customersVendorId + " not found for company ID: " + companyId));
+    }
 }

@@ -1,30 +1,16 @@
-package com.astraval.coreflow.modules.orderdetails.mapper;
+package com.astraval.coreflow.modules.ordersnapshot.mapper;
 
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import com.astraval.coreflow.modules.orderdetails.OrderDetails;
-import com.astraval.coreflow.modules.orderdetails.dto.CreatePurchaseOrder;
-import com.astraval.coreflow.modules.orderdetails.dto.CreateSalesOrder;
-import com.astraval.coreflow.modules.orderdetails.dto.SalesOrderResponse;
+import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
+import com.astraval.coreflow.modules.ordersnapshot.dto.CreatePurchaseOrder;
+import com.astraval.coreflow.modules.ordersnapshot.dto.CreateSalesOrder;
+import com.astraval.coreflow.modules.ordersnapshot.dto.SalesOrderResponse;
 
 @Mapper(componentModel = "spring")
-public interface OrderDetailsMapper {
-
-    @BeanMapping(ignoreByDefault = true)
-    @Mapping(target = "orderId", ignore = true)
-    @Mapping(target = "orderNumber", ignore = true)
-    @Mapping(target = "orderDate", ignore = true)
-    // @Mapping(target = "orderStatus", constant = "SALES_ORDER")
-    @Mapping(target = "sellerCompany", ignore = true)
-    @Mapping(target = "buyerCompany", ignore = true)
-    @Mapping(target = "isActive", constant = "true")
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "createdDt", ignore = true)
-    @Mapping(target = "lastModifiedBy", ignore = true)
-    @Mapping(target = "lastModifiedDt", ignore = true)
-    OrderDetails toOrderDetails(CreateSalesOrder createOrder);
+public interface OrderSnapshotMapper {
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "orderId", ignore = true)
@@ -38,10 +24,24 @@ public interface OrderDetailsMapper {
     @Mapping(target = "createdDt", ignore = true)
     @Mapping(target = "lastModifiedBy", ignore = true)
     @Mapping(target = "lastModifiedDt", ignore = true)
-    OrderDetails toPurchaseOrderDetails(CreatePurchaseOrder createOrder);
+    OrderSnapshot toOrderSnapshot(CreateSalesOrder createOrder);
+
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "orderId", ignore = true)
+    @Mapping(target = "orderNumber", ignore = true)
+    @Mapping(target = "orderDate", ignore = true)
+    // @Mapping(target = "orderStatus", constant = "OPEN")
+    @Mapping(target = "sellerCompany", ignore = true)
+    @Mapping(target = "buyerCompany", ignore = true)
+    @Mapping(target = "isActive", constant = "true")
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "createdDt", ignore = true)
+    @Mapping(target = "lastModifiedBy", ignore = true)
+    @Mapping(target = "lastModifiedDt", ignore = true)
+    OrderSnapshot toPurchaseOrderSnapshot(CreatePurchaseOrder createOrder);
 
     @Mapping(source = "sellerCompany.companyName", target = "sellerCompanyName")
     @Mapping(source = "buyerCompany.companyName", target = "buyerCompanyName")
     @Mapping(target = "orderItems", ignore = true)
-    SalesOrderResponse toOrderResponse(OrderDetails orderDetails);
+    SalesOrderResponse toOrderResponse(OrderSnapshot orderSnapshot);
 }

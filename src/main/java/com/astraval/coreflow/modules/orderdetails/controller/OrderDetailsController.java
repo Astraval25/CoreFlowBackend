@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -71,6 +72,27 @@ public class OrderDetailsController {
         try {
             orderDetailsService.activateOrder(companyId, orderId);
             return ApiResponseFactory.accepted("Order activated successfully", "Order activated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+    
+    // Update Order Status.
+    @PutMapping("/{companyId}/orders/{orderId}/sales-order")
+    public ApiResponse<String> convertToSalesOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatusWithOrderSnapshot(companyId, orderId, OrderStatus.getOrder());
+            return ApiResponseFactory.accepted("Order confirmed successfully", "Order confirmed successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/viewed")
+    public ApiResponse<String> viewedOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getViewed());
+            return ApiResponseFactory.accepted("Order status changed to viewed.", "Order status changed to viewed.");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
