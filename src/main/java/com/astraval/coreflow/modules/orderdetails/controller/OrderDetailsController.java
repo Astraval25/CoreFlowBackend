@@ -91,10 +91,21 @@ public class OrderDetailsController {
     @PutMapping("/{companyId}/orders/{orderId}/viewed")
     public ApiResponse<String> viewedOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
         try {
-            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getViewed());
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getOrderViewed());
             return ApiResponseFactory.accepted("Order status changed to viewed.", "Order status changed to viewed.");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
+    
+    // Get all Un-paid orders by status = ORDER_INVOICED, seller_company and buyer_company
+    // @GetMapping("/{companyId}/unpaid-orders")
+    // public ApiResponse<String> getUnpaidOrders(@PathVariable Long companyId) {
+    //     try {
+    //         orderDetailsService.getUnpaidOrders(companyId);
+    //         return ApiResponseFactory.accepted("Unpaid orders retrieved successfully", "Unpaid orders retrieved successfully");
+    //     } catch (RuntimeException e) {
+    //         return ApiResponseFactory.error(e.getMessage(), 406);
+    //     }
+    // }
 }
