@@ -78,13 +78,12 @@ public class BuyerPaymentService {
         payment.setBuyerCompany(buyerCompany);
         payment.setVendors(vendor);
         
-        Customers sellerCustomer = null; // this is use to update seller customer due amount
         if (vendor.getVendorCompany() != null) {
             payment.setSellerCompany(vendor.getVendorCompany());
             // Find customer relationship if vendor has a company
             // This would need customer service method to find customer by vendor company
             Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
-            sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
+            Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
             payment.setCustomers(sellerCustomer);
         }
 
@@ -95,16 +94,6 @@ public class BuyerPaymentService {
         Payments savedPayment = paymentRepository.save(payment);
         
         
-        // Update Vendor Due Amount
-        Double updatedVendorAmount = vendor.getDueAmount() - request.getPaymentDetails().getAmount();
-        vendor.setDueAmount(updatedVendorAmount); 
-        vendorRepository.save(vendor);
-        
-        // Update Seller Customer Due Amount 
-        if (sellerCustomer != null) {
-            Double updatedSellerCustomerAmount = sellerCustomer.getDueAmount() - request.getPaymentDetails().getAmount();
-            sellerCustomer.setDueAmount(updatedSellerCustomerAmount);
-        }
         // Create order allocations if provided
         if (request.getPaymentDetails().getOrderAllocations() != null) {
             createOrderAllocations(savedPayment, request.getPaymentDetails().getOrderAllocations());

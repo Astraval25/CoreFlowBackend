@@ -137,9 +137,6 @@ public class SalesOrderDetailsService {
         savedOrder.setTotalAmount(totalAmount);
         salesOrderDetailsRepository.save(savedOrder);
         
-        toCustomers.setDueAmount(toCustomers.getDueAmount() + totalAmount);
-        customerRepository.save(toCustomers);
-        
         return savedOrder.getOrderId();
     }
     
@@ -212,10 +209,6 @@ public class SalesOrderDetailsService {
         // Update totals
         Double orderAmount = orderTotalAmount.get() + updateOrder.getDeliveryCharge();
         Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
-        
-        // Adjust customer due amount
-        toCustomers.setDueAmount(toCustomers.getDueAmount() - existingOrder.getTotalAmount() + totalAmount);
-        customerRepository.save(toCustomers);
         
         existingOrder.setOrderAmount(orderAmount);
         existingOrder.setTotalAmount(totalAmount);

@@ -119,9 +119,6 @@ public class PurchaseOrderSnapshotService {
       savedOrder.setTotalAmount(totalAmount);
       purchaseOrderSnapshotRepository.save(savedOrder);
       
-      vendor.setDueAmount((vendor.getDueAmount() != null ? vendor.getDueAmount() : 0.0) + totalAmount);
-      vendorRepository.save(vendor);
-      
       return savedOrder.getOrderId();
   }
 
@@ -195,12 +192,6 @@ public class PurchaseOrderSnapshotService {
         // Update totals
         Double orderAmount = orderTotalAmount.get() + updateOrder.getDeliveryCharge();
         Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
-
-        // Adjust vendor due amount
-        Double currentDueAmount = vendor.getDueAmount() != null ? vendor.getDueAmount() : 0.0;
-        Double existingOrderTotal = existingOrder.getTotalAmount() != null ? existingOrder.getTotalAmount() : 0.0;
-        vendor.setDueAmount(currentDueAmount - existingOrderTotal + totalAmount);
-        vendorRepository.save(vendor);
 
         existingOrder.setOrderAmount(orderAmount);
         existingOrder.setTotalAmount(totalAmount);

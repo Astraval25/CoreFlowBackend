@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
-import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.model.Items;
@@ -58,9 +57,6 @@ public class PurchaseOrderDetailsService {
 
     @Autowired
     private CustomerService customerService;
-
-    @Autowired
-    private CustomerRepository customerRepository;
     
 
     @Transactional
@@ -101,12 +97,11 @@ public class PurchaseOrderDetailsService {
         orderDetails.setBuyerCompany(buyerCompany);
         orderDetails.setVendors(myVendor);
         
-        Customers sellerCustomer = null;   // this is use to update seller customer due amount
         if (myVendor.getVendorCompany() != null) {
             orderDetails.setSellerCompany(myVendor.getVendorCompany());
             // Find buyer company's customer id by order company id
             Long vendorsCustomerCompanyId = myVendor.getVendorCompany().getCompanyId();
-            sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
+            Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
             orderDetails.setCustomers(sellerCustomer);
         }
         
@@ -146,17 +141,6 @@ public class PurchaseOrderDetailsService {
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
         purchaseOrderDetailsRepository.save(savedOrder);
-
-        // Update Vendor Due Amount
-        if(myVendor != null){
-            myVendor.setDueAmount(myVendor.getDueAmount() + totalAmount);
-            vendorRepository.save(myVendor);
-        }
-        // Update Seller Customer Due Amount
-        if (sellerCustomer != null) {
-            sellerCustomer.setDueAmount(sellerCustomer.getDueAmount() + totalAmount);
-            customerRepository.save(sellerCustomer);
-        }
 
         return savedOrder.getOrderId();
     }
@@ -231,12 +215,6 @@ public class PurchaseOrderDetailsService {
         // Update totals
         Double orderAmount = orderTotalAmount.get() + updateOrder.getDeliveryCharge();
         Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
-
-        // Adjust vendor due amount
-        Double currentDueAmount = vendor.getDueAmount() != null ? vendor.getDueAmount() : 0.0;
-        Double existingOrderTotal = existingOrder.getTotalAmount() != null ? existingOrder.getTotalAmount() : 0.0;
-        vendor.setDueAmount(currentDueAmount - existingOrderTotal + totalAmount);
-        vendorRepository.save(vendor);
 
         existingOrder.setOrderAmount(orderAmount);
         existingOrder.setTotalAmount(totalAmount);
