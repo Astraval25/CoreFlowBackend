@@ -1,5 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -98,14 +100,15 @@ public class OrderDetailsController {
         }
     }
     
-    // Get all Un-paid orders by status = ORDER_INVOICED, seller_company and buyer_company
-    // @GetMapping("/{companyId}/unpaid-orders")
-    // public ApiResponse<String> getUnpaidOrders(@PathVariable Long companyId) {
-    //     try {
-    //         orderDetailsService.getUnpaidOrders(companyId);
-    //         return ApiResponseFactory.accepted("Unpaid orders retrieved successfully", "Unpaid orders retrieved successfully");
-    //     } catch (RuntimeException e) {
-    //         return ApiResponseFactory.error(e.getMessage(), 406);
-    //     }
-    // }
+    @GetMapping("/{companyId}/unpaid-orders-to/{vendorId}")
+    public ApiResponse<List<UnpaidOrderDto>> getUnpaidCompanyOrders(@PathVariable Long companyId,
+            @PathVariable Long vendorId) {
+        try {
+            List<UnpaidOrderDto> unpaidOrders = orderDetailsService.getUnpaidOrdersByBuyerCompanyIdAndVendorId(companyId, vendorId);
+            return ApiResponseFactory.accepted(unpaidOrders, "Unpaid orders retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+    
 }

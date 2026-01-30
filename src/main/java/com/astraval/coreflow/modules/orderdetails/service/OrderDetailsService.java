@@ -1,11 +1,14 @@
 package com.astraval.coreflow.modules.orderdetails.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
@@ -132,5 +135,10 @@ public class OrderDetailsService {
     // -----------------------> Helper functions
     public String getNextSequenceNumber(Long companyId) {
         return orderDetailsRepository.generateOrderNumber(companyId);
+    }
+
+    public List<UnpaidOrderDto> getUnpaidOrdersByBuyerCompanyIdAndVendorId(Long buyerCompanyId, Long vendorId) {
+        String orderStatus = OrderStatus.getOrderInvoiced();
+        return orderDetailsRepository.findUnpaidOrdersByBuyerCompanyIdAndVendorId(buyerCompanyId, vendorId, orderStatus);
     }
 }
