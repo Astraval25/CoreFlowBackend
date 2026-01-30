@@ -10,10 +10,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -44,7 +46,8 @@ public class PaymentOrderAllocations {
   private Long paymentOrderAllocationId;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "payment_id")
+  @JoinColumn(name = "payment_id", foreignKey = @ForeignKey(name = "fk_payment_allocation", 
+             foreignKeyDefinition = "FOREIGN KEY (payment_id) REFERENCES payments(payment_id) ON DELETE CASCADE"))
   private Payments payments;
 
   @OneToOne(fetch = FetchType.LAZY)
