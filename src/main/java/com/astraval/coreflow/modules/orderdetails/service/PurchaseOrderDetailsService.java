@@ -110,7 +110,7 @@ public class PurchaseOrderDetailsService {
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
         orderDetails.setHasBill(createOrder.isHasBill());
-        orderDetails.setOrderStatus(OrderStatus.getNewOrder()); // Set the order status to "New Order".
+        orderDetails.setOrderStatus(OrderStatus.getOrder()); // Set the order status to "Order".
 
         String orderNumber = orderDetailsService.getNextSequenceNumber(companyId);
         orderDetails.setOrderNumber(orderNumber);
