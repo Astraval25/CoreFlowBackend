@@ -60,7 +60,7 @@ public class Payments {
   private Vendors vendors = null;
   
   @Column(name = "payment_number")
-  private Long paymentNumber;
+  private Long paymentNumber;     // To-do
   
   @Column(name = "payment_date")
   private LocalDateTime paymentDate;
@@ -79,7 +79,7 @@ public class Payments {
   
   @OneToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "payment_proof_file")
-  private FileStorage paymentProofFile;
+  private FileStorage paymentProofFile;  // To-do
 
   @Column(name = "payment_remarks")
   private String paymentRemarks;

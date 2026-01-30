@@ -15,6 +15,7 @@ import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.CreateBuyerPayment;
+import com.astraval.coreflow.modules.payments.dto.CreatePayment;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocation;
 import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
@@ -102,7 +103,7 @@ public class BuyerPaymentService {
         return savedPayment.getPaymentId();
     }
 
-    private void setPaymentDetails(Payments payment, com.astraval.coreflow.modules.payments.dto.CreatePayment paymentDetails) {
+    private void setPaymentDetails(Payments payment, CreatePayment paymentDetails) {
         payment.setAmount(paymentDetails.getAmount());
         payment.setPaymentDate(paymentDetails.getPaymentDate());
         payment.setModeOfPayment(paymentDetails.getModeOfPayment());

@@ -12,6 +12,7 @@ import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
+import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocation;
 import com.astraval.coreflow.modules.payments.dto.CreateSellerPayment;
 import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
@@ -57,7 +58,7 @@ public class SellerPaymentService {
         }
 
         setPaymentDetails(payment, request.getPaymentDetails());
-        payment.setPaymentStatus("RECEIVED");
+        payment.setPaymentStatus(PaymentStatus.getPaid());
 
         Payments savedPayment = paymentRepository.save(payment);
         
