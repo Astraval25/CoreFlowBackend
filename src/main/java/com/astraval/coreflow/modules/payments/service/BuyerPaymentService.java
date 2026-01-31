@@ -12,6 +12,7 @@ import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.CreateBuyerPayment;
@@ -28,8 +29,7 @@ import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Service
 public class BuyerPaymentService {
-  
-  
+
     @Autowired
     private PaymentRepository paymentRepository;
 
@@ -47,12 +47,11 @@ public class BuyerPaymentService {
 
     @Autowired
     private UserCompanyAssetsRepository userCompanyAssetsRepository;
-    
+
     @Autowired
     private CustomerService customerService;
-    
-    
-  @Transactional
+
+    @Transactional
     public Long createBuyerPayment(Long companyId, CreateBuyerPayment request) {
         Companies buyerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
@@ -73,12 +72,11 @@ public class BuyerPaymentService {
         Vendors vendor = vendorRepository.findById(request.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
         // -------------------------------------
-        
 
         Payments payment = new Payments();
         payment.setBuyerCompany(buyerCompany);
         payment.setVendors(vendor);
-        
+
         if (vendor.getVendorCompany() != null) {
             payment.setSellerCompany(vendor.getVendorCompany());
             // Find customer relationship if vendor has a company
@@ -93,8 +91,7 @@ public class BuyerPaymentService {
         payment.setPaymentStatus(PaymentStatus.getPaid());
 
         Payments savedPayment = paymentRepository.save(payment);
-        
-        
+
         // Create order allocations if provided
         if (request.getPaymentDetails().getOrderAllocations() != null) {
             createOrderAllocations(savedPayment, request.getPaymentDetails().getOrderAllocations());
@@ -111,32 +108,59 @@ public class BuyerPaymentService {
         payment.setPaymentRemarks(paymentDetails.getPaymentRemarks());
 
         // if (paymentDetails.getPaymentProofFileId() != null) {
-        //     FileStorage file = fileStorageRepository.findById(paymentDetails.getPaymentProofFileId())
-        //             .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
-        //     payment.setPaymentProofFile(file);
+        // FileStorage file =
+        // fileStorageRepository.findById(paymentDetails.getPaymentProofFileId())
+        // .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
+        // payment.setPaymentProofFile(file);
         // }
     }
-    
+
+    @Transactional
     private void createOrderAllocations(Payments payment, java.util.List<CreatePaymentOrderAllocation> allocations) {
         allocations.forEach(allocationDto -> {
             OrderDetails order = orderDetailsRepository.findById(allocationDto.getOrderId())
                     .orElseThrow(() -> new RuntimeException("Order not found with ID: " + allocationDto.getOrderId()));
+
+            // Check if order belongs to the vendor
+            if (order.getVendors() == null || !order.getVendors().getVendorId().equals(payment.getVendors().getVendorId())) {
+                throw new RuntimeException(
+                        "Order " + allocationDto.getOrderId() + 
+                        " does not belong to vendor " + payment.getVendors().getDisplayName());
+            }
+
             
-            // Check if order is already allocated to any payment
-            boolean orderAlreadyAllocated = paymentOrderAllocationRepository
-                    .existsByOrderDetailsOrderId(allocationDto.getOrderId());
-            if (orderAlreadyAllocated) {
-                throw new RuntimeException("Order " + allocationDto.getOrderId() + " is already allocated to another payment");
+            // order level payment amount checking logic.
+            Double totalAmountPaidToOrder = order.getPaidAmount() + allocationDto.getAmountApplied();
+            Double amountNeedToPay = order.getTotalAmount() - order.getPaidAmount();
+            
+            // Check if order is already fully paid
+            if (Math.abs(order.getPaidAmount() - order.getTotalAmount()) < 0.0001) {
+                throw new RuntimeException(
+                        "Order " + allocationDto.getOrderId() +
+                                " Already Fully Paid.");
             }
             
+            // Check if payment exceeds remaining amount
+            if (totalAmountPaidToOrder > order.getTotalAmount()) {
+                throw new RuntimeException(
+                        "Payment exceeds remaining amount for Order " + allocationDto.getOrderId() +
+                                ". Amount needed: " + amountNeedToPay +
+                                ", Amount trying to pay: " + allocationDto.getAmountApplied());
+            }
+            order.setPaidAmount(totalAmountPaidToOrder);
+            if (order.getTotalAmount().equals(totalAmountPaidToOrder)) {
+                order.setOrderStatus(OrderStatus.getOrderPayed());
+            }
+
             PaymentOrderAllocations allocation = new PaymentOrderAllocations();
             allocation.setPayments(payment);
             allocation.setOrderDetails(order);
             allocation.setAmountApplied(allocationDto.getAmountApplied());
-            allocation.setAllocationDate(allocationDto.getAllocationDate() != null ? 
-                    allocationDto.getAllocationDate() : LocalDateTime.now());
+            allocation.setAllocationDate(allocationDto.getAllocationDate() != null ? allocationDto.getAllocationDate()
+                    : LocalDateTime.now());
             allocation.setAllocationRemarks(allocationDto.getAllocationRemarks());
-            
+
+            orderDetailsRepository.save(order);
             paymentOrderAllocationRepository.save(allocation);
         });
     }

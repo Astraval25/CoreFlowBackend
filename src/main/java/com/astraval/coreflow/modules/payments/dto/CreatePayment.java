@@ -16,7 +16,7 @@ public class CreatePayment {
     private Double amount;
     
     @NotNull(message = "Payment date is required")
-    private LocalDateTime paymentDate;
+    private LocalDateTime paymentDate;  // eg: 2024-01-15T10:30:00
     
     @NotNull(message = "Mode of payment is required")
     private String modeOfPayment;
@@ -25,7 +25,7 @@ public class CreatePayment {
     
     private String paymentRemarks;
     
-    private Long paymentProofFileId;
+    // private Long paymentProofFileId;
     
     @Valid
     private List<CreatePaymentOrderAllocation> orderAllocations;

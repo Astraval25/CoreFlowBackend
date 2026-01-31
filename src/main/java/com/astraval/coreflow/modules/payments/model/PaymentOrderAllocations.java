@@ -20,7 +20,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -46,7 +45,7 @@ public class PaymentOrderAllocations {
              foreignKeyDefinition = "FOREIGN KEY (payment_id) REFERENCES payments(payment_id) ON DELETE CASCADE"))
   private Payments payments;
 
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "order_id")
   private OrderDetails orderDetails;
 

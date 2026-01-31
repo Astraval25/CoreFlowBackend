@@ -6,6 +6,7 @@ public class PaymentStatus {
     public static final String PAYMENT_VIEWED = "PAYMENT_VIEWED";
     public static final String PAYMENT_ACCEPTED = "PAYMENT_ACCEPTED";
     public static final String PAYMENT_DECLINED = "PAYMENT_DECLINED";
+    public static final String PARTIALLY_PAID = "PARTIALLY_PAID";
     
     public static String getPaid() { // Action Status
         return PAID;
@@ -21,6 +22,10 @@ public class PaymentStatus {
     
     public static String getPaymentDeclined() {
         return PAYMENT_DECLINED;
+    }
+
+    public static String getPartiallyPaid() {
+        return PARTIALLY_PAID;
     }
     
 }

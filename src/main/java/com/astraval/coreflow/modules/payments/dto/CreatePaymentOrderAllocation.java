@@ -16,7 +16,7 @@ public class CreatePaymentOrderAllocation {
     @Positive(message = "Amount applied must be positive")
     private Double amountApplied;
     
-    private LocalDateTime allocationDate;
+    private LocalDateTime allocationDate; // eg: 2024-01-15T10:30:00
     
     private String allocationRemarks;
 }

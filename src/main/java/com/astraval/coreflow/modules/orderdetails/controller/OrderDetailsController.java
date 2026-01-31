@@ -100,8 +100,8 @@ public class OrderDetailsController {
         }
     }
     
-    @GetMapping("/{companyId}/unpaid-orders-to/{vendorId}")
-    public ApiResponse<List<UnpaidOrderDto>> getUnpaidCompanyOrders(@PathVariable Long companyId,
+    @GetMapping("/{companyId}/vendor/{vendorId}/unpaid-orders")
+    public ApiResponse<List<UnpaidOrderDto>> getUnpaidCompanyOrdersByVendor(@PathVariable Long companyId,
             @PathVariable Long vendorId) {
         try {
             List<UnpaidOrderDto> unpaidOrders = orderDetailsService.getUnpaidOrdersByBuyerCompanyIdAndVendorId(companyId, vendorId);

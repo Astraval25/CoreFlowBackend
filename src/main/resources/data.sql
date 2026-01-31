@@ -103,5 +103,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-SELECT generate_order_number(:companyId);
+-- SELECT generate_order_number(:companyId);
 
+
+CREATE VIEW v_user_company_assets AS
+SELECT
+    ucm.user_id,
+    ucm.company_id,
+    c.customers,
+    v.vendors,
+    i.items
+FROM user_comp_map ucm
+LEFT JOIN (
+    SELECT comp_id, ARRAY_AGG(customer_id) AS customers
+    FROM customers
+    GROUP BY comp_id
+) c ON c.comp_id = ucm.company_id
+LEFT JOIN (
+    SELECT comp_id, ARRAY_AGG(vendor_id) AS vendors
+    FROM vendors
+    GROUP BY comp_id
+) v ON v.comp_id = ucm.company_id
+LEFT JOIN (
+    SELECT comp_id, ARRAY_AGG(item_id) AS items
+    FROM items
+    GROUP BY comp_id
+) i ON i.comp_id = ucm.company_id;
