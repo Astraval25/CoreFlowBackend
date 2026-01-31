@@ -1,6 +1,7 @@
 package com.astraval.coreflow.modules.payments.service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,14 +12,20 @@ import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.payments.PaymentStatus;
+import com.astraval.coreflow.modules.payments.dto.CreatePayment;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocation;
 import com.astraval.coreflow.modules.payments.dto.CreateSellerPayment;
 import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
+import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
+import com.astraval.coreflow.modules.vendor.VendorService;
+import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Service
 public class SellerPaymentService {
@@ -38,25 +45,45 @@ public class SellerPaymentService {
     @Autowired
     private OrderDetailsRepository orderDetailsRepository;
 
+    @Autowired
+    private UserCompanyAssetsRepository userCompanyAssetsRepository;
+
+    @Autowired
+    private VendorService vendorService;
 
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPayment request) {
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
+        // Get company assets from view
+        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
+        if (companyAssets == null) {
+            throw new RuntimeException("No assets found for company");
+        }
+
+        // Check customer belongs to company
+        if (companyAssets.getCustomers() == null
+                || !Arrays.asList(companyAssets.getCustomers()).contains(request.getCustomerId())) {
+            throw new RuntimeException("Customer does not belong to the requesting company");
+        }
+
         Customers customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
         Payments payment = new Payments();
         payment.setSellerCompany(sellerCompany);
-        payment.setBuyerCompany(customer.getCustomerCompany());
+        payment.setCustomers(customer);
         
         if (customer.getCustomerCompany() != null) {
-            payment.setCustomers(customer);
+            payment.setBuyerCompany(customer.getCustomerCompany());
             // Find vendor relationship if customer has a company
-            // This would need vendor service method to find vendor by customer company
+            Long customersVendorCompanyId = customer.getCustomerCompany().getCompanyId();
+            Vendors buyerVendor = vendorService.getBuyersVendorId(companyId, customersVendorCompanyId);
+            payment.setVendors(buyerVendor);
         }
 
+        // Create Payment Details
         setPaymentDetails(payment, request.getPaymentDetails());
         payment.setPaymentStatus(PaymentStatus.getPaid());
 
@@ -70,7 +97,7 @@ public class SellerPaymentService {
         return savedPayment.getPaymentId();
     }
 
-    private void setPaymentDetails(Payments payment, com.astraval.coreflow.modules.payments.dto.CreatePayment paymentDetails) {
+    private void setPaymentDetails(Payments payment, CreatePayment paymentDetails) {
         payment.setAmount(paymentDetails.getAmount());
         payment.setPaymentDate(paymentDetails.getPaymentDate());
         payment.setModeOfPayment(paymentDetails.getModeOfPayment());
@@ -84,10 +111,41 @@ public class SellerPaymentService {
         // }
     }
     
+    @Transactional
     private void createOrderAllocations(Payments payment, java.util.List<CreatePaymentOrderAllocation> allocations) {
         allocations.forEach(allocationDto -> {
             OrderDetails order = orderDetailsRepository.findById(allocationDto.getOrderId())
                     .orElseThrow(() -> new RuntimeException("Order not found with ID: " + allocationDto.getOrderId()));
+
+            // Check if order belongs to the customer
+            if (order.getCustomers() == null || !order.getCustomers().getCustomerId().equals(payment.getCustomers().getCustomerId())) {
+                throw new RuntimeException(
+                        "Order " + allocationDto.getOrderId() + 
+                        " does not belong to customer " + payment.getCustomers().getCustomerName());
+            }
+
+            // order level payment amount checking logic.
+            Double totalAmountPaidToOrder = order.getPaidAmount() + allocationDto.getAmountApplied();
+            Double amountNeedToPay = order.getTotalAmount() - order.getPaidAmount();
+            
+            // Check if order is already fully paid
+            if (Math.abs(order.getPaidAmount() - order.getTotalAmount()) < 0.0001) {
+                throw new RuntimeException(
+                        "Order " + allocationDto.getOrderId() +
+                                " Already Fully Paid.");
+            }
+            
+            // Check if payment exceeds remaining amount
+            if (totalAmountPaidToOrder > order.getTotalAmount()) {
+                throw new RuntimeException(
+                        "Payment exceeds remaining amount for Order " + allocationDto.getOrderId() +
+                                ". Amount needed: " + amountNeedToPay +
+                                ", Amount trying to pay: " + allocationDto.getAmountApplied());
+            }
+            order.setPaidAmount(totalAmountPaidToOrder);
+            if (order.getTotalAmount().equals(totalAmountPaidToOrder)) {
+                order.setOrderStatus(OrderStatus.getOrderPayed());
+            }
             
             PaymentOrderAllocations allocation = new PaymentOrderAllocations();
             allocation.setPayments(payment);
@@ -97,6 +155,7 @@ public class SellerPaymentService {
                     allocationDto.getAllocationDate() : LocalDateTime.now());
             allocation.setAllocationRemarks(allocationDto.getAllocationRemarks());
             
+            orderDetailsRepository.save(order);
             paymentOrderAllocationRepository.save(allocation);
         });
     }

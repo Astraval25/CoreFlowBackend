@@ -164,4 +164,11 @@ public class VendorService {
                 customersVendorId)
                 .orElseThrow(() -> new RuntimeException("Vendor " + customersVendorId + " not found for company ID: " + companyId));
     }
+
+    // get vendor by company id and vendorCompany_id
+    public Vendors getBuyersVendorId(Long companyId, Long vendorCompanyId) {
+        return vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(companyId, vendorCompanyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Vendor " + vendorCompanyId + " not found for company ID: " + companyId));
+    }
 }

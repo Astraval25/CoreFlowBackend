@@ -19,10 +19,10 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/companies")
 public class SellerPaymentController {
-  
+
     @Autowired
     private SellerPaymentService sellerPaymentService;
-    
+
     @PostMapping("/{companyId}/seller-payments")
     public ApiResponse<Map<String, Long>> createSellerPayment(
             @PathVariable Long companyId,
