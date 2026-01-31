@@ -14,10 +14,13 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.payments.dto.CreateBuyerPaymentDto;
 import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
+import com.astraval.coreflow.modules.payments.dto.UpdateBuyerPaymentDto;
 import com.astraval.coreflow.modules.payments.service.BuyerPaymentService;
 
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 
 
 @RestController
@@ -46,6 +49,32 @@ public class BuyerPaymentController {
         try {
             List<PayerPaymentSummaryDto> payments = buyerPaymentService.getPayerPaymentSummaryByCompanyId(companyId);
             return ApiResponseFactory.accepted(payments, "Payment summary retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+    
+    @PutMapping("/{companyId}/buyer-payments/{paymentId}")
+    public ApiResponse<String> updateBuyerPayment(
+            @PathVariable Long companyId,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody UpdateBuyerPaymentDto request) {
+        try {
+            buyerPaymentService.updateBuyerPayment(companyId, paymentId, request);
+            return ApiResponseFactory.accepted("Payment updated successfully", "Payment updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+    
+    @DeleteMapping("/{companyId}/buyer-payments/{paymentId}/allocations/{allocationId}")
+    public ApiResponse<String> deletePaymentOrderAllocation(
+            @PathVariable Long companyId,
+            @PathVariable Long paymentId,
+            @PathVariable Long allocationId) {
+        try {
+            buyerPaymentService.deletePaymentOrderAllocation(companyId, paymentId, allocationId);
+            return ApiResponseFactory.accepted("Payment allocation deleted successfully", "Payment allocation deleted successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
