@@ -15,9 +15,9 @@ import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.payments.PaymentStatus;
-import com.astraval.coreflow.modules.payments.dto.CreateBuyerPayment;
-import com.astraval.coreflow.modules.payments.dto.CreatePayment;
-import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocation;
+import com.astraval.coreflow.modules.payments.dto.CreateBuyerPaymentDto;
+import com.astraval.coreflow.modules.payments.dto.CreatePaymentDto;
+import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocationDto;
 import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
@@ -52,7 +52,7 @@ public class BuyerPaymentService {
     private CustomerService customerService;
 
     @Transactional
-    public Long createBuyerPayment(Long companyId, CreateBuyerPayment request) {
+    public Long createBuyerPayment(Long companyId, CreateBuyerPaymentDto request) {
         Companies buyerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
@@ -100,7 +100,7 @@ public class BuyerPaymentService {
         return savedPayment.getPaymentId();
     }
 
-    private void setPaymentDetails(Payments payment, CreatePayment paymentDetails) {
+    private void setPaymentDetails(Payments payment, CreatePaymentDto paymentDetails) {
         payment.setAmount(paymentDetails.getAmount());
         payment.setPaymentDate(paymentDetails.getPaymentDate());
         payment.setModeOfPayment(paymentDetails.getModeOfPayment());
@@ -116,7 +116,7 @@ public class BuyerPaymentService {
     }
 
     @Transactional
-    private void createOrderAllocations(Payments payment, java.util.List<CreatePaymentOrderAllocation> allocations) {
+    private void createOrderAllocations(Payments payment, java.util.List<CreatePaymentOrderAllocationDto> allocations) {
         allocations.forEach(allocationDto -> {
             OrderDetails order = orderDetailsRepository.findById(allocationDto.getOrderId())
                     .orElseThrow(() -> new RuntimeException("Order not found with ID: " + allocationDto.getOrderId()));

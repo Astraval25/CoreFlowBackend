@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 @Data
-public class CreatePayment {
+public class CreatePaymentDto {
 
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
@@ -28,5 +28,5 @@ public class CreatePayment {
     // private Long paymentProofFileId;
     
     @Valid
-    private List<CreatePaymentOrderAllocation> orderAllocations;
+    private List<CreatePaymentOrderAllocationDto> orderAllocations;
 }

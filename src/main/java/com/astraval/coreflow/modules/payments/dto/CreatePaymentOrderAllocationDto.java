@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 @Data
-public class CreatePaymentOrderAllocation {
+public class CreatePaymentOrderAllocationDto {
 
     @NotNull(message = "Order ID is required")
     private Long orderId;

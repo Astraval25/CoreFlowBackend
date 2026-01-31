@@ -5,12 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class CreateSellerPayment {
+public class CreateBuyerPaymentDto {
 
-    @NotNull(message = "Customer id is required")
-    private Long customerId;
+    @NotNull(message = "Vendor id is required")
+    private Long vendorId;
     
     @NotNull(message = "Payment details are required")
     @Valid
-    private CreatePayment paymentDetails;
+    private CreatePaymentDto paymentDetails;
 }

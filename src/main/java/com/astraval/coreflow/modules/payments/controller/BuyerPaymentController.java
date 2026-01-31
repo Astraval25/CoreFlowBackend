@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.payments.dto.CreateBuyerPayment;
+import com.astraval.coreflow.modules.payments.dto.CreateBuyerPaymentDto;
 import com.astraval.coreflow.modules.payments.service.BuyerPaymentService;
 
 import jakarta.validation.Valid;
@@ -26,7 +26,7 @@ public class BuyerPaymentController {
     @PostMapping("/{companyId}/buyer-payments")
     public ApiResponse<Map<String, Long>> createBuyerPayment(
             @PathVariable Long companyId,
-            @Valid @RequestBody CreateBuyerPayment request) {
+            @Valid @RequestBody CreateBuyerPaymentDto request) {
         try {
             Long paymentId = buyerPaymentService.createBuyerPayment(companyId, request);
             return ApiResponseFactory.created(
