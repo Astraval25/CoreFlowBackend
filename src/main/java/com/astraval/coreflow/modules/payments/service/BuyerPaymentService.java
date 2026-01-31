@@ -175,6 +175,7 @@ public class BuyerPaymentService {
                 .collect(Collectors.toList());
     }
     
+    
     private PayerPaymentSummaryDto mapToPayerPaymentSummaryDto(Object[] row) {
         return new PayerPaymentSummaryDto(
                 ((Number) row[0]).longValue(),           // payment_id
