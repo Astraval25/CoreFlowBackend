@@ -8,10 +8,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsWithItems;
 import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
+import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsRepository;
 import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
 import com.astraval.coreflow.modules.ordersnapshot.repo.OrderSnapshotRepository;
@@ -37,6 +39,16 @@ public class OrderDetailsService {
         return orderDetailsRepository
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+    }
+    
+    public OrderDetailsWithItems getOrderDetailsWithItemsByOrderId(Long companyId, Long orderId){
+        OrderDetails orderDetails = orderDetailsRepository
+                .findOrderForCompany(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        List<OrderItemDetails> orderItems = orderItemDetailsRepository.findByOrderId(orderId);
+        
+        return new OrderDetailsWithItems(orderDetails, orderItems);
     }
     
     @Transactional
