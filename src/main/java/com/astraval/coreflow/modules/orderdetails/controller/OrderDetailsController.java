@@ -1,5 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,8 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsWithItems;
+import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -25,11 +28,11 @@ public class OrderDetailsController {
     private OrderDetailsService orderDetailsService;
     
     @GetMapping("/{companyId}/orders/{orderId}") // View Order details by Order id
-    private ApiResponse<OrderDetails> viewOrderDetailsByOrderId(@PathVariable Long companyId,
+    private ApiResponse<OrderDetailsWithItems> viewOrderDetailsByOrderId(@PathVariable Long companyId,
             @PathVariable Long orderId) {
         try {
-            OrderDetails orderDetails = orderDetailsService.getOrderDetailsByOrderId(companyId, orderId);
-            return ApiResponseFactory.accepted(orderDetails, "Order retrieved successfully");
+            OrderDetailsWithItems orderDetailsWithItems = orderDetailsService.getOrderDetailsWithItemsByOrderId(companyId, orderId);
+            return ApiResponseFactory.accepted(orderDetailsWithItems, "Order retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
         }
@@ -91,10 +94,22 @@ public class OrderDetailsController {
     @PutMapping("/{companyId}/orders/{orderId}/viewed")
     public ApiResponse<String> viewedOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
         try {
-            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getViewed());
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getOrderViewed());
             return ApiResponseFactory.accepted("Order status changed to viewed.", "Order status changed to viewed.");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
+    
+    @GetMapping("/{companyId}/vendor/{vendorId}/unpaid-orders")
+    public ApiResponse<List<UnpaidOrderDto>> getUnpaidCompanyOrdersByVendor(@PathVariable Long companyId,
+            @PathVariable Long vendorId) {
+        try {
+            List<UnpaidOrderDto> unpaidOrders = orderDetailsService.getUnpaidOrdersByBuyerCompanyIdAndVendorId(companyId, vendorId);
+            return ApiResponseFactory.accepted(unpaidOrders, "Unpaid orders retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+    
 }

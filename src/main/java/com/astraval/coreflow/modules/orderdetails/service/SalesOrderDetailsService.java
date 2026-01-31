@@ -104,7 +104,7 @@ public class SalesOrderDetailsService {
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
         orderDetails.setHasBill(createOrder.isHasBill());
-        orderDetails.setOrderStatus(OrderStatus.getOrder()); // Set the order status to "Sales order".
+        orderDetails.setOrderStatus(OrderStatus.getOrderViewed()); // Set the order status to "Order Viewed".
         
         // Generate order number
         String orderNumber = orderDetailsService.getNextSequenceNumber(companyId);
@@ -136,9 +136,6 @@ public class SalesOrderDetailsService {
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
         salesOrderDetailsRepository.save(savedOrder);
-        
-        toCustomers.setDueAmount(toCustomers.getDueAmount() + totalAmount);
-        customerRepository.save(toCustomers);
         
         return savedOrder.getOrderId();
     }
@@ -212,10 +209,6 @@ public class SalesOrderDetailsService {
         // Update totals
         Double orderAmount = orderTotalAmount.get() + updateOrder.getDeliveryCharge();
         Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
-        
-        // Adjust customer due amount
-        toCustomers.setDueAmount(toCustomers.getDueAmount() - existingOrder.getTotalAmount() + totalAmount);
-        customerRepository.save(toCustomers);
         
         existingOrder.setOrderAmount(orderAmount);
         existingOrder.setTotalAmount(totalAmount);

@@ -1,14 +1,19 @@
 package com.astraval.coreflow.modules.orderdetails.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsWithItems;
+import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
+import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsRepository;
 import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
 import com.astraval.coreflow.modules.ordersnapshot.repo.OrderSnapshotRepository;
@@ -34,6 +39,16 @@ public class OrderDetailsService {
         return orderDetailsRepository
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+    }
+    
+    public OrderDetailsWithItems getOrderDetailsWithItemsByOrderId(Long companyId, Long orderId){
+        OrderDetails orderDetails = orderDetailsRepository
+                .findOrderForCompany(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        List<OrderItemDetails> orderItems = orderItemDetailsRepository.findByOrderId(orderId);
+        
+        return new OrderDetailsWithItems(orderDetails, orderItems);
     }
     
     @Transactional
@@ -78,7 +93,7 @@ public class OrderDetailsService {
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         
-        if (!OrderStatus.getViewed().equals(order.getOrderStatus())) {  // before updating check the order is in "Viewed" status.
+        if (!OrderStatus.getOrderViewed().equals(order.getOrderStatus())) {  // before updating check the order is in "Viewed" status.
             throw new RuntimeException("Order status can only be updated from Open status");
         }
         
@@ -132,5 +147,10 @@ public class OrderDetailsService {
     // -----------------------> Helper functions
     public String getNextSequenceNumber(Long companyId) {
         return orderDetailsRepository.generateOrderNumber(companyId);
+    }
+
+    public List<UnpaidOrderDto> getUnpaidOrdersByBuyerCompanyIdAndVendorId(Long buyerCompanyId, Long vendorId) {
+        String orderStatus = OrderStatus.getOrderInvoiced();
+        return orderDetailsRepository.findUnpaidOrdersByBuyerCompanyIdAndVendorId(buyerCompanyId, vendorId, orderStatus);
     }
 }

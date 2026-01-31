@@ -54,7 +54,7 @@ public class PurchaseOrderDetailsService {
 
     @Autowired
     private UserCompanyAssetsRepository userCompanyAssetsRepository;
-    
+
     @Autowired
     private CustomerService customerService;
     
@@ -96,6 +96,7 @@ public class PurchaseOrderDetailsService {
         // Main id setting...
         orderDetails.setBuyerCompany(buyerCompany);
         orderDetails.setVendors(myVendor);
+        
         if (myVendor.getVendorCompany() != null) {
             orderDetails.setSellerCompany(myVendor.getVendorCompany());
             // Find buyer company's customer id by order company id
@@ -110,7 +111,7 @@ public class PurchaseOrderDetailsService {
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
         orderDetails.setHasBill(createOrder.isHasBill());
-        orderDetails.setOrderStatus(OrderStatus.getNewOrder()); // Set the order status to "New Order".
+        orderDetails.setOrderStatus(OrderStatus.getOrder()); // Set the order status to "Order".
 
         String orderNumber = orderDetailsService.getNextSequenceNumber(companyId);
         orderDetails.setOrderNumber(orderNumber);
@@ -140,9 +141,6 @@ public class PurchaseOrderDetailsService {
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
         purchaseOrderDetailsRepository.save(savedOrder);
-
-        myVendor.setDueAmount((myVendor.getDueAmount() != null ? myVendor.getDueAmount() : 0.0) + totalAmount);
-        vendorRepository.save(myVendor);
 
         return savedOrder.getOrderId();
     }
@@ -217,12 +215,6 @@ public class PurchaseOrderDetailsService {
         // Update totals
         Double orderAmount = orderTotalAmount.get() + updateOrder.getDeliveryCharge();
         Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
-
-        // Adjust vendor due amount
-        Double currentDueAmount = vendor.getDueAmount() != null ? vendor.getDueAmount() : 0.0;
-        Double existingOrderTotal = existingOrder.getTotalAmount() != null ? existingOrder.getTotalAmount() : 0.0;
-        vendor.setDueAmount(currentDueAmount - existingOrderTotal + totalAmount);
-        vendorRepository.save(vendor);
 
         existingOrder.setOrderAmount(orderAmount);
         existingOrder.setTotalAmount(totalAmount);

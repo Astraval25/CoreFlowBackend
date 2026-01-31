@@ -1,6 +1,6 @@
 package com.astraval.coreflow.modules.vendor.dto;
 
-import com.astraval.coreflow.config.validation.ValidPAN;
+// import com.astraval.coreflow.config.validation.ValidPAN;
 import com.astraval.coreflow.modules.address.dto.CreateUpdateAddressDto;
 
 import jakarta.validation.constraints.Email;
@@ -23,7 +23,7 @@ public class CreateUpdateVendorDto {
 
   private String lang;
 
-  @ValidPAN(message = "Invalid PAN format")
+  // @ValidPAN(message = "Invalid PAN format")
   private String pan;
 
   private String gst;
