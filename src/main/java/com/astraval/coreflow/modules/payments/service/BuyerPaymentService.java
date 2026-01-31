@@ -2,6 +2,8 @@ package com.astraval.coreflow.modules.payments.service;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.CreateBuyerPaymentDto;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentDto;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocationDto;
+import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
@@ -163,5 +166,27 @@ public class BuyerPaymentService {
             orderDetailsRepository.save(order);
             paymentOrderAllocationRepository.save(allocation);
         });
+    }
+    
+    public List<PayerPaymentSummaryDto> getPayerPaymentSummaryByCompanyId(Long companyId) {
+        List<Object[]> results = paymentRepository.findPayerPaymentSummaryByCompanyIdNative(companyId);
+        return results.stream()
+                .map(this::mapToPayerPaymentSummaryDto)
+                .collect(Collectors.toList());
+    }
+    
+    private PayerPaymentSummaryDto mapToPayerPaymentSummaryDto(Object[] row) {
+        return new PayerPaymentSummaryDto(
+                ((Number) row[0]).longValue(),           // payment_id
+                (LocalDateTime) row[1],                  // payment_date
+                (String) row[2],                         // order_ids
+                row[3] != null ? ((Number) row[3]).longValue() : null,  // payment_number
+                row[4] != null ? ((Number) row[4]).doubleValue() : null, // amount
+                (String) row[5],                         // vendor_name
+                (String) row[6],                         // mode_of_payment
+                (String) row[7],                         // payment_status
+                (Boolean) row[8],                        // is_active
+                (String) row[9]                          // reference_number
+        );
     }
 }
