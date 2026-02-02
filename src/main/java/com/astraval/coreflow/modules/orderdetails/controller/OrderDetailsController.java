@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsWithItems;
 import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
