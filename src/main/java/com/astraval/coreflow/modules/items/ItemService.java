@@ -25,7 +25,6 @@ import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.modules.items.dto.SellableItemDto;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
-import com.astraval.coreflow.modules.vendor.VendorRepository;
 
 @Service
 public class ItemService {
@@ -47,9 +46,6 @@ public class ItemService {
 
     @Autowired
     private ItemStocksRepository itemStocksRepository;
-
-    @Autowired
-    private VendorRepository vendorRepository;
 
 
     @Transactional

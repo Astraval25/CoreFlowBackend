@@ -27,8 +27,8 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
               p.is_active,
               p.reference_number 
             FROM payments p
-            JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
-            JOIN vendors v ON v.vendor_id = p.vendor
+            LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
+            LEFT JOIN vendors v ON v.vendor_id = p.vendor
             WHERE p.buyer_company = :companyId
             GROUP BY 
               p.payment_id, p.payment_date, p.payment_number, p.amount,
