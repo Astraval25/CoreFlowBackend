@@ -1,0 +1,47 @@
+name: Deploy CoreFlow Backend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build JAR (skip tests)
+        run: ./gradlew clean build -x test
+
+      - name: Upload backend source
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "build/libs/*.jar"
+          target: "/var/www/domains/coreflow.astraval.com/backend/build/libs"
+          overwrite: true
+
+      - name: Deploy & restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            sudo cp /var/www/domains/coreflow.astraval.com/backend/build/libs/coreflow-0.0.1-SNAPSHOT.jar /var/www/coreflow/coreflow.jar
+            sudo chmod 755 /var/www/coreflow/coreflow.jar
+            sudo chown astraval:astraval /var/www/coreflow/coreflow.jar
+            sudo systemctl restart coreflow
