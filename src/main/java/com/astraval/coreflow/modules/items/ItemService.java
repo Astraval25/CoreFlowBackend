@@ -193,8 +193,8 @@ public class ItemService {
     }
     
     public List<GetOrderItemsDto> getOrderItems(Long companyId, Long vendorId) {
-        // Try to find vendor in company's vendor list
-        var vendorOpt = vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId);
+        // Check if vendor exists globally and has a linked company
+        var vendorOpt = vendorRepository.findById(vendorId);
         
         if (vendorOpt.isPresent() && vendorOpt.get().getVendorCompany() != null) {
             // Case 1: Linked vendor exists - get items from vendor's company for this customer
