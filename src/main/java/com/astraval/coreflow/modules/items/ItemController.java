@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.items.dto.CreateItemDto;
+import com.astraval.coreflow.modules.items.dto.GetOrderItemsDto;
 import com.astraval.coreflow.modules.items.dto.ItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
@@ -161,6 +162,18 @@ public class ItemController {
         try {
             List<PurchasableItemDto> items = itemService.getPurchasableItemsByCompany(companyId);
             return ApiResponseFactory.accepted(items, "Purchasable items retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+    
+    @GetMapping("/{companyId}/vendors/{vendorId}/order-items")
+    public ApiResponse<List<GetOrderItemsDto>> getOrderItems(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId) {
+        try {
+            List<GetOrderItemsDto> items = itemService.getOrderItems(companyId, vendorId);
+            return ApiResponseFactory.accepted(items, "Order items retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

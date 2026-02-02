@@ -37,3 +37,4 @@ out/
 .vscode/
 logs/
 uploads/
+src/main/resources/application-dev.yml

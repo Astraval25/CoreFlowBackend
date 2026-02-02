@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.astraval.coreflow.modules.items.dto.GetOrderItemsDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.modules.items.dto.SellableItemDto;
@@ -64,4 +65,22 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
            "AND i.purchasePrice IS NOT NULL " +
            "ORDER BY i.itemName")
     List<PurchasableItemDto> findPurchasableItemsByCompanyId(@Param("companyId") Long companyId);
+    
+    // Case 1: Linked vendor - get items from vendor's company for specific customer
+    @Query("SELECT i FROM Items i " +
+           "JOIN Vendors v ON v.vendorId = :vendorId " +
+           "JOIN Customers c ON c.customerCompany.companyId = :companyId " +
+           "WHERE i.company.companyId = v.vendorCompany.companyId " +
+           "AND i.preferredCustomer.customerId = c.customerId " +
+           "AND i.isActive = true " +
+           "ORDER BY i.itemName")
+    List<Items> findItemsForLinkedVendor(@Param("companyId") Long companyId, @Param("vendorId") Long vendorId);
+    
+    // Case 2: Unlinked vendor - get items from company with preferred vendor or no preference
+    @Query("SELECT i FROM Items i " +
+           "WHERE i.company.companyId = :companyId " +
+           "AND (i.preferredVendor.vendorId = :vendorId OR i.preferredVendor IS NULL) " +
+           "AND i.isActive = true " +
+           "ORDER BY i.itemName")
+    List<Items> findItemsForUnlinkedVendor(@Param("companyId") Long companyId, @Param("vendorId") Long vendorId);
 }
