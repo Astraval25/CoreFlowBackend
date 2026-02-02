@@ -193,14 +193,12 @@ public class ItemService {
     }
     
     public List<GetOrderItemsDto> getOrderItems(Long companyId, Long vendorId) {
-        // Check if vendor has a linked company (Case 1) or not (Case 2)
-        var vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+        // Try to find vendor in company's vendor list
+        var vendorOpt = vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId);
         
-        List<Items> items;
-        if (vendor.getVendorCompany() != null) {
-            // Case 1: Linked vendor - get items from vendor's company for this customer
-            items = itemRepository.findItemsForLinkedVendor(companyId, vendorId);
+        if (vendorOpt.isPresent() && vendorOpt.get().getVendorCompany() != null) {
+            // Case 1: Linked vendor exists - get items from vendor's company for this customer
+            List<Items> items = itemRepository.findItemsForLinkedVendor(companyId, vendorId);
             return items.stream()
                     .map(item -> new GetOrderItemsDto(
                             item.getItemId(),
@@ -212,8 +210,8 @@ public class ItemService {
                             item.getUnit() != null ? item.getUnit().name() : null))
                     .toList();
         } else {
-            // Case 2: Unlinked vendor - get items from company with preferred vendor or no preference
-            items = itemRepository.findItemsForUnlinkedVendor(companyId, vendorId);
+            // Case 2: Unlinked vendor or vendor doesn't exist - get items from company with preferred vendor or no preference
+            List<Items> items = itemRepository.findItemsForUnlinkedVendor(companyId, vendorId);
             return items.stream()
                     .map(item -> new GetOrderItemsDto(
                             item.getItemId(),
