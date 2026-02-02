@@ -15,6 +15,7 @@ import com.astraval.coreflow.modules.filestorage.FileStorage;
 import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
 import com.astraval.coreflow.modules.filestorage.FileStorageService;
 import com.astraval.coreflow.modules.items.dto.CreateItemDto;
+import com.astraval.coreflow.modules.items.dto.GetOrderItemsDto;
 import com.astraval.coreflow.modules.items.dto.ItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
@@ -24,6 +25,7 @@ import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.modules.items.dto.SellableItemDto;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
+import com.astraval.coreflow.modules.vendor.VendorRepository;
 
 @Service
 public class ItemService {
@@ -45,6 +47,9 @@ public class ItemService {
 
     @Autowired
     private ItemStocksRepository itemStocksRepository;
+
+    @Autowired
+    private VendorRepository vendorRepository;
 
 
     @Transactional
@@ -185,5 +190,40 @@ public class ItemService {
     
     public List<PurchasableItemDto> getPurchasableItemsByCompany(Long companyId) {
         return itemRepository.findPurchasableItemsByCompanyId(companyId);
+    }
+    
+    public List<GetOrderItemsDto> getOrderItems(Long companyId, Long vendorId) {
+        // Check if vendor has a linked company (Case 1) or not (Case 2)
+        var vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+        
+        List<Items> items;
+        if (vendor.getVendorCompany() != null) {
+            // Case 1: Linked vendor - get items from vendor's company for this customer
+            items = itemRepository.findItemsForLinkedVendor(companyId, vendorId);
+            return items.stream()
+                    .map(item -> new GetOrderItemsDto(
+                            item.getItemId(),
+                            item.getItemName(),
+                            item.getSalesPrice() != null ? item.getSalesPrice().doubleValue() : null,
+                            item.getSalesDescription(),
+                            item.getHsnCode(),
+                            item.getTaxRate() != null ? item.getTaxRate().doubleValue() : null,
+                            item.getUnit() != null ? item.getUnit().name() : null))
+                    .toList();
+        } else {
+            // Case 2: Unlinked vendor - get items from company with preferred vendor or no preference
+            items = itemRepository.findItemsForUnlinkedVendor(companyId, vendorId);
+            return items.stream()
+                    .map(item -> new GetOrderItemsDto(
+                            item.getItemId(),
+                            item.getItemName(),
+                            item.getPurchasePrice() != null ? item.getPurchasePrice().doubleValue() : null,
+                            item.getPurchaseDescription(),
+                            item.getHsnCode(),
+                            item.getTaxRate() != null ? item.getTaxRate().doubleValue() : null,
+                            item.getUnit() != null ? item.getUnit().name() : null))
+                    .toList();
+        }
     }
 }
