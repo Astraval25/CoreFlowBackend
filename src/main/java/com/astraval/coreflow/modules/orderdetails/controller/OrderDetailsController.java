@@ -111,4 +111,65 @@ public class OrderDetailsController {
         }
     }
     
+    // Quotation Status APIs
+    @PutMapping("/{companyId}/orders/{orderId}/quotation")
+    public ApiResponse<String> createQuotation(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getQuotation());
+            return ApiResponseFactory.accepted("Order status changed to quotation.",
+                    "Order status changed to quotation.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/quotation-viewed")
+    public ApiResponse<String> quotationViewed(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getQuotationViewed());
+            return ApiResponseFactory.accepted("Quotation marked as viewed.", "Quotation marked as viewed.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/quotation-accepted")
+    public ApiResponse<String> acceptQuotation(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getQuotationAccepted());
+            return ApiResponseFactory.accepted("Quotation accepted successfully.", "Quotation accepted successfully.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/quotation-declined")
+    public ApiResponse<String> declineQuotation(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getQuotationDecline());
+            return ApiResponseFactory.accepted("Quotation declined.", "Quotation declined.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/invoiced")
+    public ApiResponse<String> invoiceOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getOrderInvoiced());
+            return ApiResponseFactory.accepted("Order invoiced successfully.", "Order invoiced successfully.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/paid")
+    public ApiResponse<String> markOrderPaid(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getOrderPayed());
+            return ApiResponseFactory.accepted("Order marked as paid.", "Order marked as paid.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
 }
