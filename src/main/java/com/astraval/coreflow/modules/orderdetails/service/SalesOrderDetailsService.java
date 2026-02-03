@@ -79,13 +79,6 @@ public class SalesOrderDetailsService {
         
         Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
-        
-        // 3. check the orderItems.items exist and belong to the requesting company 
-        createOrder.getOrderItems().forEach(orderItem -> {
-            if (companyAssets.getItems() == null || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-            }
-        });
         // Access Validation Done if all ok then only allow to create.
                 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
@@ -166,12 +159,6 @@ public class SalesOrderDetailsService {
         if (companyAssets.getCustomers() == null || !Arrays.asList(companyAssets.getCustomers()).contains(updateOrder.getCustomerId())) {
             throw new RuntimeException("Customer does not belong to the requesting company");
         }
-        
-        updateOrder.getOrderItems().forEach(orderItem -> {
-            if (companyAssets.getItems() == null || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-            }
-        });
         
         Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
