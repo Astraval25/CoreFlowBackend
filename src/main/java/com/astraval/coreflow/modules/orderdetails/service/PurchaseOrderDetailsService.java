@@ -80,14 +80,6 @@ public class PurchaseOrderDetailsService {
 
         Vendors myVendor = vendorRepository.findById(createOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-
-        // Check items belong to company
-        createOrder.getOrderItems().forEach(orderItem -> {
-            if (companyAssets.getItems() == null
-                    || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-            }
-        });
                 
 
         
@@ -171,13 +163,6 @@ public class PurchaseOrderDetailsService {
                 || !Arrays.asList(companyAssets.getVendors()).contains(updateOrder.getVendorId())) {
             throw new RuntimeException("Vendor does not belong to the requesting company");
         }
-
-        updateOrder.getOrderItems().forEach(orderItem -> {
-            if (companyAssets.getItems() == null
-                    || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-            }
-        });
 
         Vendors vendor = vendorRepository.findById(updateOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
