@@ -58,6 +58,18 @@ public class Invitation {
     @Column(name = "invitation_code", nullable = false, unique = true)
     private UUID invitationCode;
 
+    @Column(name = "requested_entity_type")
+    private String requestedEntityType; // CUSTOMER or VENDOR
+
+    @Column(name = "requested_entity_id")
+    private Long requestedEntityId;
+
+    @Column(name = "selected_customer_id")
+    private Long selectedCustomerId;
+
+    @Column(name = "selected_vendor_id")
+    private Long selectedVendorId;
+
     @PrePersist
     public void generateInvitationCode() {
         if (invitationCode == null) {

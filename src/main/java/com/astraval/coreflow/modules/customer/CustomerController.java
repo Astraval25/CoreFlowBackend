@@ -72,6 +72,16 @@ public class CustomerController {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
+    
+    @GetMapping("/{companyId}/customers/unlinked") // get all customers (by companyId & customerCompany is null)
+    public ApiResponse<List<CustomerSummaryDto>> getUnlinkedCustomersByCompany(@PathVariable Long companyId) {
+        try {
+            List<CustomerSummaryDto> customers = customerService.getUnlinkedCustomersByCompany(companyId);
+            return ApiResponseFactory.accepted(customers, "customers retrieved successful");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
 
     @GetMapping("/{companyId}/customers/{id}") // get customer detail (check company id and customer id both)
     public ApiResponse<Customers> getCustomerById(@PathVariable Long companyId, @PathVariable Long id) {
