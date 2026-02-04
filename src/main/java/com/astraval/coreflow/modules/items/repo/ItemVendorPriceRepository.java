@@ -15,6 +15,9 @@ public interface ItemVendorPriceRepository extends JpaRepository<ItemVendorPrice
     Optional<ItemVendorPrice> findByItemItemIdAndVendorVendorIdAndIsActiveTrue(
             Long itemId, Long vendorId);
 
+    Optional<ItemVendorPrice> findByItemItemIdAndVendorVendorId(
+                    Long itemId, Long vendorId);
+
     List<ItemVendorPrice> findByVendorVendorIdAndIsActiveTrue(Long vendorId);
 
     long countByItemItemIdAndIsActiveTrue(Long itemId);

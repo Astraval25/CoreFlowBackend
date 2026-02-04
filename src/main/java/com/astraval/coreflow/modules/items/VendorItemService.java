@@ -7,13 +7,17 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.modules.items.dto.CreateVendorItemDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemSummaryDto;
+import com.astraval.coreflow.modules.items.dto.UpdateVendorItemDto;
 import com.astraval.coreflow.modules.items.model.ItemVendorPrice;
 import com.astraval.coreflow.modules.items.model.Items;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
+import com.astraval.coreflow.modules.vendor.Vendors;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 
 @Service
@@ -27,6 +31,82 @@ public class VendorItemService {
 
     @Autowired
     private VendorRepository vendorRepository;
+
+    @Transactional
+    public Long createVendorItem(Long companyId, Long vendorId, CreateVendorItemDto request) {
+        Vendors vendor = getVendorOrThrow(companyId, vendorId);
+        Items item = getItemOrThrow(companyId, request.getItemId());
+
+        ItemVendorPrice existing = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(item.getItemId(), vendorId)
+                .orElse(null);
+
+        if (existing != null) {
+            if (Boolean.TRUE.equals(existing.getIsActive())) {
+                throw new RuntimeException("Vendor item price already exists for item ID: " + item.getItemId());
+            }
+            existing.setPurchasePrice(request.getPurchasePrice());
+            existing.setPurchaseDescription(request.getPurchaseDescription());
+            existing.setIsActive(true);
+            return itemVendorPriceRepository.save(existing).getItemVendorPriceId();
+        }
+
+        ItemVendorPrice price = new ItemVendorPrice();
+        price.setItem(item);
+        price.setVendor(vendor);
+        price.setPurchasePrice(request.getPurchasePrice());
+        price.setPurchaseDescription(request.getPurchaseDescription());
+        return itemVendorPriceRepository.save(price).getItemVendorPriceId();
+    }
+
+    @Transactional
+    public void updateVendorItem(Long companyId, Long vendorId, Long itemId, UpdateVendorItemDto request) {
+        getVendorOrThrow(companyId, vendorId);
+        getItemOrThrow(companyId, itemId);
+
+        if (request.getPurchasePrice() == null && request.getPurchaseDescription() == null) {
+            throw new RuntimeException("At least one of purchase price or purchase description is required");
+        }
+
+        ItemVendorPrice price = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(itemId, vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor item price not found for item ID: " + itemId));
+
+        if (request.getPurchasePrice() != null) {
+            price.setPurchasePrice(request.getPurchasePrice());
+        }
+        if (request.getPurchaseDescription() != null) {
+            price.setPurchaseDescription(request.getPurchaseDescription());
+        }
+
+        itemVendorPriceRepository.save(price);
+    }
+
+    @Transactional
+    public void deactivateVendorItem(Long companyId, Long vendorId, Long itemId) {
+        getVendorOrThrow(companyId, vendorId);
+        getItemOrThrow(companyId, itemId);
+
+        ItemVendorPrice price = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(itemId, vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor item price not found for item ID: " + itemId));
+
+        price.setIsActive(false);
+        itemVendorPriceRepository.save(price);
+    }
+
+    @Transactional
+    public void activateVendorItem(Long companyId, Long vendorId, Long itemId) {
+        getVendorOrThrow(companyId, vendorId);
+        getItemOrThrow(companyId, itemId);
+
+        ItemVendorPrice price = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(itemId, vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor item price not found for item ID: " + itemId));
+
+        price.setIsActive(true);
+        itemVendorPriceRepository.save(price);
+    }
 
     public List<VendorItemSummaryDto> getItemsByVendor(Long companyId, Long vendorId) {
         validateVendor(companyId, vendorId);
@@ -43,6 +123,15 @@ public class VendorItemService {
         Map<Long, ItemVendorPrice> priceByItemId = loadVendorPriceMap(vendorId);
         return items.stream()
                 .map(item -> toSummaryDto(item, priceByItemId.get(item.getItemId())))
+                .toList();
+    }
+
+    public List<VendorItemSummaryDto> getMappedItemsByVendor(Long companyId, Long vendorId) {
+        validateVendor(companyId, vendorId);
+        List<ItemVendorPrice> prices = itemVendorPriceRepository
+                .findByVendorVendorIdAndIsActiveTrue(vendorId);
+        return prices.stream()
+                .map(price -> toSummaryDto(price.getItem(), price))
                 .toList();
     }
 
@@ -76,6 +165,16 @@ public class VendorItemService {
     private void validateVendor(Long companyId, Long vendorId) {
         vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+    }
+
+    private Vendors getVendorOrThrow(Long companyId, Long vendorId) {
+        return vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+    }
+
+    private Items getItemOrThrow(Long companyId, Long itemId) {
+        return itemRepository.findByItemIdAndCompanyCompanyId(itemId, companyId)
+                .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
     }
 
     private Map<Long, ItemVendorPrice> loadVendorPriceMap(Long vendorId) {
