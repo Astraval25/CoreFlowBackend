@@ -21,6 +21,7 @@ public class InvitationService {
 
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_ACCEPTED = "ACCEPTED";
+    private static final String STATUS_REJECTED = "REJECTED";
     private static final String TYPE_CUSTOMER = "CUSTOMER";
     private static final String TYPE_VENDOR = "VENDOR";
 
@@ -178,6 +179,25 @@ public class InvitationService {
         invitation.setToCompany(acceptingCompany);
         invitation.setStatus(STATUS_ACCEPTED);
         invitation.setAccespedAt(LocalDateTime.now());
+        invitation.setUpdatedAt(LocalDateTime.now());
+        invitationRepository.save(invitation);
+    }
+
+    @Transactional
+    public void rejectInvitation(Long companyId, UUID code) {
+        Invitation invitation = invitationRepository.findByInvitationCode(code)
+                .orElseThrow(() -> new RuntimeException("Invitation not found"));
+
+        if (!STATUS_PENDING.equals(invitation.getStatus())) {
+            throw new RuntimeException("Invitation is not pending");
+        }
+
+        Companies rejectingCompany = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
+
+        invitation.setToCompany(rejectingCompany);
+        invitation.setStatus(STATUS_REJECTED);
+        invitation.setIsActive(false);
         invitation.setUpdatedAt(LocalDateTime.now());
         invitationRepository.save(invitation);
     }

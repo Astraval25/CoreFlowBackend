@@ -86,4 +86,16 @@ public class InvitationController {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
+
+    @PostMapping("/{companyId}/invitations/{invitationCode}/reject")
+    public ApiResponse<String> rejectInvitation(
+            @PathVariable Long companyId,
+            @PathVariable UUID invitationCode) {
+        try {
+            invitationService.rejectInvitation(companyId, invitationCode);
+            return ApiResponseFactory.accepted("Invitation rejected successfully", "Invitation rejected successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
 }
