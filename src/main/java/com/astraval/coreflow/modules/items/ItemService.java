@@ -69,6 +69,7 @@ public class ItemService {
             Items item = new Items();
             item.setCompany(company);
             itemMapper.mapDtoToEntity(request, item);
+            applySellablePurchasableFlags(item);
 
             // Handle file upload if provided
             if (file != null && !file.isEmpty()) {
@@ -102,6 +103,7 @@ public class ItemService {
                     .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
 
             itemMapper.mapUpdateDtoToEntity(request, item);
+            applySellablePurchasableFlags(item);
 
             // Handle file upload if provided
             if (file != null && !file.isEmpty()) {
@@ -154,8 +156,8 @@ public class ItemService {
         dto.setHsnCode(item.getHsnCode());
         dto.setTaxRate(item.getTaxRate());
         dto.setIsActive(item.getIsActive());
-        dto.setIsSellable(isSellable(item));
-        dto.setIsPurchasable(isPurchasable(item));
+        dto.setIsSellable(item.getIsSellable());
+        dto.setIsPurchasable(item.getIsPurchasable());
         dto.setCreatedBy(item.getCreatedBy());
         dto.setCreatedDt(item.getCreatedDt());
         dto.setLastModifiedBy(item.getLastModifiedBy());
@@ -247,11 +249,11 @@ public class ItemService {
     }
 
     private boolean isSellable(Items item) {
-        return itemCustomerPriceRepository.countByItemItemIdAndIsActiveTrue(item.getItemId()) > 0;
+        return Boolean.TRUE.equals(item.getIsSellable());
     }
 
     private boolean isPurchasable(Items item) {
-        return itemVendorPriceRepository.countByItemItemIdAndIsActiveTrue(item.getItemId()) > 0;
+        return Boolean.TRUE.equals(item.getIsPurchasable());
     }
 
     private ItemSummaryDto mapToItemSummaryDto(Items item) {
@@ -263,7 +265,12 @@ public class ItemService {
                 item.getBaseSalesPrice(),
                 item.getBasePurchasePrice(),
                 item.getIsActive(),
-                isSellable(item),
-                isPurchasable(item));
+                item.getIsSellable(),
+                item.getIsPurchasable());
+    }
+
+    private void applySellablePurchasableFlags(Items item) {
+        item.setIsSellable(item.getBaseSalesPrice() != null);
+        item.setIsPurchasable(item.getBasePurchasePrice() != null);
     }
 }

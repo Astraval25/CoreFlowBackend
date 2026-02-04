@@ -19,7 +19,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
            "i.baseSalesPrice, i.basePurchasePrice, " +
-           "i.isActive, false, false) " +
+           "i.isActive, i.isSellable, i.isPurchasable) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "ORDER BY i.itemName")
@@ -28,7 +28,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
            "i.baseSalesPrice, i.basePurchasePrice, " +
-           "i.isActive, false, false) " +
+           "i.isActive, i.isSellable, i.isPurchasable) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +

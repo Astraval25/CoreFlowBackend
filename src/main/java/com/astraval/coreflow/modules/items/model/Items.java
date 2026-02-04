@@ -16,7 +16,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.companies.Companies;
-import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.ItemType;
 import com.astraval.coreflow.modules.items.UnitType;
 
@@ -75,6 +74,12 @@ public class Items {
     // Default flags and audit fields
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @Column(name = "is_sellable", nullable = false)
+    private Boolean isSellable = false;
+
+    @Column(name = "is_purchasable", nullable = false)
+    private Boolean isPurchasable = false;
 
     @CreatedBy
     @Column(name = "created_by", nullable = false)

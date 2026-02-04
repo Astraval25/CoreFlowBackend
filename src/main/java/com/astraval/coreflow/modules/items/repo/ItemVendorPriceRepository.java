@@ -7,11 +7,15 @@ import org.springframework.stereotype.Repository;
 
 import com.astraval.coreflow.modules.items.model.ItemVendorPrice;
 
+import java.util.List;
+
 @Repository
 public interface ItemVendorPriceRepository extends JpaRepository<ItemVendorPrice, Long> {
 
     Optional<ItemVendorPrice> findByItemItemIdAndVendorVendorIdAndIsActiveTrue(
             Long itemId, Long vendorId);
+
+    List<ItemVendorPrice> findByVendorVendorIdAndIsActiveTrue(Long vendorId);
 
     long countByItemItemIdAndIsActiveTrue(Long itemId);
 }
