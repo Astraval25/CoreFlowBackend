@@ -21,6 +21,16 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
            "WHERE c.company.companyId = :companyId " +
            "ORDER BY c.displayName")
     List<CustomerSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
+
+    @Query("SELECT new com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto(" +
+           "c.customerId, c.displayName, " +
+           "COALESCE(cc.companyName, ''), c.email, c.isActive) " +
+           "FROM Customers c " +
+           "LEFT JOIN c.customerCompany cc " +
+           "WHERE c.company.companyId = :companyId " +
+           "AND c.customerCompany IS NULL " +
+           "ORDER BY c.displayName")
+    List<CustomerSummaryDto> findUnlinkedByCompanyIdSummary(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto(" +
            "c.customerId, c.displayName, " +

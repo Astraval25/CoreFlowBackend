@@ -123,6 +123,10 @@ public class CustomerService {
     public List<CustomerSummaryDto> getActiveCustomersByCompany(Long companyId) {
         return customerRepository.findByCompanyCompanyIdAndIsActiveOrderByDisplayName(companyId, true);
     }
+    
+    public List<CustomerSummaryDto> getUnlinkedCustomersByCompany(Long companyId) {
+        return customerRepository.findUnlinkedByCompanyIdSummary(companyId);
+    }
 
     public List<Customers> getAllCustomers() {
         return customerRepository.findAll();

@@ -72,6 +72,16 @@ public class VendorController {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
+    
+    @GetMapping("/{companyId}/vendors/unlinked") // get all vendors (by companyId & vendorCompany is null)
+    public ApiResponse<List<VendorSummaryDto>> getUnlinkedVendorsByCompany(@PathVariable Long companyId) {
+        try {
+            List<VendorSummaryDto> vendors = vendorService.getUnlinkedVendorsByCompany(companyId);
+            return ApiResponseFactory.accepted(vendors, "vendors retrieved successful");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
 
     @GetMapping("/{companyId}/vendors/{id}") // get vendor detail (check company id and vendor id both)
     public ApiResponse<Vendors> getVendorById(@PathVariable Long companyId, @PathVariable Long id) {

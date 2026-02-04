@@ -124,6 +124,10 @@ public class VendorService {
     public List<VendorSummaryDto> getActiveVendorsByCompany(Long companyId) {
         return vendorRepository.findByCompanyCompanyIdAndIsActiveOrderByDisplayName(companyId, true);
     }
+    
+    public List<VendorSummaryDto> getUnlinkedVendorsByCompany(Long companyId) {
+        return vendorRepository.findUnlinkedByCompanyIdSummary(companyId);
+    }
 
     public List<Vendors> getAllVendors() {
         return vendorRepository.findAll();

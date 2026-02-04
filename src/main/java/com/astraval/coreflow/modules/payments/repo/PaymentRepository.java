@@ -37,6 +37,29 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
             """, nativeQuery = true)
     List<Object[]> findPayerPaymentSummaryByCompanyIdNative(@Param("companyId") Long companyId);
 
+    @Query(value = """
+            SELECT 
+              p.payment_id,
+              p.payment_date,
+              STRING_AGG(poa.order_id::text, ', ') AS order_ids,
+              p.payment_number,
+              p.amount,
+              c.customer_name,
+              p.mode_of_payment,
+              p.payment_status,
+              p.is_active,
+              p.reference_number 
+            FROM payments p
+            LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
+            LEFT JOIN customers c ON c.customer_id = p.customer
+            WHERE p.seller_company = :companyId
+            GROUP BY 
+              p.payment_id, p.payment_date, p.payment_number, p.amount,
+              c.customer_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number
+            ORDER BY p.payment_date DESC
+            """, nativeQuery = true)
+    List<Object[]> findPayeePaymentSummaryByCompanyIdNative(@Param("companyId") Long companyId);
+
     @Query("""
             SELECT p FROM Payments p
             LEFT JOIN FETCH p.buyerCompany

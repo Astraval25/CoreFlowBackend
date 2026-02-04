@@ -25,6 +25,20 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
                   "WHERE v.company.companyId = :companyId " +
            "ORDER BY v.displayName")
     List<VendorSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
+
+    @Query("SELECT new com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto(" +
+           "v.vendorId, " +
+           "v.displayName, " +
+           "COALESCE(vc.companyName, ''), " +
+           "v.email, " + 
+           "v.dueAmount, " +
+           "v.isActive) " +
+           "FROM Vendors v " +
+           "LEFT JOIN v.vendorCompany vc " +
+           "WHERE v.company.companyId = :companyId " +
+           "AND v.vendorCompany IS NULL " +
+           "ORDER BY v.displayName")
+    List<VendorSummaryDto> findUnlinkedByCompanyIdSummary(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto(" +
                   "v.vendorId, " +
