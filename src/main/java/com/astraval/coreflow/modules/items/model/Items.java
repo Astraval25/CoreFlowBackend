@@ -19,7 +19,6 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.items.ItemType;
 import com.astraval.coreflow.modules.items.UnitType;
-import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Getter
 @Setter
@@ -56,21 +55,13 @@ public class Items {
     private String salesDescription;
 
     @Column(name = "sales_price")
-    private BigDecimal salesPrice;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "preferred_customer_id")
-    private Customers preferredCustomer;
+    private BigDecimal baseSalesPrice;
 
     @Column(name = "purchase_description")
     private String purchaseDescription;
 
     @Column(name = "purchase_price")
-    private BigDecimal purchasePrice;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "preferred_vendor_id")
-    private Vendors preferredVendor;
+    private BigDecimal basePurchasePrice;
 
     @Column(name = "hsn_code")
     private String hsnCode;

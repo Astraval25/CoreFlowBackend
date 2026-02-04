@@ -33,7 +33,7 @@ public class OrderItemDetailsService {
         OrderItemDetails orderItem = orderItemDetailsMapper.toOrderItemDetails(createOrderItem);
         orderItem.setOrderId(orderId);
         orderItem.setItemId(item);
-        orderItem.setBasePrice(item.getSalesPrice() != null ? item.getSalesPrice() : item.getPurchasePrice());
+        orderItem.setBasePrice(item.getBaseSalesPrice() != null ? item.getBaseSalesPrice() : item.getBasePurchasePrice());
         orderItem.setItemTotal(createOrderItem.getQuantity() * createOrderItem.getUpdatedPrice());
         orderItem.setReadyStatus(0.0);
         

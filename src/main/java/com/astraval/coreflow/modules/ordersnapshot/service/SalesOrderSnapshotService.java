@@ -109,7 +109,7 @@ public class SalesOrderSnapshotService {
             orderItem.setOrderId(savedOrder.getOrderId());
             orderItem.setItemId(item);
             orderItem.setQuantity(newOrderItem.getQuantity());
-            orderItem.setBasePrice(item.getSalesPrice() != null ? item.getSalesPrice() : item.getPurchasePrice());
+            orderItem.setBasePrice(item.getBaseSalesPrice() != null ? item.getBaseSalesPrice() : item.getBasePurchasePrice());
             orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
             orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());
             orderItem.setReadyStatus(0.0);
@@ -187,7 +187,7 @@ public class SalesOrderSnapshotService {
             orderItem.setOrderId(existingOrder.getOrderId());
             orderItem.setItemId(item);
             orderItem.setQuantity(newOrderItem.getQuantity());
-            orderItem.setBasePrice(item.getSalesPrice() != null ? item.getSalesPrice() : item.getPurchasePrice());
+            orderItem.setBasePrice(item.getBaseSalesPrice() != null ? item.getBaseSalesPrice() : item.getBasePurchasePrice());
             orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
             orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());
             orderItem.setReadyStatus(0.0);

@@ -21,9 +21,11 @@ import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
 import com.astraval.coreflow.modules.items.model.ItemStocks;
 import com.astraval.coreflow.modules.items.model.Items;
+import com.astraval.coreflow.modules.items.repo.ItemCustomerPriceRepository;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.modules.items.dto.SellableItemDto;
+import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
 
 @Service
@@ -47,11 +49,17 @@ public class ItemService {
     @Autowired
     private ItemStocksRepository itemStocksRepository;
 
+    @Autowired
+    private ItemCustomerPriceRepository itemCustomerPriceRepository;
+
+    @Autowired
+    private ItemVendorPriceRepository itemVendorPriceRepository;
+
 
     @Transactional
     public Long createItem(Long companyId, CreateItemDto request, MultipartFile file) {
         try {
-            if (request.getSalesPrice() == null && request.getPurchasePrice() == null) {
+            if (request.getBaseSalesPrice() == null && request.getBasePurchasePrice() == null) {
                 throw new RuntimeException("Either sales price or purchase price is required");
             }
 
@@ -114,11 +122,15 @@ public class ItemService {
     }
 
     public List<ItemSummaryDto> getItemsByCompany(Long companyId) {
-        return itemRepository.findByCompanyIdSummary(companyId);
+        return itemRepository.findByCompanyCompanyIdOrderByItemName(companyId).stream()
+                .map(this::mapToItemSummaryDto)
+                .toList();
     }
 
     public List<ItemSummaryDto> getActiveItemsByCompany(Long companyId) {
-        return itemRepository.findActiveByCompanyIdSummary(companyId);
+        return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                .map(this::mapToItemSummaryDto)
+                .toList();
     }
 
     public Items getItemById(Long companyId, Long itemId) {
@@ -135,18 +147,15 @@ public class ItemService {
         dto.setItemName(item.getItemName());
         dto.setItemType(item.getItemType());
         dto.setUnit(item.getUnit());
-        dto.setSalesPrice(item.getSalesPrice());
+        dto.setBaseSalesPrice(item.getBaseSalesPrice());
         dto.setSalesDescription(item.getSalesDescription());
-        dto.setPreferredCustomer(item.getPreferredCustomer() != null ? item.getPreferredCustomer().getCustomerName() : null);
-        dto.setPreferredCustomerId(item.getPreferredCustomer() != null ? item.getPreferredCustomer().getCustomerId() : null);
-        dto.setPreferredCustomerDisplayName(item.getPreferredCustomer() != null ? item.getPreferredCustomer().getDisplayName() : null);
-        dto.setPurchasePrice(item.getPurchasePrice());
+        dto.setBasePurchasePrice(item.getBasePurchasePrice());
         dto.setPurchaseDescription(item.getPurchaseDescription());
-        dto.setPreferredVendorId(item.getPreferredVendor() != null ? item.getPreferredVendor().getVendorId() : null);
-        dto.setPreferredVendorDisplayName(item.getPreferredVendor() != null ? item.getPreferredVendor().getDisplayName() : null);
         dto.setHsnCode(item.getHsnCode());
         dto.setTaxRate(item.getTaxRate());
         dto.setIsActive(item.getIsActive());
+        dto.setIsSellable(isSellable(item));
+        dto.setIsPurchasable(isPurchasable(item));
         dto.setCreatedBy(item.getCreatedBy());
         dto.setCreatedDt(item.getCreatedDt());
         dto.setLastModifiedBy(item.getLastModifiedBy());
@@ -181,11 +190,29 @@ public class ItemService {
     }
     
     public List<SellableItemDto> getSellableItemsByCompany(Long companyId) {
-        return itemRepository.findSellableItemsByCompanyId(companyId);
+        return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                .filter(this::isSellable)
+                .map(item -> new SellableItemDto(
+                        item.getItemId(),
+                        item.getItemName(),
+                        item.getSalesDescription(),
+                        item.getBaseSalesPrice(),
+                        item.getTaxRate(),
+                        item.getHsnCode()))
+                .toList();
     }
     
     public List<PurchasableItemDto> getPurchasableItemsByCompany(Long companyId) {
-        return itemRepository.findPurchasableItemsByCompanyId(companyId);
+        return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                .filter(this::isPurchasable)
+                .map(item -> new PurchasableItemDto(
+                        item.getItemId(),
+                        item.getItemName(),
+                        item.getPurchaseDescription(),
+                        item.getBasePurchasePrice(),
+                        item.getTaxRate(),
+                        item.getHsnCode()))
+                .toList();
     }
     
     public List<GetOrderItemsDto> getOrderItems(Long companyId, Long vendorId) {
@@ -197,25 +224,46 @@ public class ItemService {
                     .map(item -> new GetOrderItemsDto(
                             item.getItemId(),
                             item.getItemName(),
-                            item.getSalesPrice() != null ? item.getSalesPrice().doubleValue() : null,
+                            item.getBaseSalesPrice() != null ? item.getBaseSalesPrice().doubleValue() : null,
                             item.getSalesDescription(),
                             item.getHsnCode(),
                             item.getTaxRate() != null ? item.getTaxRate().doubleValue() : null,
                             item.getUnit() != null ? item.getUnit().name() : null))
                     .toList();
         } else {
-            // Case 2: Unlinked vendor - get items from company with preferred vendor or no preference
-            items = itemRepository.findItemsForUnlinkedVendor(companyId, vendorId);
+            // Case 2: Unlinked vendor - get items from company
+            items = itemRepository.findItemsForUnlinkedVendor(companyId);
             return items.stream()
                     .map(item -> new GetOrderItemsDto(
                             item.getItemId(),
                             item.getItemName(),
-                            item.getPurchasePrice() != null ? item.getPurchasePrice().doubleValue() : null,
+                            item.getBasePurchasePrice() != null ? item.getBasePurchasePrice().doubleValue() : null,
                             item.getPurchaseDescription(),
                             item.getHsnCode(),
                             item.getTaxRate() != null ? item.getTaxRate().doubleValue() : null,
                             item.getUnit() != null ? item.getUnit().name() : null))
                     .toList();
         }
+    }
+
+    private boolean isSellable(Items item) {
+        return itemCustomerPriceRepository.countByItemItemIdAndIsActiveTrue(item.getItemId()) > 0;
+    }
+
+    private boolean isPurchasable(Items item) {
+        return itemVendorPriceRepository.countByItemItemIdAndIsActiveTrue(item.getItemId()) > 0;
+    }
+
+    private ItemSummaryDto mapToItemSummaryDto(Items item) {
+        return new ItemSummaryDto(
+                item.getItemId(),
+                item.getItemName(),
+                item.getItemType(),
+                item.getUnit(),
+                item.getBaseSalesPrice(),
+                item.getBasePurchasePrice(),
+                item.getIsActive(),
+                isSellable(item),
+                isPurchasable(item));
     }
 }

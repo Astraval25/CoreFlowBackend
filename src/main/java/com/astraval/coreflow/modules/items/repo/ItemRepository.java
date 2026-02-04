@@ -18,50 +18,46 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
-           "i.salesPrice, pc.customerId, pc.customerName, " +
-           "i.purchasePrice, pv.vendorId, pv.vendorName, " +
-           "i.isActive) " +
+           "i.baseSalesPrice, i.basePurchasePrice, " +
+           "i.isActive, false, false) " +
            "FROM Items i " +
-           "LEFT JOIN i.preferredCustomer pc " +
-           "LEFT JOIN i.preferredVendor pv " +
            "WHERE i.company.companyId = :companyId " +
            "ORDER BY i.itemName")
     List<ItemSummaryDto> findByCompanyIdSummary(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
-           "i.salesPrice, pc.customerId, pc.customerName, " +
-           "i.purchasePrice, pv.vendorId, pv.vendorName, " +
-           "i.isActive) " +
+           "i.baseSalesPrice, i.basePurchasePrice, " +
+           "i.isActive, false, false) " +
            "FROM Items i " +
-           "LEFT JOIN i.preferredCustomer pc " +
-           "LEFT JOIN i.preferredVendor pv " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
            "ORDER BY i.itemName")
     List<ItemSummaryDto> findActiveByCompanyIdSummary(@Param("companyId") Long companyId);
 
+    List<Items> findByCompanyCompanyIdOrderByItemName(Long companyId);
+
+    List<Items> findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(Long companyId);
+
     Optional<Items> findByItemIdAndCompanyCompanyId(Long itemId, Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.SellableItemDto(" +
-           "i.itemId, i.itemName, i.salesDescription, i.salesPrice, " +
-           "pc.customerName, i.taxRate, i.hsnCode) " +
+           "i.itemId, i.itemName, i.salesDescription, i.baseSalesPrice, " +
+           "i.taxRate, i.hsnCode) " +
            "FROM Items i " +
-           "LEFT JOIN i.preferredCustomer pc " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
-           "AND i.salesPrice IS NOT NULL " +
+           "AND i.baseSalesPrice IS NOT NULL " +
            "ORDER BY i.itemName")
     List<SellableItemDto> findSellableItemsByCompanyId(@Param("companyId") Long companyId);
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.PurchasableItemDto(" +
-           "i.itemId, i.itemName, i.purchaseDescription, i.purchasePrice, " +
-           "pv.vendorName, i.taxRate, i.hsnCode) " +
+           "i.itemId, i.itemName, i.purchaseDescription, i.basePurchasePrice, " +
+           "i.taxRate, i.hsnCode) " +
            "FROM Items i " +
-           "LEFT JOIN i.preferredVendor pv " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
-           "AND i.purchasePrice IS NOT NULL " +
+           "AND i.basePurchasePrice IS NOT NULL " +
            "ORDER BY i.itemName")
     List<PurchasableItemDto> findPurchasableItemsByCompanyId(@Param("companyId") Long companyId);
     
@@ -70,16 +66,14 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
            "JOIN Vendors v ON v.vendorId = :vendorId " +
            "JOIN Customers c ON c.customerCompany.companyId = :companyId " +
            "WHERE i.company.companyId = v.vendorCompany.companyId " +
-           "AND i.preferredCustomer.customerId = c.customerId " +
            "AND i.isActive = true " +
            "ORDER BY i.itemName")
     List<Items> findItemsForLinkedVendor(@Param("companyId") Long companyId, @Param("vendorId") Long vendorId);
     
-    // Case 2: Unlinked vendor - get items from company with preferred vendor or no preference
+    // Case 2: Unlinked vendor - get items from company
     @Query("SELECT i FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
-           "AND (i.preferredVendor.vendorId = :vendorId OR i.preferredVendor IS NULL) " +
            "AND i.isActive = true " +
            "ORDER BY i.itemName")
-    List<Items> findItemsForUnlinkedVendor(@Param("companyId") Long companyId, @Param("vendorId") Long vendorId);
+    List<Items> findItemsForUnlinkedVendor(@Param("companyId") Long companyId);
 }

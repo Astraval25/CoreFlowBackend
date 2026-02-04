@@ -10,11 +10,9 @@ public record ItemSummaryDto(
     String itemName,
     ItemType itemType,
     UnitType unit,
-    BigDecimal salesPrice,
-    Long preferredCustomerId,
-    String preferredCustomerName,
-    BigDecimal purchasePrice,
-    Long preferredVendorId,
-    String preferredVendorName,
-    Boolean isActive) {
+    BigDecimal baseSalesPrice,
+    BigDecimal basePurchasePrice,
+    Boolean isActive,
+    Boolean isSellable,
+    Boolean isPurchasable) {
 }

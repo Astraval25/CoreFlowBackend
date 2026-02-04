@@ -15,11 +15,9 @@ public class UpdateItemDto {
     private ItemType itemType;
     private UnitType unit;
     private String salesDescription;
-    private BigDecimal salesPrice;
-    private Long preferredCustomerId;
+    private BigDecimal baseSalesPrice;
     private String purchaseDescription;
-    private BigDecimal purchasePrice;
-    private Long preferredVendorId;
+    private BigDecimal basePurchasePrice;
     private String hsnCode;
     private BigDecimal taxRate;
 }
