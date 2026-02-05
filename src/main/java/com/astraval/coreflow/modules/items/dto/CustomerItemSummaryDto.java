@@ -5,14 +5,15 @@ import java.math.BigDecimal;
 import com.astraval.coreflow.modules.items.ItemType;
 import com.astraval.coreflow.modules.items.UnitType;
 
-public record ItemSummaryDto(
+public record CustomerItemSummaryDto(
     Long itemId,
     String itemName,
     ItemType itemType,
     UnitType unit,
-    BigDecimal baseSalesPrice,
-    BigDecimal basePurchasePrice,
-    Boolean isActive,
-    Boolean isSellable,
-    Boolean isPurchasable) {
+    BigDecimal salesPrice,
+    String salesDescription,
+    String hsnCode,
+    BigDecimal taxRate,
+    Boolean isActive
+) {
 }

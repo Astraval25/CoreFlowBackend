@@ -12,8 +12,7 @@ public class SellableItemDto {
     private Long itemId;
     private String itemName;
     private String salesDescription;
-    private BigDecimal salesPrice;
-    private String preferredCustomer;
+    private BigDecimal baseSalesPrice;
     private BigDecimal taxRate;
     private String hsnCode;
 }

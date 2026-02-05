@@ -15,18 +15,15 @@ public class ItemDetailDto {
 
     private ItemType itemType;
     private UnitType unit;
-    private BigDecimal salesPrice;
+    private BigDecimal baseSalesPrice;
     private String salesDescription;
-    private String preferredCustomer;
-    private Long preferredCustomerId;
-    private String preferredCustomerDisplayName;
-    private BigDecimal purchasePrice;
+    private BigDecimal basePurchasePrice;
     private String purchaseDescription;
-    private Long preferredVendorId;
-    private String preferredVendorDisplayName;
     private String hsnCode;
     private BigDecimal taxRate;
     private Boolean isActive;
+    private Boolean isSellable;
+    private Boolean isPurchasable;
     private Long createdBy;
     private LocalDateTime createdDt;
     private Long lastModifiedBy;

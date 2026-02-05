@@ -12,8 +12,7 @@ public class PurchasableItemDto {
     private Long itemId;
     private String itemName;
     private String purchaseDescription;
-    private BigDecimal purchasePrice;
-    private String preferredVendor;
+    private BigDecimal basePurchasePrice;
     private BigDecimal taxRate;
     private String hsnCode;
 }
