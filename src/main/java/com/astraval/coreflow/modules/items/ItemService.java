@@ -21,11 +21,9 @@ import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
 import com.astraval.coreflow.modules.items.model.ItemStocks;
 import com.astraval.coreflow.modules.items.model.Items;
-import com.astraval.coreflow.modules.items.repo.ItemCustomerPriceRepository;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.modules.items.dto.SellableItemDto;
-import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
 
 @Service
@@ -48,13 +46,6 @@ public class ItemService {
 
     @Autowired
     private ItemStocksRepository itemStocksRepository;
-
-    @Autowired
-    private ItemCustomerPriceRepository itemCustomerPriceRepository;
-
-    @Autowired
-    private ItemVendorPriceRepository itemVendorPriceRepository;
-
 
     @Transactional
     public Long createItem(Long companyId, CreateItemDto request, MultipartFile file) {
