@@ -15,4 +15,5 @@ public class PurchasableItemDto {
     private BigDecimal basePurchasePrice;
     private BigDecimal taxRate;
     private String hsnCode;
+    private String source;
 }

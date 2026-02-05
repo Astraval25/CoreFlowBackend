@@ -147,33 +147,29 @@ public class ItemController {
         }
     }
     
-    @GetMapping("/{companyId}/items/sellable")
-    public ApiResponse<List<SellableItemDto>> getSellableItems(@PathVariable Long companyId) {
+    @GetMapping("/{companyId}/customers/{customerId}/items/sellable")
+    public ApiResponse<List<SellableItemDto>> getSellableItemsByCompanyAndCustomer(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId,
+            @RequestParam("customerCompanyId") Long customerCompanyId) {
         try {
-            List<SellableItemDto> items = itemService.getSellableItemsByCompany(companyId);
+            List<SellableItemDto> items = itemService.getSellableItemsByCompanyAndCustomer(
+                    companyId, customerId, customerCompanyId);
             return ApiResponseFactory.accepted(items, "Sellable items retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
     
-    @GetMapping("/{companyId}/items/purchasable")
-    public ApiResponse<List<PurchasableItemDto>> getPurchasableItems(@PathVariable Long companyId) {
-        try {
-            List<PurchasableItemDto> items = itemService.getPurchasableItemsByCompany(companyId);
-            return ApiResponseFactory.accepted(items, "Purchasable items retrieved successfully");
-        } catch (RuntimeException e) {
-            return ApiResponseFactory.error(e.getMessage(), 406);
-        }
-    }
-    
-    @GetMapping("/{companyId}/vendors/{vendorId}/order-items")
-    public ApiResponse<List<GetOrderItemsDto>> getOrderItems(
+    @GetMapping("/{companyId}/vendors/{vendorId}/items/purchasable")
+    public ApiResponse<List<PurchasableItemDto>> getPurchasableItemsByCompanyAndVendor(
             @PathVariable Long companyId,
-            @PathVariable Long vendorId) {
+            @PathVariable Long vendorId,
+            @RequestParam("vendorCompanyId") Long vendorCompanyId) {
         try {
-            List<GetOrderItemsDto> items = itemService.getOrderItems(companyId, vendorId);
-            return ApiResponseFactory.accepted(items, "Order items retrieved successfully");
+            List<PurchasableItemDto> items = itemService.getPurchasableItemsByCompanyAndVendor(
+                    companyId, vendorId, vendorCompanyId);
+            return ApiResponseFactory.accepted(items, "Purchasable items retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

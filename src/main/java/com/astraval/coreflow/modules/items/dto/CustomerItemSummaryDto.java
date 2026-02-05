@@ -14,6 +14,7 @@ public record CustomerItemSummaryDto(
     String salesDescription,
     String hsnCode,
     BigDecimal taxRate,
-    Boolean isActive
+    Boolean isActive,
+    String source
 ) {
 }

@@ -185,6 +185,9 @@ public class CustomerItemService {
     }
 
     private CustomerItemSummaryDto toSummaryDto(Items item, ItemCustomerPrice price) {
+        String source = (price != null && (price.getSalesPrice() != null || price.getSalesDescription() != null))
+                ? "CUSTOMER_ITEM"
+                : "ITEM_BASE";
         return new CustomerItemSummaryDto(
                 item.getItemId(),
                 item.getItemName(),
@@ -194,7 +197,8 @@ public class CustomerItemService {
                 resolveSalesDescription(item, price),
                 item.getHsnCode(),
                 item.getTaxRate(),
-                item.getIsActive());
+                item.getIsActive(),
+                source);
     }
 
     private BigDecimal resolveSalesPrice(Items item, ItemCustomerPrice price) {

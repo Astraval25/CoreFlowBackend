@@ -9,4 +9,8 @@ import org.springframework.stereotype.Repository;
 public interface CustomerVendorLinkRepository extends JpaRepository<CustomerVendorLink, Long> {
 
     Optional<CustomerVendorLink> findByCustomerCustomerId(Long customerId);
+
+    Optional<CustomerVendorLink> findByCustomerCustomerIdAndVendorCompanyId(Long customerId, Long vendorCompanyId);
+
+    Optional<CustomerVendorLink> findByVendorVendorIdAndCustomerCompanyId(Long vendorId, Long customerCompanyId);
 }
