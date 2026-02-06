@@ -150,25 +150,23 @@ public class ItemController {
     @GetMapping("/{companyId}/customers/{customerId}/items/sellable")
     public ApiResponse<List<SellableItemDto>> getSellableItemsByCompanyAndCustomer(
             @PathVariable Long companyId,
-            @PathVariable Long customerId,
-            @RequestParam("customerCompanyId") Long customerCompanyId) {
+            @PathVariable Long customerId) {
         try {
-            List<SellableItemDto> items = itemService.getSellableItemsByCompanyAndCustomer(
-                    companyId, customerId, customerCompanyId);
+            List<SellableItemDto> items = itemService.getSellableItemsByCompanyAndCustomer(companyId, customerId);
             return ApiResponseFactory.accepted(items, "Sellable items retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
     
+    
     @GetMapping("/{companyId}/vendors/{vendorId}/items/purchasable")
     public ApiResponse<List<PurchasableItemDto>> getPurchasableItemsByCompanyAndVendor(
             @PathVariable Long companyId,
-            @PathVariable Long vendorId,
-            @RequestParam("vendorCompanyId") Long vendorCompanyId) {
+            @PathVariable Long vendorId) {
         try {
             List<PurchasableItemDto> items = itemService.getPurchasableItemsByCompanyAndVendor(
-                    companyId, vendorId, vendorCompanyId);
+                    companyId, vendorId);
             return ApiResponseFactory.accepted(items, "Purchasable items retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
