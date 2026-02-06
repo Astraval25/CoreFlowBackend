@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 public class PurchasableItemDto {
     private Long itemId;
     private String itemName;
-    private String purchaseDescription;
-    private BigDecimal basePurchasePrice;
+    private String description;
+    private BigDecimal price;
     private BigDecimal taxRate;
     private String hsnCode;
     private String source;

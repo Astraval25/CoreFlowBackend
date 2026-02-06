@@ -12,7 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
+import com.astraval.coreflow.modules.customer.CustomerVendorLink;
 import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
+import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
 import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
 import com.astraval.coreflow.modules.filestorage.FileStorageService;
@@ -32,6 +34,7 @@ import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
 import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
+import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Service
 public class ItemService {
@@ -205,12 +208,26 @@ public class ItemService {
     }
 
     public List<SellableItemDto> getSellableItemsByCompanyAndCustomer(
-            Long companyId, Long customerId, Long customerCompanyId) {
-        customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
+            Long companyId, Long customerId) {
+        Customers customer = customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
 
+        if (customer.getCustomerCompany() == null) {
+            return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                    .filter(item -> item.getBaseSalesPrice() != null)
+                    .map(item -> new SellableItemDto(
+                            item.getItemId(),
+                            item.getItemName(),
+                            item.getSalesDescription(),
+                            item.getBaseSalesPrice(),
+                            item.getTaxRate(),
+                            item.getHsnCode()))
+                    .toList();
+        }
+
         boolean isLinked = customerVendorLinkRepository
-                .findByCustomerCustomerIdAndVendorCompanyId(customerId, customerCompanyId)
+                .findByCustomerCustomerIdAndVendorCompanyId(customerId,
+                        customer.getCustomerCompany().getCompanyId())
                 .isPresent();
 
         if (!isLinked) {
@@ -228,54 +245,97 @@ public class ItemService {
 
         List<ItemCustomerPrice> prices = itemCustomerPriceRepository
                 .findByCustomerCustomerIdAndIsActiveTrue(customerId);
+        java.util.Map<Long, ItemCustomerPrice> priceByItemId = prices.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        p -> p.getItem().getItemId(),
+                        p -> p,
+                        (a, b) -> a));
 
-        return prices.stream()
-                .map(price -> new SellableItemDto(
-                        price.getItem().getItemId(),
-                        price.getItem().getItemName(),
-                        resolveSalesDescription(price.getItem(), price),
-                        resolveSalesPrice(price.getItem(), price),
-                        price.getItem().getTaxRate(),
-                        price.getItem().getHsnCode()))
+        return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                .map(item -> {
+                    ItemCustomerPrice price = priceByItemId.get(item.getItemId());
+                    return new SellableItemDto(
+                            item.getItemId(),
+                            item.getItemName(),
+                            resolveSalesDescription(item, price),
+                            resolveSalesPrice(item, price),
+                            item.getTaxRate(),
+                            item.getHsnCode());
+                })
+                .filter(dto -> dto.getPrice() != null)
                 .toList();
     }
 
-    public List<PurchasableItemDto> getPurchasableItemsByCompanyAndVendor(
-            Long companyId, Long vendorId, Long vendorCompanyId) {
-        vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+    // VERY_IMPORTANT API - GET PURCHASEABLE ITEMS BY COMPANY AND VENDOR.
+    public List<PurchasableItemDto> getPurchasableItemsByCompanyAndVendor( Long companyId, Long vendorId) {
+        Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
 
-        boolean isLinked = customerVendorLinkRepository
-                .findByVendorVendorIdAndCustomerCompanyId(vendorId, vendorCompanyId)
-                .isPresent();
+        if (vendor.getVendorCompany() == null) {
+            List<ItemVendorPrice> prices = itemVendorPriceRepository
+                    .findByVendorVendorIdAndIsActiveTrue(vendorId);
+            java.util.Map<Long, ItemVendorPrice> priceByItemId = prices.stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            p -> p.getItem().getItemId(),
+                            p -> p,
+                            (a, b) -> a));
 
-        if (!isLinked) {
             return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
-                    .filter(item -> item.getBasePurchasePrice() != null)
-                    .map(item -> new PurchasableItemDto(
-                            item.getItemId(),
-                            item.getItemName(),
-                            item.getPurchaseDescription(),
-                            item.getBasePurchasePrice(),
-                            item.getTaxRate(),
-                            item.getHsnCode(),
-                            "ITEM_BASE"))
+                    .map(item -> {
+                        ItemVendorPrice price = priceByItemId.get(item.getItemId());
+                        String source = (price != null
+                                && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null))
+                                        ? "VENDOR_ITEM"
+                                        : "ITEM_BASE";
+                        return new PurchasableItemDto(
+                                item.getItemId(),
+                                item.getItemName(),
+                                resolvePurchaseDescription(item, price),
+                                resolvePurchasePrice(item, price),
+                                item.getTaxRate(),
+                                item.getHsnCode(),
+                                source);
+                    })
+                    .filter(dto -> dto.getPrice() != null)
                     .toList();
         }
+        else{
+            Long vendorCompanyId = vendor.getVendorCompany().getCompanyId();
+            CustomerVendorLink customerVendorLink = customerVendorLinkRepository
+                    .findByVendorVendorIdAndCustomerCompanyId(vendorId, vendorCompanyId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Vendor Link not present in customer_vendor_link table: " + vendorId));
+            
+            Long customerId = customerVendorLink.getCustomer().getCustomerId();
+            // company is linked so we need to get the items that the company is given to that user or that company items (here we need to take the sales price that is the purchase price for this company)
+            List<ItemCustomerPrice> prices = itemCustomerPriceRepository
+                    .findByCustomerCustomerIdAndIsActiveTrue(customerId);
+            java.util.Map<Long, ItemCustomerPrice> priceByItemId = prices.stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            p -> p.getItem().getItemId(),
+                            p -> p,
+                            (a, b) -> a));
 
-        List<ItemVendorPrice> prices = itemVendorPriceRepository
-                .findByVendorVendorIdAndIsActiveTrue(vendorId);
-
-        return prices.stream()
-                .map(price -> new PurchasableItemDto(
-                        price.getItem().getItemId(),
-                        price.getItem().getItemName(),
-                        resolvePurchaseDescription(price.getItem(), price),
-                        resolvePurchasePrice(price.getItem(), price),
-                        price.getItem().getTaxRate(),
-                        price.getItem().getHsnCode(),
-                        "VENDOR_ITEM"))
-                .toList();
+            return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(vendorCompanyId).stream()
+                    .map(item -> {
+                        ItemCustomerPrice price = priceByItemId.get(item.getItemId());
+                        String source = (price != null
+                                && (price.getSalesPrice() != null || price.getSalesDescription() != null))
+                                        ? "CUSTOMER_ITEM"
+                                        : "ITEM_BASE";
+                        return new PurchasableItemDto(
+                                item.getItemId(),
+                                item.getItemName(),
+                                resolveSalesDescription(item, price),
+                                resolveSalesPrice(item, price),
+                                item.getTaxRate(),
+                                item.getHsnCode(),
+                                source);
+                    })
+                    .filter(dto -> dto.getPrice() != null)
+                    .toList();
+            
+        }        
     }
 
     private ItemSummaryDto mapToItemSummaryDto(Items item) {

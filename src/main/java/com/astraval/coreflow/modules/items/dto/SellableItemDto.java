@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 public class SellableItemDto {
     private Long itemId;
     private String itemName;
-    private String salesDescription;
-    private BigDecimal baseSalesPrice;
+    private String description;
+    private BigDecimal price;
     private BigDecimal taxRate;
     private String hsnCode;
 }
