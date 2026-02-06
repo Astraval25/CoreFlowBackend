@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,6 +16,7 @@ import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
 import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
 import com.astraval.coreflow.modules.filestorage.FileStorageService;
+import com.astraval.coreflow.modules.items.ItemMapper;
 import com.astraval.coreflow.modules.items.dto.CreateItemDto;
 import com.astraval.coreflow.modules.items.dto.ItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;

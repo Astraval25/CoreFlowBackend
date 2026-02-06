@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.controller;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +24,7 @@ import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
 import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.modules.items.dto.SellableItemDto;
 import com.astraval.coreflow.modules.items.model.Items;
+import com.astraval.coreflow.modules.items.service.ItemService;
 
 
 @RestController

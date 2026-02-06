@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.controller;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +19,7 @@ import com.astraval.coreflow.modules.items.dto.CreateCustomerItemDto;
 import com.astraval.coreflow.modules.items.dto.CustomerItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.CustomerItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateCustomerItemDto;
+import com.astraval.coreflow.modules.items.service.CustomerItemService;
 
 import jakarta.validation.Valid;
 

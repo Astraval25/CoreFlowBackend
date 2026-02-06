@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.service;
 
 import java.math.BigDecimal;
 import java.util.List;
