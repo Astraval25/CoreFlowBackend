@@ -14,6 +14,7 @@ public record VendorItemSummaryDto(
     String purchaseDescription,
     String hsnCode,
     BigDecimal taxRate,
-    Boolean isActive
+    Boolean isActive,
+    String source
 ) {
 }

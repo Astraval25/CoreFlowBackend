@@ -185,6 +185,9 @@ public class VendorItemService {
     }
 
     private VendorItemSummaryDto toSummaryDto(Items item, ItemVendorPrice price) {
+        String source = (price != null && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null))
+                ? "CUSTOMER_ITEM"
+                : "ITEM_BASE";
         return new VendorItemSummaryDto(
                 item.getItemId(),
                 item.getItemName(),
@@ -194,7 +197,8 @@ public class VendorItemService {
                 resolvePurchaseDescription(item, price),
                 item.getHsnCode(),
                 item.getTaxRate(),
-                item.getIsActive());
+                item.getIsActive(),
+                source);
     }
 
     private BigDecimal resolvePurchasePrice(Items item, ItemVendorPrice price) {
