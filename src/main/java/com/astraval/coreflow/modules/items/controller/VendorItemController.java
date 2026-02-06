@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.items;
+package com.astraval.coreflow.modules.items.controller;
 
 import java.util.List;
 import java.util.Map;
@@ -18,6 +18,7 @@ import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.items.dto.CreateVendorItemDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemSummaryDto;
+import com.astraval.coreflow.modules.items.service.VendorItemService;
 import com.astraval.coreflow.modules.items.dto.UpdateVendorItemDto;
 
 import jakarta.validation.Valid;
