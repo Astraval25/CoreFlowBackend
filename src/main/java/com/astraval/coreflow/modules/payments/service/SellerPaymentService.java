@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.payments.service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,8 +29,6 @@ import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 import com.astraval.coreflow.modules.vendor.VendorService;
 import com.astraval.coreflow.modules.vendor.Vendors;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,9 +52,6 @@ public class SellerPaymentService {
     private OrderDetailsRepository orderDetailsRepository;
 
     @Autowired
-    private UserCompanyAssetsRepository userCompanyAssetsRepository;
-
-    @Autowired
     private VendorService vendorService;
 
     @Autowired
@@ -70,18 +64,6 @@ public class SellerPaymentService {
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-
-        // Get company assets from view
-        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-        if (companyAssets == null) {
-            throw new RuntimeException("No assets found for company");
-        }
-
-        // Check customer belongs to company
-        if (companyAssets.getCustomers() == null
-                || !Arrays.asList(companyAssets.getCustomers()).contains(request.getCustomerId())) {
-            throw new RuntimeException("Customer does not belong to the requesting company");
-        }
 
         Customers customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));

@@ -13,7 +13,6 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
-import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
 import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
 import com.astraval.coreflow.modules.filestorage.FileStorageService;
@@ -32,7 +31,6 @@ import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
 import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
-import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Service
 public class ItemService {
@@ -207,7 +205,7 @@ public class ItemService {
 
     public List<SellableItemDto> getSellableItemsByCompanyAndCustomer(
             Long companyId, Long customerId, Long customerCompanyId) {
-        Customers customer = customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
+        customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
 
         boolean isLinked = customerVendorLinkRepository
@@ -243,7 +241,7 @@ public class ItemService {
 
     public List<PurchasableItemDto> getPurchasableItemsByCompanyAndVendor(
             Long companyId, Long vendorId, Long vendorCompanyId) {
-        Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+        vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
 
         boolean isLinked = customerVendorLinkRepository
