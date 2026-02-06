@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.ordersnapshot.service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +20,7 @@ import com.astraval.coreflow.modules.ordersnapshot.mapper.OrderSnapshotMapper;
 import com.astraval.coreflow.modules.ordersnapshot.repo.SalesOrderSnapshotRepository;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
 import com.astraval.coreflow.modules.ordersnapshot.dto.UpdateSalesOrder;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 
 @Service
 public class SalesOrderSnapshotService {
@@ -49,9 +46,6 @@ public class SalesOrderSnapshotService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    @Autowired
-    private UserCompanyAssetsRepository userCompanyAssetsRepository;
-
     @Transactional
     public Long createSalesOrder(Long companyId, CreateSalesOrder createOrder) {
 
@@ -60,28 +54,8 @@ public class SalesOrderSnapshotService {
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        // Get company assets from view
-        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-        if (companyAssets == null) {
-            throw new RuntimeException("No assets found for company");
-        }
-
-        // 2. check the customerId exists and belongs to the requesting company
-        if (companyAssets.getCustomers() == null
-                || !Arrays.asList(companyAssets.getCustomers()).contains(createOrder.getCustomerId())) {
-            throw new RuntimeException("Customer does not belong to the requesting company");
-        }
-
         Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
-
-        // 3. check the orderItems.items exist and belong to the requesting company
-        createOrder.getOrderItems().forEach(orderItem -> {
-            if (companyAssets.getItems() == null
-                    || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-            }
-        });
         // Access Validation Done if all ok then only allow to create.
 
         OrderSnapshot orderSnapshot = orderSnapshotMapper.toOrderSnapshot(createOrder);
@@ -144,23 +118,6 @@ public class SalesOrderSnapshotService {
         if (!existingOrder.getSellerCompany().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Order does not belong to the requesting company");
         }
-
-        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-        if (companyAssets == null) {
-            throw new RuntimeException("No assets found for company");
-        }
-
-        if (companyAssets.getCustomers() == null
-                || !Arrays.asList(companyAssets.getCustomers()).contains(updateOrder.getCustomerId())) {
-            throw new RuntimeException("Customer does not belong to the requesting company");
-        }
-
-        updateOrder.getOrderItems().forEach(orderItem -> {
-            if (companyAssets.getItems() == null
-                    || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-            }
-        });
 
         Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));

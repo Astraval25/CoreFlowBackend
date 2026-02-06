@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.payments.service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,8 +26,6 @@ import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
@@ -51,28 +48,12 @@ public class BuyerPaymentService {
     private OrderDetailsRepository orderDetailsRepository;
 
     @Autowired
-    private UserCompanyAssetsRepository userCompanyAssetsRepository;
-
-    @Autowired
     private CustomerService customerService;
 
     @Transactional
     public Long createBuyerPayment(Long companyId, CreateBuyerPaymentDto request) {
         Companies buyerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-
-        // -------------------------------------
-        // Get company assets from view
-        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-        if (companyAssets == null) {
-            throw new RuntimeException("No assets found for company");
-        }
-
-        // Check vendor belongs to company
-        if (companyAssets.getVendors() == null
-                || !Arrays.asList(companyAssets.getVendors()).contains(request.getVendorId())) {
-            throw new RuntimeException("Vendor does not belong to the requesting company");
-        }
 
         Vendors vendor = vendorRepository.findById(request.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));

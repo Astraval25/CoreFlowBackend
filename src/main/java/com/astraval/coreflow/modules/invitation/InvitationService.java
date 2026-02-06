@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.customer.CustomerVendorLink;
+import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.invitation.dto.AcceptInvitationDto;
@@ -36,6 +38,9 @@ public class InvitationService {
 
     @Autowired
     private VendorRepository vendorRepository;
+
+    @Autowired
+    private CustomerVendorLinkRepository customerVendorLinkRepository;
 
     @Transactional
     public Invitation sendCustomerInvite(Long companyId, Long customerId, String emailOverride) {
@@ -135,6 +140,9 @@ public class InvitationService {
             if (vendor.getVendorCompany() != null) {
                 throw new RuntimeException("Vendor already linked to a company");
             }
+            if (customer.getCompany().getCompanyId().equals(vendor.getCompany().getCompanyId())) {
+                throw new RuntimeException("Customer and vendor cannot belong to the same company");
+            }
 
             customer.setCustomerCompany(acceptingCompany);
             customer.setAcceptedInvitationId(invitation.getInvitationCode().toString());
@@ -143,6 +151,8 @@ public class InvitationService {
             vendor.setVendorCompany(invitation.getFromCompany());
             vendor.setAcceptedInvitationId(invitation.getInvitationCode().toString());
             vendorRepository.save(vendor);
+
+            upsertCustomerVendorLink(customer, vendor);
 
             invitation.setSelectedVendorId(request.getSelectedVendorId());
 
@@ -162,6 +172,9 @@ public class InvitationService {
             if (customer.getCustomerCompany() != null) {
                 throw new RuntimeException("Customer already linked to a company");
             }
+            if (vendor.getCompany().getCompanyId().equals(customer.getCompany().getCompanyId())) {
+                throw new RuntimeException("Customer and vendor cannot belong to the same company");
+            }
 
             vendor.setVendorCompany(acceptingCompany);
             vendor.setAcceptedInvitationId(invitation.getInvitationCode().toString());
@@ -170,6 +183,8 @@ public class InvitationService {
             customer.setCustomerCompany(invitation.getFromCompany());
             customer.setAcceptedInvitationId(invitation.getInvitationCode().toString());
             customerRepository.save(customer);
+
+            upsertCustomerVendorLink(customer, vendor);
 
             invitation.setSelectedCustomerId(request.getSelectedCustomerId());
         } else {
@@ -200,5 +215,17 @@ public class InvitationService {
         invitation.setIsActive(false);
         invitation.setUpdatedAt(LocalDateTime.now());
         invitationRepository.save(invitation);
+    }
+
+    private void upsertCustomerVendorLink(Customers customer, Vendors vendor) {
+        CustomerVendorLink link = customerVendorLinkRepository.findByCustomerCustomerId(customer.getCustomerId())
+                .orElseGet(CustomerVendorLink::new);
+
+        link.setCustomer(customer);
+        link.setVendor(vendor);
+        link.setCustomerCompanyId(customer.getCompany().getCompanyId());
+        link.setVendorCompanyId(vendor.getCompany().getCompanyId());
+        link.setIsActive(true);
+        customerVendorLinkRepository.save(link);
     }
 }

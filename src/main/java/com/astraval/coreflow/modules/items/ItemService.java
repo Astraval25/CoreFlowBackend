@@ -11,22 +11,26 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.customer.CustomerRepository;
+import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
 import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
 import com.astraval.coreflow.modules.filestorage.FileStorageService;
 import com.astraval.coreflow.modules.items.dto.CreateItemDto;
-import com.astraval.coreflow.modules.items.dto.GetOrderItemsDto;
 import com.astraval.coreflow.modules.items.dto.ItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.ItemSummaryDto;
-import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
-import com.astraval.coreflow.modules.items.model.ItemStocks;
-import com.astraval.coreflow.modules.items.model.Items;
-import com.astraval.coreflow.modules.items.repo.ItemCustomerPriceRepository;
-import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.modules.items.dto.SellableItemDto;
-import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
+import com.astraval.coreflow.modules.items.dto.UpdateItemDto;
+import com.astraval.coreflow.modules.items.model.ItemCustomerPrice;
+import com.astraval.coreflow.modules.items.model.ItemStocks;
+import com.astraval.coreflow.modules.items.model.Items;
+import com.astraval.coreflow.modules.items.model.ItemVendorPrice;
+import com.astraval.coreflow.modules.items.repo.ItemCustomerPriceRepository;
+import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.repo.ItemStocksRepository;
+import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
+import com.astraval.coreflow.modules.vendor.VendorRepository;
 
 @Service
 public class ItemService {
@@ -55,6 +59,14 @@ public class ItemService {
     @Autowired
     private ItemVendorPriceRepository itemVendorPriceRepository;
 
+    @Autowired
+    private CustomerVendorLinkRepository customerVendorLinkRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private VendorRepository vendorRepository;
 
     @Transactional
     public Long createItem(Long companyId, CreateItemDto request, MultipartFile file) {
@@ -190,70 +202,79 @@ public class ItemService {
         }
         itemRepository.deleteById(itemId);
     }
-    
-    public List<SellableItemDto> getSellableItemsByCompany(Long companyId) {
-        return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
-                .filter(this::isSellable)
-                .map(item -> new SellableItemDto(
-                        item.getItemId(),
-                        item.getItemName(),
-                        item.getSalesDescription(),
-                        item.getBaseSalesPrice(),
-                        item.getTaxRate(),
-                        item.getHsnCode()))
-                .toList();
-    }
-    
-    public List<PurchasableItemDto> getPurchasableItemsByCompany(Long companyId) {
-        return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
-                .filter(this::isPurchasable)
-                .map(item -> new PurchasableItemDto(
-                        item.getItemId(),
-                        item.getItemName(),
-                        item.getPurchaseDescription(),
-                        item.getBasePurchasePrice(),
-                        item.getTaxRate(),
-                        item.getHsnCode()))
-                .toList();
-    }
-    
-    public List<GetOrderItemsDto> getOrderItems(Long companyId, Long vendorId) {
-        // Try Case 1 first: Linked vendor - get items from vendor's company for this customer
-        List<Items> items = itemRepository.findItemsForLinkedVendor(companyId, vendorId);
-        
-        if (!items.isEmpty()) {
-            return items.stream()
-                    .map(item -> new GetOrderItemsDto(
+
+    public List<SellableItemDto> getSellableItemsByCompanyAndCustomer(
+            Long companyId, Long customerId, Long customerCompanyId) {
+        customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
+                .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
+
+        boolean isLinked = customerVendorLinkRepository
+                .findByCustomerCustomerIdAndVendorCompanyId(customerId, customerCompanyId)
+                .isPresent();
+
+        if (!isLinked) {
+            return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                    .filter(item -> item.getBaseSalesPrice() != null)
+                    .map(item -> new SellableItemDto(
                             item.getItemId(),
                             item.getItemName(),
-                            item.getBaseSalesPrice() != null ? item.getBaseSalesPrice().doubleValue() : null,
                             item.getSalesDescription(),
-                            item.getHsnCode(),
-                            item.getTaxRate() != null ? item.getTaxRate().doubleValue() : null,
-                            item.getUnit() != null ? item.getUnit().name() : null))
-                    .toList();
-        } else {
-            // Case 2: Unlinked vendor - get items from company
-            items = itemRepository.findItemsForUnlinkedVendor(companyId);
-            return items.stream()
-                    .map(item -> new GetOrderItemsDto(
-                            item.getItemId(),
-                            item.getItemName(),
-                            item.getBasePurchasePrice() != null ? item.getBasePurchasePrice().doubleValue() : null,
-                            item.getPurchaseDescription(),
-                            item.getHsnCode(),
-                            item.getTaxRate() != null ? item.getTaxRate().doubleValue() : null,
-                            item.getUnit() != null ? item.getUnit().name() : null))
+                            item.getBaseSalesPrice(),
+                            item.getTaxRate(),
+                            item.getHsnCode()))
                     .toList();
         }
+
+        List<ItemCustomerPrice> prices = itemCustomerPriceRepository
+                .findByCustomerCustomerIdAndIsActiveTrue(customerId);
+
+        return prices.stream()
+                .map(price -> new SellableItemDto(
+                        price.getItem().getItemId(),
+                        price.getItem().getItemName(),
+                        resolveSalesDescription(price.getItem(), price),
+                        resolveSalesPrice(price.getItem(), price),
+                        price.getItem().getTaxRate(),
+                        price.getItem().getHsnCode()))
+                .toList();
     }
 
-    private boolean isSellable(Items item) {
-        return Boolean.TRUE.equals(item.getIsSellable());
-    }
+    public List<PurchasableItemDto> getPurchasableItemsByCompanyAndVendor(
+            Long companyId, Long vendorId, Long vendorCompanyId) {
+        vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
 
-    private boolean isPurchasable(Items item) {
-        return Boolean.TRUE.equals(item.getIsPurchasable());
+        boolean isLinked = customerVendorLinkRepository
+                .findByVendorVendorIdAndCustomerCompanyId(vendorId, vendorCompanyId)
+                .isPresent();
+
+        if (!isLinked) {
+            return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                    .filter(item -> item.getBasePurchasePrice() != null)
+                    .map(item -> new PurchasableItemDto(
+                            item.getItemId(),
+                            item.getItemName(),
+                            item.getPurchaseDescription(),
+                            item.getBasePurchasePrice(),
+                            item.getTaxRate(),
+                            item.getHsnCode(),
+                            "ITEM_BASE"))
+                    .toList();
+        }
+
+        List<ItemVendorPrice> prices = itemVendorPriceRepository
+                .findByVendorVendorIdAndIsActiveTrue(vendorId);
+
+        return prices.stream()
+                .map(price -> new PurchasableItemDto(
+                        price.getItem().getItemId(),
+                        price.getItem().getItemName(),
+                        resolvePurchaseDescription(price.getItem(), price),
+                        resolvePurchasePrice(price.getItem(), price),
+                        price.getItem().getTaxRate(),
+                        price.getItem().getHsnCode(),
+                        "VENDOR_ITEM"))
+                .toList();
     }
 
     private ItemSummaryDto mapToItemSummaryDto(Items item) {
@@ -272,5 +293,33 @@ public class ItemService {
     private void applySellablePurchasableFlags(Items item) {
         item.setIsSellable(item.getBaseSalesPrice() != null);
         item.setIsPurchasable(item.getBasePurchasePrice() != null);
+    }
+
+    private BigDecimal resolveSalesPrice(Items item, ItemCustomerPrice price) {
+        if (price != null && price.getSalesPrice() != null) {
+            return price.getSalesPrice();
+        }
+        return item.getBaseSalesPrice();
+    }
+
+    private String resolveSalesDescription(Items item, ItemCustomerPrice price) {
+        if (price != null && price.getSalesDescription() != null) {
+            return price.getSalesDescription();
+        }
+        return item.getSalesDescription();
+    }
+
+    private BigDecimal resolvePurchasePrice(Items item, ItemVendorPrice price) {
+        if (price != null && price.getPurchasePrice() != null) {
+            return price.getPurchasePrice();
+        }
+        return item.getBasePurchasePrice();
+    }
+
+    private String resolvePurchaseDescription(Items item, ItemVendorPrice price) {
+        if (price != null && price.getPurchaseDescription() != null) {
+            return price.getPurchaseDescription();
+        }
+        return item.getPurchaseDescription();
     }
 }

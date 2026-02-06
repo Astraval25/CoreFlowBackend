@@ -53,7 +53,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.PurchasableItemDto(" +
            "i.itemId, i.itemName, i.purchaseDescription, i.basePurchasePrice, " +
-           "i.taxRate, i.hsnCode) " +
+           "i.taxRate, i.hsnCode, 'ITEM_BASE') " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
@@ -61,19 +61,4 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
            "ORDER BY i.itemName")
     List<PurchasableItemDto> findPurchasableItemsByCompanyId(@Param("companyId") Long companyId);
     
-    // Case 1: Linked vendor - get items from vendor's company for specific customer
-    @Query("SELECT i FROM Items i " +
-           "JOIN Vendors v ON v.vendorId = :vendorId " +
-           "JOIN Customers c ON c.customerCompany.companyId = :companyId " +
-           "WHERE i.company.companyId = v.vendorCompany.companyId " +
-           "AND i.isActive = true " +
-           "ORDER BY i.itemName")
-    List<Items> findItemsForLinkedVendor(@Param("companyId") Long companyId, @Param("vendorId") Long vendorId);
-    
-    // Case 2: Unlinked vendor - get items from company
-    @Query("SELECT i FROM Items i " +
-           "WHERE i.company.companyId = :companyId " +
-           "AND i.isActive = true " +
-           "ORDER BY i.itemName")
-    List<Items> findItemsForUnlinkedVendor(@Param("companyId") Long companyId);
 }

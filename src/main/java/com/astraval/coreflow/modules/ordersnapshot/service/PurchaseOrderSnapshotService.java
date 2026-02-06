@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.ordersnapshot.service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -20,8 +19,6 @@ import com.astraval.coreflow.modules.ordersnapshot.mapper.OrderSnapshotMapper;
 import com.astraval.coreflow.modules.ordersnapshot.repo.PurchaseOrderSnapshotRepository;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.ordersnapshot.dto.UpdatePurchaseOrder;
 import com.astraval.coreflow.modules.vendor.Vendors;
@@ -49,9 +46,6 @@ public class PurchaseOrderSnapshotService {
     @Autowired
     private VendorRepository vendorRepository;
 
-    @Autowired
-    private UserCompanyAssetsRepository userCompanyAssetsRepository;
-
   @Transactional
   public Long createPurchaseOrder(Long companyId, CreatePurchaseOrder createOrder) {
       
@@ -59,26 +53,8 @@ public class PurchaseOrderSnapshotService {
       Companies buyerCompany = companyRepository.findById(companyId)
               .orElseThrow(() -> new RuntimeException("Company not found"));
       
-      // Get company assets from view
-      UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-      if (companyAssets == null) {
-          throw new RuntimeException("No assets found for company");
-      }
-      
-      // Check vendor belongs to company
-      if (companyAssets.getVendors() == null || !Arrays.asList(companyAssets.getVendors()).contains(createOrder.getVendorId())) {
-          throw new RuntimeException("Vendor does not belong to the requesting company");
-      }
-      
       Vendors vendor = vendorRepository.findById(createOrder.getVendorId())
               .orElseThrow(() -> new RuntimeException("Vendor not found"));
-      
-      // Check items belong to company
-      createOrder.getOrderItems().forEach(orderItem -> {
-          if (companyAssets.getItems() == null || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-              throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-          }
-      });
       
       OrderSnapshot orderSnapshot = orderSnapshotMapper.toPurchaseOrderSnapshot(createOrder);
       orderSnapshot.setBuyerCompany(buyerCompany);
@@ -138,23 +114,6 @@ public class PurchaseOrderSnapshotService {
         if (!existingOrder.getBuyerCompany().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Order does not belong to the requesting company");
         }
-
-        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-        if (companyAssets == null) {
-            throw new RuntimeException("No assets found for company");
-        }
-
-        if (companyAssets.getVendors() == null
-                || !Arrays.asList(companyAssets.getVendors()).contains(updateOrder.getVendorId())) {
-            throw new RuntimeException("Vendor does not belong to the requesting company");
-        }
-
-        updateOrder.getOrderItems().forEach(orderItem -> {
-            if (companyAssets.getItems() == null
-                    || !Arrays.asList(companyAssets.getItems()).contains(orderItem.getItemId())) {
-                throw new RuntimeException("Item does not belong to the requesting company: " + orderItem.getItemId());
-            }
-        });
 
         Vendors vendor = vendorRepository.findById(updateOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));

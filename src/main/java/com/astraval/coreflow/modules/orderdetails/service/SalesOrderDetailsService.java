@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails.service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +21,7 @@ import com.astraval.coreflow.modules.orderdetails.mapper.OrderDetailsMapper;
 import com.astraval.coreflow.modules.orderdetails.repo.SalesOrderDetailsRepository;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssets;
 import com.astraval.coreflow.modules.orderdetails.dto.UpdateSalesOrder;
-import com.astraval.coreflow.modules.usercompmap.UserCompanyAssetsRepository;
 import com.astraval.coreflow.modules.vendor.VendorService;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
@@ -53,9 +50,6 @@ public class SalesOrderDetailsService {
     private CustomerRepository customerRepository;
     
     @Autowired
-    private UserCompanyAssetsRepository userCompanyAssetsRepository;
-    
-    @Autowired
     private VendorService vendorService;
     
     @Transactional
@@ -65,18 +59,6 @@ public class SalesOrderDetailsService {
         // 1. check the companyId is exist
         Companies sellerCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-        
-        // Get company assets from view
-        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-        if (companyAssets == null) {
-            throw new RuntimeException("No assets found for company");
-        }
-        
-        // 2. check the customerId exists and belongs to the requesting company
-        if (companyAssets.getCustomers() == null || !Arrays.asList(companyAssets.getCustomers()).contains(createOrder.getCustomerId())) {
-            throw new RuntimeException("Customer does not belong to the requesting company");
-        }
-        
         Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
         // Access Validation Done if all ok then only allow to create.
@@ -149,15 +131,6 @@ public class SalesOrderDetailsService {
         
         if (!existingOrder.getSellerCompany().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Order does not belong to the requesting company");
-        }
-        
-        UserCompanyAssets companyAssets = userCompanyAssetsRepository.findByCompanyId(companyId);
-        if (companyAssets == null) {
-            throw new RuntimeException("No assets found for company");
-        }
-        
-        if (companyAssets.getCustomers() == null || !Arrays.asList(companyAssets.getCustomers()).contains(updateOrder.getCustomerId())) {
-            throw new RuntimeException("Customer does not belong to the requesting company");
         }
         
         Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
