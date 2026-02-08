@@ -24,8 +24,8 @@ public class CreatePaymentDto {
     private String referenceNumber;
     
     private String paymentRemarks;
-    
-    // private Long paymentProofFileId;
+
+    private String paymentProofFsId;
     
     @Valid
     private List<CreatePaymentOrderAllocationDto> orderAllocations;

@@ -23,5 +23,6 @@ public class VendorItemDetailDto {
     private LocalDateTime createdDt;
     private Long lastModifiedBy;
     private LocalDateTime lastModifiedDt;
+    private String fsId;
     private String itemImage;
 }

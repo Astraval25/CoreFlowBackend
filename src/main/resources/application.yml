@@ -40,3 +40,4 @@ app:
   file:
     upload:
       item-images: uploads/item_img
+      payment-proofs: uploads/payment_proof

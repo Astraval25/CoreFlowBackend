@@ -12,3 +12,8 @@ spring:
 
 upload:
   path: /uploads
+
+app:
+  ocr:
+    tesseract:
+      cli: ${TESSERACT_CLI:tesseract}

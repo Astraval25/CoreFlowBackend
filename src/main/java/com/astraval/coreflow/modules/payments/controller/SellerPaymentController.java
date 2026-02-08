@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.payments.dto.CreateSellerPaymentDto;
+import com.astraval.coreflow.modules.payments.dto.PaymentProofUploadResponse;
 import com.astraval.coreflow.modules.payments.dto.SellerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.dto.UpdateSellerPaymentDto;
 import com.astraval.coreflow.modules.payments.service.SellerPaymentService;
@@ -68,14 +69,14 @@ public class SellerPaymentController {
     }
 
     @PostMapping(value = "/{companyId}/payments-received/{paymentId}/payment-proof", consumes = {"multipart/form-data"})
-    public ApiResponse<Map<String, String>> uploadPaymentProof(
+    public ApiResponse<PaymentProofUploadResponse> uploadPaymentProof(
             @PathVariable Long companyId,
             @PathVariable Long paymentId,
             @RequestParam("file") MultipartFile file) {
         try {
-            String fsId = sellerPaymentService.uploadPaymentProof(companyId, paymentId, file);
+            PaymentProofUploadResponse response = sellerPaymentService.uploadPaymentProof(companyId, paymentId, file);
             return ApiResponseFactory.created(
-                    Map.of("fsId", fsId),
+                    response,
                     "Payment proof uploaded successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);

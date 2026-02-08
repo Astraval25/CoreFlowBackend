@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.payments.dto.CreateBuyerPaymentDto;
+import com.astraval.coreflow.modules.payments.dto.PaymentProofUploadResponse;
 import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.dto.UpdateBuyerPaymentDto;
 import com.astraval.coreflow.modules.payments.service.BuyerPaymentService;
@@ -21,6 +22,8 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController
@@ -75,6 +78,21 @@ public class BuyerPaymentController {
         try {
             buyerPaymentService.deletePaymentOrderAllocation(companyId, paymentId, allocationId);
             return ApiResponseFactory.accepted("Payment allocation deleted successfully", "Payment allocation deleted successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping(value = "/{companyId}/payments-sent/{paymentId}/payment-proof", consumes = {"multipart/form-data"})
+    public ApiResponse<PaymentProofUploadResponse> uploadPaymentProof(
+            @PathVariable Long companyId,
+            @PathVariable Long paymentId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            PaymentProofUploadResponse response = buyerPaymentService.uploadPaymentProof(companyId, paymentId, file);
+            return ApiResponseFactory.created(
+                    response,
+                    "Payment proof uploaded successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
