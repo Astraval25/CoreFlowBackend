@@ -41,13 +41,13 @@ public class PaymentService {
         dto.setIsActive(payment.getIsActive());
         
         // Company details
-        if (payment.getBuyerCompany() != null) {
-            dto.setBuyerCompanyId(payment.getBuyerCompany().getCompanyId());
-            dto.setBuyerCompanyName(payment.getBuyerCompany().getCompanyName());
+        if (payment.getSenderComp() != null) {
+            dto.setBuyerCompanyId(payment.getSenderComp().getCompanyId());
+            dto.setBuyerCompanyName(payment.getSenderComp().getCompanyName());
         }
-        if (payment.getSellerCompany() != null) {
-            dto.setSellerCompanyId(payment.getSellerCompany().getCompanyId());
-            dto.setSellerCompanyName(payment.getSellerCompany().getCompanyName());
+        if (payment.getReceiverComp() != null) {
+            dto.setSellerCompanyId(payment.getReceiverComp().getCompanyId());
+            dto.setSellerCompanyName(payment.getReceiverComp().getCompanyName());
         }
         
         // Vendor details
