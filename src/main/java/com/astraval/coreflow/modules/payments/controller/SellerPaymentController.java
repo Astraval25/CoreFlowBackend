@@ -30,7 +30,7 @@ public class SellerPaymentController {
     @Autowired
     private SellerPaymentService sellerPaymentService;
 
-    @PostMapping("/{companyId}/seller-payments")
+    @PostMapping("/{companyId}/payments-received")
     public ApiResponse<Map<String, Long>> createSellerPayment(
             @PathVariable Long companyId,
             @Valid @RequestBody CreateSellerPaymentDto request) {
@@ -44,7 +44,7 @@ public class SellerPaymentController {
         }
     }
 
-    @GetMapping("/{companyId}/seller-payments/summary")
+    @GetMapping("/{companyId}/payments-received/summary")
     public ApiResponse<List<SellerPaymentSummaryDto>> getPaymentSummaryByCompanyId(@PathVariable Long companyId) {
         try {
             List<SellerPaymentSummaryDto> payments = sellerPaymentService.getSellerPaymentSummaryByCompanyId(companyId);
@@ -54,7 +54,7 @@ public class SellerPaymentController {
         }
     }
 
-    @PutMapping("/{companyId}/seller-payments/{paymentId}")
+    @PutMapping("/{companyId}/payments-received/{paymentId}")
     public ApiResponse<String> updateSellerPayment(
             @PathVariable Long companyId,
             @PathVariable Long paymentId,
@@ -67,7 +67,7 @@ public class SellerPaymentController {
         }
     }
 
-    @PostMapping(value = "/{companyId}/seller-payments/{paymentId}/payment-proof", consumes = {"multipart/form-data"})
+    @PostMapping(value = "/{companyId}/payments-received/{paymentId}/payment-proof", consumes = {"multipart/form-data"})
     public ApiResponse<Map<String, String>> uploadPaymentProof(
             @PathVariable Long companyId,
             @PathVariable Long paymentId,

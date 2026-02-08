@@ -30,7 +30,7 @@ public class BuyerPaymentController {
     @Autowired
     private BuyerPaymentService buyerPaymentService;
 
-    @PostMapping("/{companyId}/buyer-payments")
+    @PostMapping("/{companyId}/payments-sent")
     public ApiResponse<Map<String, Long>> createBuyerPayment(
             @PathVariable Long companyId,
             @Valid @RequestBody CreateBuyerPaymentDto request) {
@@ -44,7 +44,7 @@ public class BuyerPaymentController {
         }
     }
 
-    @GetMapping("/{companyId}/payer/payments")
+    @GetMapping("/{companyId}/payments-sent/summary")
     public ApiResponse<List<PayerPaymentSummaryDto>> getPaymentSummaryByCompanyId(@PathVariable Long companyId) {
         try {
             List<PayerPaymentSummaryDto> payments = buyerPaymentService.getPayerPaymentSummaryByCompanyId(companyId);
@@ -54,7 +54,7 @@ public class BuyerPaymentController {
         }
     }
     
-    @PutMapping("/{companyId}/buyer-payments/{paymentId}")
+    @PutMapping("/{companyId}/payments-sent/{paymentId}")
     public ApiResponse<String> updateBuyerPayment(
             @PathVariable Long companyId,
             @PathVariable Long paymentId,
@@ -67,7 +67,7 @@ public class BuyerPaymentController {
         }
     }
     
-    @DeleteMapping("/{companyId}/buyer-payments/{paymentId}/allocations/{allocationId}")
+    @DeleteMapping("/{companyId}/payments-sent/{paymentId}/allocations/{allocationId}")
     public ApiResponse<String> deletePaymentOrderAllocation(
             @PathVariable Long companyId,
             @PathVariable Long paymentId,

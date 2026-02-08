@@ -44,12 +44,12 @@ public class Payments {
   private Long paymentId;
   
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "seller_company")
-  private Companies sellerCompany = null;
+  @JoinColumn(name = "receiver_comp")
+  private Companies receiverComp = null;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "buyer_company")
-  private Companies buyerCompany = null;
+  @JoinColumn(name = "sender_comp")
+  private Companies senderComp = null;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "customer")

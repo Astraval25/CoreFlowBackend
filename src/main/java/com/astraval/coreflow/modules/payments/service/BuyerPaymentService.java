@@ -52,7 +52,7 @@ public class BuyerPaymentService {
 
     @Transactional
     public Long createBuyerPayment(Long companyId, CreateBuyerPaymentDto request) {
-        Companies buyerCompany = companyRepository.findById(companyId)
+        Companies senderComp = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Vendors vendor = vendorRepository.findById(request.getVendorId())
@@ -60,11 +60,11 @@ public class BuyerPaymentService {
         // -------------------------------------
 
         Payments payment = new Payments();
-        payment.setBuyerCompany(buyerCompany);
+        payment.setSenderComp(senderComp);
         payment.setVendors(vendor);
 
         if (vendor.getVendorCompany() != null) {
-            payment.setSellerCompany(vendor.getVendorCompany());
+            payment.setReceiverComp(vendor.getVendorCompany());
             // Find customer relationship if vendor has a company
             // This would need customer service method to find customer by vendor company
             Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
@@ -180,7 +180,7 @@ public class BuyerPaymentService {
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
         
         // Verify payment belongs to company
-        if (!payment.getBuyerCompany().getCompanyId().equals(companyId)) {
+        if (!payment.getSenderComp().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Payment does not belong to the requesting company");
         }
         
@@ -251,7 +251,7 @@ public class BuyerPaymentService {
         Payments payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
         
-        if (!payment.getBuyerCompany().getCompanyId().equals(companyId)) {
+        if (!payment.getSenderComp().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Payment does not belong to the requesting company");
         }
         

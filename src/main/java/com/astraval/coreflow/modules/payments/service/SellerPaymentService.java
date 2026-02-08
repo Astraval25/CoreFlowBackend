@@ -62,21 +62,21 @@ public class SellerPaymentService {
 
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
-        Companies sellerCompany = companyRepository.findById(companyId)
+        Companies receiverComp = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Customers customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
         Payments payment = new Payments();
-        payment.setSellerCompany(sellerCompany);
+        payment.setReceiverComp(receiverComp);
         payment.setCustomers(customer);
         
         if (customer.getCustomerCompany() != null) {
-            payment.setBuyerCompany(customer.getCustomerCompany());
+            payment.setSenderComp(customer.getCustomerCompany());
             // Find vendor relationship if customer has a company
             Long customersVendorCompanyId = customer.getCustomerCompany().getCompanyId();
-            Vendors buyerVendor = vendorService.getBuyersVendorId(companyId, customersVendorCompanyId);
+            Vendors buyerVendor = vendorService.getBuyersVendorId(customersVendorCompanyId, customer.getCustomerId());
             payment.setVendors(buyerVendor);
         }
 
@@ -184,7 +184,7 @@ public class SellerPaymentService {
         Payments payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
         
-        if (payment.getSellerCompany() == null || !payment.getSellerCompany().getCompanyId().equals(companyId)) {
+        if (payment.getReceiverComp() == null || !payment.getReceiverComp().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Payment does not belong to the requesting company");
         }
         
@@ -259,7 +259,7 @@ public class SellerPaymentService {
         Payments payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
         
-        if (payment.getSellerCompany() == null || !payment.getSellerCompany().getCompanyId().equals(companyId)) {
+        if (payment.getReceiverComp() == null || !payment.getReceiverComp().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Payment does not belong to the requesting company");
         }
         

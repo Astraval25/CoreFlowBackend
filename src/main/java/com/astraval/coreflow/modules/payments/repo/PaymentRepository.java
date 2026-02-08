@@ -29,7 +29,7 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
             FROM payments p
             LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
             LEFT JOIN vendors v ON v.vendor_id = p.vendor
-            WHERE p.buyer_company = :companyId
+            WHERE p.sender_comp = :companyId
             GROUP BY 
               p.payment_id, p.payment_date, p.payment_number, p.amount,
               v.vendor_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number
@@ -52,7 +52,7 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
             FROM payments p
             LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
             LEFT JOIN customers c ON c.customer_id = p.customer
-            WHERE p.seller_company = :companyId
+            WHERE p.receiver_comp = :companyId
             GROUP BY 
               p.payment_id, p.payment_date, p.payment_number, p.amount,
               c.customer_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number
@@ -62,8 +62,8 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
 
     @Query("""
             SELECT p FROM Payments p
-            LEFT JOIN FETCH p.buyerCompany
-            LEFT JOIN FETCH p.sellerCompany
+            LEFT JOIN FETCH p.senderComp
+            LEFT JOIN FETCH p.receiverComp
             LEFT JOIN FETCH p.vendors
             LEFT JOIN FETCH p.customers
             WHERE p.paymentId = :paymentId
