@@ -159,6 +159,7 @@ public class CustomerItemService {
         dto.setLastModifiedBy(item.getLastModifiedBy());
         dto.setLastModifiedDt(item.getLastModifiedDt());
         dto.setItemImage(item.getFsId());
+        dto.setFsId(item.getFsId());
         return dto;
     }
 
@@ -198,7 +199,8 @@ public class CustomerItemService {
                 item.getHsnCode(),
                 item.getTaxRate(),
                 item.getIsActive(),
-                source);
+                source,
+                item.getFsId());
     }
 
     private BigDecimal resolveSalesPrice(Items item, ItemCustomerPrice price) {

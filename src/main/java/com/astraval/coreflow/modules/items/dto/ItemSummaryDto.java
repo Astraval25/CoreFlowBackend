@@ -14,5 +14,6 @@ public record ItemSummaryDto(
     BigDecimal basePurchasePrice,
     Boolean isActive,
     Boolean isSellable,
-    Boolean isPurchasable) {
+    Boolean isPurchasable,
+    String fsId) {
 }

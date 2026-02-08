@@ -179,6 +179,7 @@ public class ItemService {
         dto.setLastModifiedBy(item.getLastModifiedBy());
         dto.setLastModifiedDt(item.getLastModifiedDt());
         dto.setItemImage(item.getFsId());
+        dto.setFsId(item.getFsId());
         
         return dto;
     }
@@ -221,7 +222,8 @@ public class ItemService {
                             item.getSalesDescription(),
                             item.getBaseSalesPrice(),
                             item.getTaxRate(),
-                            item.getHsnCode()))
+                            item.getHsnCode(),
+                            item.getFsId()))
                     .toList();
         }
 
@@ -239,7 +241,8 @@ public class ItemService {
                             item.getSalesDescription(),
                             item.getBaseSalesPrice(),
                             item.getTaxRate(),
-                            item.getHsnCode()))
+                            item.getHsnCode(),
+                            item.getFsId()))
                     .toList();
         }
 
@@ -260,7 +263,8 @@ public class ItemService {
                             resolveSalesDescription(item, price),
                             resolveSalesPrice(item, price),
                             item.getTaxRate(),
-                            item.getHsnCode());
+                            item.getHsnCode(),
+                            item.getFsId());
                 })
                 .filter(dto -> dto.getPrice() != null)
                 .toList();
@@ -294,7 +298,8 @@ public class ItemService {
                                 resolvePurchasePrice(item, price),
                                 item.getTaxRate(),
                                 item.getHsnCode(),
-                                source);
+                                source,
+                                item.getFsId());
                     })
                     .filter(dto -> dto.getPrice() != null)
                     .toList();
@@ -330,7 +335,8 @@ public class ItemService {
                                 resolveSalesPrice(item, price),
                                 item.getTaxRate(),
                                 item.getHsnCode(),
-                                source);
+                                source,
+                                item.getFsId());
                     })
                     .filter(dto -> dto.getPrice() != null)
                     .toList();
@@ -348,7 +354,8 @@ public class ItemService {
                 item.getBasePurchasePrice(),
                 item.getIsActive(),
                 item.getIsSellable(),
-                item.getIsPurchasable());
+                item.getIsPurchasable(),
+                item.getFsId());
     }
 
     private void applySellablePurchasableFlags(Items item) {

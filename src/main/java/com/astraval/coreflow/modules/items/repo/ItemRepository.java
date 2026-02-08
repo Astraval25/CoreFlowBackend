@@ -19,7 +19,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
            "i.baseSalesPrice, i.basePurchasePrice, " +
-           "i.isActive, i.isSellable, i.isPurchasable) " +
+           "i.isActive, i.isSellable, i.isPurchasable, i.fsId) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "ORDER BY i.itemName")
@@ -28,7 +28,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
            "i.baseSalesPrice, i.basePurchasePrice, " +
-           "i.isActive, i.isSellable, i.isPurchasable) " +
+           "i.isActive, i.isSellable, i.isPurchasable, i.fsId) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
@@ -43,7 +43,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.SellableItemDto(" +
            "i.itemId, i.itemName, i.salesDescription, i.baseSalesPrice, " +
-           "i.taxRate, i.hsnCode) " +
+           "i.taxRate, i.hsnCode, i.fsId) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
@@ -53,7 +53,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.PurchasableItemDto(" +
            "i.itemId, i.itemName, i.purchaseDescription, i.basePurchasePrice, " +
-           "i.taxRate, i.hsnCode, 'ITEM_BASE') " +
+           "i.taxRate, i.hsnCode, 'ITEM_BASE', i.fsId) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +

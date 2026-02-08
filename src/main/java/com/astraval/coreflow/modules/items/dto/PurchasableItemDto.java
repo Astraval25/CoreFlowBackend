@@ -16,4 +16,5 @@ public class PurchasableItemDto {
     private BigDecimal taxRate;
     private String hsnCode;
     private String source;
+    private String fsId;
 }
