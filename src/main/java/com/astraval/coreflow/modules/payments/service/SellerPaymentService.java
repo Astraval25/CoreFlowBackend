@@ -22,6 +22,7 @@ import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentDto;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocationDto;
 import com.astraval.coreflow.modules.payments.dto.CreateSellerPaymentDto;
+import com.astraval.coreflow.modules.payments.dto.PaymentProofUploadResponse;
 import com.astraval.coreflow.modules.payments.dto.SellerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.dto.UpdatePaymentOrderAllocationDto;
 import com.astraval.coreflow.modules.payments.dto.UpdateSellerPaymentDto;
@@ -59,6 +60,9 @@ public class SellerPaymentService {
 
     @Autowired
     private FileStorageRepository fileStorageRepository;
+
+    @Autowired
+    private PaymentProofTextExtractor paymentProofTextExtractor;
 
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
@@ -100,12 +104,11 @@ public class SellerPaymentService {
         payment.setModeOfPayment(paymentDetails.getModeOfPayment());
         payment.setReferenceNumber(paymentDetails.getReferenceNumber());
         payment.setPaymentRemarks(paymentDetails.getPaymentRemarks());
-
-        // if (paymentDetails.getPaymentProofFileId() != null) {
-        //     FileStorage file = fileStorageRepository.findById(paymentDetails.getPaymentProofFileId())
-        //             .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
-        //     payment.setPaymentProofFile(file);
-        // }
+        if (paymentDetails.getPaymentProofFsId() != null && !paymentDetails.getPaymentProofFsId().isBlank()) {
+            FileStorage file = fileStorageRepository.findByFsId(paymentDetails.getPaymentProofFsId())
+                    .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
+            payment.setPaymentProofFile(file);
+        }
     }
     
     @Transactional
@@ -193,6 +196,12 @@ public class SellerPaymentService {
         payment.setModeOfPayment(request.getModeOfPayment());
         payment.setReferenceNumber(request.getReferenceNumber());
         payment.setPaymentRemarks(request.getPaymentRemarks());
+
+        if (request.getPaymentProofFsId() != null && !request.getPaymentProofFsId().isBlank()) {
+            FileStorage file = fileStorageRepository.findByFsId(request.getPaymentProofFsId())
+                    .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
+            payment.setPaymentProofFile(file);
+        }
         
         paymentRepository.save(payment);
         
@@ -251,7 +260,7 @@ public class SellerPaymentService {
     }
 
     @Transactional
-    public String uploadPaymentProof(Long companyId, Long paymentId, MultipartFile file) {
+    public PaymentProofUploadResponse uploadPaymentProof(Long companyId, Long paymentId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("Payment proof file is required");
         }
@@ -269,8 +278,14 @@ public class SellerPaymentService {
             
             payment.setPaymentProofFile(savedFile);
             paymentRepository.save(payment);
-            
-            return savedFile.getFsId();
+
+            String extractedText = paymentProofTextExtractor.extractText(
+                    savedFile.getFilePath(),
+                    savedFile.getMimeType());
+            String transactionId = paymentProofTextExtractor.extractTransactionId(extractedText);
+            Double amount = paymentProofTextExtractor.extractAmount(extractedText);
+
+            return new PaymentProofUploadResponse(savedFile.getFsId(), transactionId, amount, extractedText);
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload payment proof: " + e.getMessage(), e);
         }

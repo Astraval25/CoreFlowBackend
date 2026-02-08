@@ -12,6 +12,9 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.Customers;
+import com.astraval.coreflow.modules.filestorage.FileStorage;
+import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
+import com.astraval.coreflow.modules.filestorage.FileStorageService;
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
@@ -19,6 +22,7 @@ import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.CreateBuyerPaymentDto;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentDto;
 import com.astraval.coreflow.modules.payments.dto.CreatePaymentOrderAllocationDto;
+import com.astraval.coreflow.modules.payments.dto.PaymentProofUploadResponse;
 import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.dto.UpdateBuyerPaymentDto;
 import com.astraval.coreflow.modules.payments.dto.UpdatePaymentOrderAllocationDto;
@@ -28,6 +32,7 @@ import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationReposit
 import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class BuyerPaymentService {
@@ -43,6 +48,15 @@ public class BuyerPaymentService {
 
     @Autowired
     private VendorRepository vendorRepository;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private FileStorageRepository fileStorageRepository;
+
+    @Autowired
+    private PaymentProofTextExtractor paymentProofTextExtractor;
 
     @Autowired
     private OrderDetailsRepository orderDetailsRepository;
@@ -93,12 +107,11 @@ public class BuyerPaymentService {
         payment.setReferenceNumber(paymentDetails.getReferenceNumber());
         payment.setPaymentRemarks(paymentDetails.getPaymentRemarks());
 
-        // if (paymentDetails.getPaymentProofFileId() != null) {
-        // FileStorage file =
-        // fileStorageRepository.findById(paymentDetails.getPaymentProofFileId())
-        // .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
-        // payment.setPaymentProofFile(file);
-        // }
+        if (paymentDetails.getPaymentProofFsId() != null && !paymentDetails.getPaymentProofFsId().isBlank()) {
+            FileStorage file = fileStorageRepository.findByFsId(paymentDetails.getPaymentProofFsId())
+                    .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
+            payment.setPaymentProofFile(file);
+        }
     }
 
     @Transactional
@@ -190,6 +203,12 @@ public class BuyerPaymentService {
         payment.setModeOfPayment(request.getModeOfPayment());
         payment.setReferenceNumber(request.getReferenceNumber());
         payment.setPaymentRemarks(request.getPaymentRemarks());
+
+        if (request.getPaymentProofFsId() != null && !request.getPaymentProofFsId().isBlank()) {
+            FileStorage file = fileStorageRepository.findByFsId(request.getPaymentProofFsId())
+                    .orElseThrow(() -> new RuntimeException("Payment proof file not found"));
+            payment.setPaymentProofFile(file);
+        }
         
         paymentRepository.save(payment);
         
@@ -279,5 +298,37 @@ public class BuyerPaymentService {
         }
         
         orderDetailsRepository.save(order);
+    }
+
+    @Transactional
+    public PaymentProofUploadResponse uploadPaymentProof(Long companyId, Long paymentId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Payment proof file is required");
+        }
+
+        Payments payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
+
+        if (payment.getSenderComp() == null || !payment.getSenderComp().getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Payment does not belong to the requesting company");
+        }
+
+        try {
+            FileStorage fileStorage = fileStorageService.saveFile(file, "PAYMENT_PROOF", paymentId.toString());
+            FileStorage savedFile = fileStorageRepository.save(fileStorage);
+
+            payment.setPaymentProofFile(savedFile);
+            paymentRepository.save(payment);
+
+            String extractedText = paymentProofTextExtractor.extractText(
+                    savedFile.getFilePath(),
+                    savedFile.getMimeType());
+            String transactionId = paymentProofTextExtractor.extractTransactionId(extractedText);
+            Double amount = paymentProofTextExtractor.extractAmount(extractedText);
+
+            return new PaymentProofUploadResponse(savedFile.getFsId(), transactionId, amount, extractedText);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to upload payment proof: " + e.getMessage(), e);
+        }
     }
 }

@@ -25,7 +25,7 @@ public class UpdateBuyerPaymentDto {
     
     private String paymentRemarks;
     
-    private Long paymentProofFileId;
+    private String paymentProofFsId;
     
     @Valid
     private List<UpdatePaymentOrderAllocationDto> orderAllocations;

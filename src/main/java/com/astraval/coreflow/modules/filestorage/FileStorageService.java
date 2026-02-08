@@ -22,6 +22,9 @@ public class FileStorageService {
     @Value("${app.file.upload.item-images}")
     private String itemImagePath;
 
+    @Value("${app.file.upload.payment-proofs:uploads/payment_proof}")
+    private String paymentProofPath;
+
     private final FileStorageRepository repo;
 
     public FileStorageService(FileStorageRepository repo) {
@@ -30,7 +33,7 @@ public class FileStorageService {
 
     public FileStorage saveFile(MultipartFile file, String ownerType, String ownerId) throws IOException {
         // Create directory if not exists
-        Path uploadPath = Paths.get(itemImagePath);
+        Path uploadPath = resolveUploadPath(ownerType);
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
@@ -54,7 +57,7 @@ public class FileStorageService {
         fileStorage.setOriginalName(originalName);
         fileStorage.setStoredName(storedName);
         fileStorage.setFilePath(filePath.toString());
-        fileStorage.setFileUrl(itemImagePath + storedName);
+        fileStorage.setFileUrl(uploadPath.toString() + "/" + storedName);
         String mime = file.getContentType();
         if (mime == null || !mime.contains("/")) {
             mime = "application/octet-stream";
@@ -67,6 +70,13 @@ public class FileStorageService {
         fileStorage.setStatus("ACTIVE");
 
         return fileStorage;
+    }
+
+    private Path resolveUploadPath(String ownerType) {
+        if (ownerType != null && ownerType.equalsIgnoreCase("PAYMENT_PROOF")) {
+            return Paths.get(paymentProofPath);
+        }
+        return Paths.get(itemImagePath);
     }
 
     private String calculateChecksum(byte[] data) {
