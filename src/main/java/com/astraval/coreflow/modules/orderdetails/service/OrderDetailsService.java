@@ -153,4 +153,9 @@ public class OrderDetailsService {
         String orderStatus = OrderStatus.getOrderInvoiced();
         return orderDetailsRepository.findUnpaidOrdersByBuyerCompanyIdAndVendorId(buyerCompanyId, vendorId, orderStatus);
     }
+
+    public List<UnpaidOrderDto> getUnpaidOrdersBySellerCompanyIdAndCustomerId(Long sellerCompanyId, Long customerId) {
+        String orderStatus = OrderStatus.getOrderInvoiced();
+        return orderDetailsRepository.findUnpaidOrdersBySellerCompanyIdAndCustomerId(sellerCompanyId, customerId, orderStatus);
+    }
 }

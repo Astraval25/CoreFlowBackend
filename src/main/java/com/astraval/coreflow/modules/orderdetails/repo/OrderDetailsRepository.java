@@ -50,4 +50,19 @@ public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long
             @Param("buyerCompanyId") Long buyerCompanyId,
             @Param("vendorId") Long vendorId,
             @Param("orderStatus") String orderStatus);
+
+    @Query("SELECT new com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto(" +
+           "o.orderId, o.orderNumber, o.orderDate, o.orderStatus, " +
+           "COALESCE(o.buyerCompany.companyName, ''), COALESCE(o.customers.displayName, ''), " +
+           "COALESCE(o.sellerCompany.companyId, 0L), o.hasBill, o.orderAmount, o.totalAmount, o.paidAmount, o.isActive) " +
+           "FROM OrderDetails o " +
+           "LEFT JOIN o.buyerCompany " +
+           "LEFT JOIN o.customers " +
+           "WHERE o.sellerCompany.companyId = :sellerCompanyId " +
+           "AND o.customers.customerId = :customerId " +
+           "AND o.orderStatus = :orderStatus")
+    List<UnpaidOrderDto> findUnpaidOrdersBySellerCompanyIdAndCustomerId(
+            @Param("sellerCompanyId") Long sellerCompanyId,
+            @Param("customerId") Long customerId,
+            @Param("orderStatus") String orderStatus);
 }
