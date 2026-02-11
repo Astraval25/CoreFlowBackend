@@ -10,6 +10,8 @@ public record ItemSummaryDto(
     String itemName,
     ItemType itemType,
     UnitType unit,
+    String salesDescription,
+    String purchaseDescription,
     BigDecimal baseSalesPrice,
     BigDecimal basePurchasePrice,
     Boolean isActive,

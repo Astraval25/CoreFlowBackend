@@ -18,6 +18,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
+           "i.salesDescription, i.purchaseDescription, " +
            "i.baseSalesPrice, i.basePurchasePrice, " +
            "i.isActive, i.isSellable, i.isPurchasable, i.fsId) " +
            "FROM Items i " +
@@ -27,6 +28,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.ItemSummaryDto(" +
            "i.itemId, i.itemName, i.itemType, i.unit, " +
+           "i.salesDescription, i.purchaseDescription, " +
            "i.baseSalesPrice, i.basePurchasePrice, " +
            "i.isActive, i.isSellable, i.isPurchasable, i.fsId) " +
            "FROM Items i " +

@@ -129,7 +129,7 @@ public class VendorItemService {
     public List<VendorItemSummaryDto> getMappedItemsByVendor(Long companyId, Long vendorId) {
         validateVendor(companyId, vendorId);
         List<ItemVendorPrice> prices = itemVendorPriceRepository
-                .findByVendorVendorIdAndIsActiveTrue(vendorId);
+                .findByVendorVendorId(vendorId);
         return prices.stream()
                 .map(price -> toSummaryDto(price.getItem(), price))
                 .toList();
@@ -186,9 +186,12 @@ public class VendorItemService {
     }
 
     private VendorItemSummaryDto toSummaryDto(Items item, ItemVendorPrice price) {
-        String source = (price != null && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null))
-                ? "CUSTOMER_ITEM"
-                : "ITEM_BASE";
+        boolean isVendorItemSource = price != null
+                && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null);
+        String source = isVendorItemSource ? "CUSTOMER_ITEM" : "ITEM_BASE";
+        boolean itemActive = Boolean.TRUE.equals(item.getIsActive());
+        boolean mappingActive = !isVendorItemSource || Boolean.TRUE.equals(price.getIsActive());
+        Boolean isActive = itemActive && mappingActive;
         return new VendorItemSummaryDto(
                 item.getItemId(),
                 item.getItemName(),
@@ -198,7 +201,7 @@ public class VendorItemService {
                 resolvePurchaseDescription(item, price),
                 item.getHsnCode(),
                 item.getTaxRate(),
-                item.getIsActive(),
+                isActive,
                 source,
                 item.getFsId());
     }

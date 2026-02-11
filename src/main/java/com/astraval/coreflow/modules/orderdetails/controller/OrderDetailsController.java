@@ -110,6 +110,17 @@ public class OrderDetailsController {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
+
+    @GetMapping("/{companyId}/customer/{customerId}/unpaid-orders")
+    public ApiResponse<List<UnpaidOrderDto>> getUnpaidCompanyOrdersByCustomer(@PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            List<UnpaidOrderDto> unpaidOrders = orderDetailsService.getUnpaidOrdersBySellerCompanyIdAndCustomerId(companyId, customerId);
+            return ApiResponseFactory.accepted(unpaidOrders, "Unpaid orders retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
     
     // Quotation Status APIs
     @PutMapping("/{companyId}/orders/{orderId}/quotation")

@@ -350,6 +350,8 @@ public class ItemService {
                 item.getItemName(),
                 item.getItemType(),
                 item.getUnit(),
+                item.getSalesDescription(),
+                item.getPurchaseDescription(),
                 item.getBaseSalesPrice(),
                 item.getBasePurchasePrice(),
                 item.getIsActive(),
