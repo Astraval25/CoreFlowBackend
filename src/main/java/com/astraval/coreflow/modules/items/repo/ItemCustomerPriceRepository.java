@@ -19,6 +19,8 @@ public interface ItemCustomerPriceRepository extends JpaRepository<ItemCustomerP
             Long itemId, Long customerId);
 
     List<ItemCustomerPrice> findByCustomerCustomerIdAndIsActiveTrue(Long customerId);
+    
+    List<ItemCustomerPrice> findByCustomerCustomerId(Long customerId);
 
     long countByItemItemIdAndIsActiveTrue(Long itemId);
 }

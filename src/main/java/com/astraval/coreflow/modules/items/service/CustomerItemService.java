@@ -129,7 +129,7 @@ public class CustomerItemService {
     public List<CustomerItemSummaryDto> getMappedItemsByCustomer(Long companyId, Long customerId) {
         validateCustomer(companyId, customerId);
         List<ItemCustomerPrice> prices = itemCustomerPriceRepository
-                .findByCustomerCustomerIdAndIsActiveTrue(customerId);
+                .findByCustomerCustomerId(customerId);
         return prices.stream()
                 .map(price -> toSummaryDto(price.getItem(), price))
                 .toList();
@@ -186,9 +186,12 @@ public class CustomerItemService {
     }
 
     private CustomerItemSummaryDto toSummaryDto(Items item, ItemCustomerPrice price) {
-        String source = (price != null && (price.getSalesPrice() != null || price.getSalesDescription() != null))
-                ? "CUSTOMER_ITEM"
-                : "ITEM_BASE";
+        boolean isCustomerItemSource = price != null
+                && (price.getSalesPrice() != null || price.getSalesDescription() != null);
+        String source = isCustomerItemSource ? "CUSTOMER_ITEM" : "ITEM_BASE";
+        boolean itemActive = Boolean.TRUE.equals(item.getIsActive());
+        boolean mappingActive = !isCustomerItemSource || Boolean.TRUE.equals(price.getIsActive());
+        Boolean isActive = itemActive && mappingActive;
         return new CustomerItemSummaryDto(
                 item.getItemId(),
                 item.getItemName(),
@@ -198,7 +201,7 @@ public class CustomerItemService {
                 resolveSalesDescription(item, price),
                 item.getHsnCode(),
                 item.getTaxRate(),
-                item.getIsActive(),
+                isActive,
                 source,
                 item.getFsId());
     }
