@@ -173,6 +173,7 @@ public class VendorService {
     public Vendors getBuyersVendorId(Long companyId, Long vendorCompanyId) {
         return vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(companyId, vendorCompanyId)
                 .orElseThrow(() -> new RuntimeException(
-                        "Vendor " + vendorCompanyId + " not found for company ID: " + companyId));
+                        "Vendor link not found. Expected vendors row with comp_id=" + companyId +
+                                " and vendor_comp_id=" + vendorCompanyId));
     }
 }

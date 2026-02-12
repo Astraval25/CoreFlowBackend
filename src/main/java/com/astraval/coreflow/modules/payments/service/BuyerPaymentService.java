@@ -10,7 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
-import com.astraval.coreflow.modules.customer.CustomerService;
+import com.astraval.coreflow.modules.customer.CustomerVendorLink;
+import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
 import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
@@ -62,7 +63,7 @@ public class BuyerPaymentService {
     private OrderDetailsRepository orderDetailsRepository;
 
     @Autowired
-    private CustomerService customerService;
+    private CustomerVendorLinkRepository customerVendorLinkRepository;
 
     @Transactional
     public Long createBuyerPayment(Long companyId, CreateBuyerPaymentDto request) {
@@ -79,11 +80,35 @@ public class BuyerPaymentService {
 
         if (vendor.getVendorCompany() != null) {
             payment.setReceiverComp(vendor.getVendorCompany());
-            // Find customer relationship if vendor has a company
-            // This would need customer service method to find customer by vendor company
-            Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
-            Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
-            payment.setCustomers(sellerCustomer);
+            Long expectedCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
+
+            CustomerVendorLink customerVendorLink = customerVendorLinkRepository
+                    .findByVendorVendorIdAndCustomerCompanyId(vendor.getVendorId(), expectedCustomerCompanyId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Customer-vendor link not found for payments-made. " +
+                                    "vendorId=" + vendor.getVendorId() +
+                                    ", senderCompanyId=" + companyId +
+                                    ", expectedCustomerCompanyId=" + expectedCustomerCompanyId));
+
+            Customers linkedCustomer = customerVendorLink.getCustomer();
+            if (linkedCustomer == null || linkedCustomer.getCompany() == null) {
+                throw new RuntimeException(
+                        "Customer-vendor link is invalid for payments-made. " +
+                                "vendorId=" + vendor.getVendorId() +
+                                ", senderCompanyId=" + companyId);
+            }
+
+            Long linkedCustomerCompanyId = linkedCustomer.getCompany().getCompanyId();
+            if (!expectedCustomerCompanyId.equals(linkedCustomerCompanyId)) {
+                throw new RuntimeException(
+                        "Customer-vendor link mismatch for payments-made. " +
+                                "vendorId=" + vendor.getVendorId() +
+                                ", expectedCustomerCompanyId=" + expectedCustomerCompanyId +
+                                ", linkedCustomerCompanyId=" + linkedCustomerCompanyId +
+                                ", senderCompanyId=" + companyId);
+            }
+
+            payment.setCustomers(linkedCustomer);
         }
 
         // Create Payment Details

@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.customer.CustomerVendorLink;
+import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
 import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
@@ -31,7 +33,6 @@ import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
-import com.astraval.coreflow.modules.vendor.VendorService;
 import com.astraval.coreflow.modules.vendor.Vendors;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,10 +55,10 @@ public class SellerPaymentService {
     private CustomerService customerService;
 
     @Autowired
-    private OrderDetailsRepository orderDetailsRepository;
+    private CustomerVendorLinkRepository customerVendorLinkRepository;
 
     @Autowired
-    private VendorService vendorService;
+    private OrderDetailsRepository orderDetailsRepository;
 
     @Autowired
     private FileStorageService fileStorageService;
@@ -81,20 +82,35 @@ public class SellerPaymentService {
         
         if (customer.getCustomerCompany() != null) {
             payment.setSenderComp(customer.getCustomerCompany());
-            // Find vendor relationship if customer has a company
-            Long customersVendorCompanyId = customer.getCustomerCompany().getCompanyId();
-            try {
-                Vendors buyerVendor = vendorService.getBuyersVendorId(companyId, customersVendorCompanyId);
-                payment.setVendors(buyerVendor);
-            } catch (RuntimeException ex) {
+            Long expectedVendorCompanyId = customer.getCustomerCompany().getCompanyId();
+
+            CustomerVendorLink customerVendorLink = customerVendorLinkRepository
+                    .findByCustomerCustomerId(customer.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Customer-vendor link not found for payments-received. " +
+                                    "customerId=" + customer.getCustomerId() +
+                                    ", receiverCompanyId=" + companyId +
+                                    ", expectedVendorCompanyId=" + expectedVendorCompanyId));
+
+            Vendors linkedVendor = customerVendorLink.getVendor();
+            if (linkedVendor == null || linkedVendor.getCompany() == null) {
                 throw new RuntimeException(
-                        "Vendor link not found for payments-received. " +
+                        "Customer-vendor link is invalid for payments-received. " +
                                 "customerId=" + customer.getCustomerId() +
-                                ", customerCompanyId=" + customersVendorCompanyId +
-                                ", receiverCompanyId=" + companyId +
-                                ". Please create/link a vendor in receiver company for this customer company.",
-                        ex);
+                                ", receiverCompanyId=" + companyId);
             }
+
+            Long linkedVendorCompanyId = linkedVendor.getCompany().getCompanyId();
+            if (!expectedVendorCompanyId.equals(linkedVendorCompanyId)) {
+                throw new RuntimeException(
+                        "Customer-vendor link mismatch for payments-received. " +
+                                "customerId=" + customer.getCustomerId() +
+                                ", expectedVendorCompanyId=" + expectedVendorCompanyId +
+                                ", linkedVendorCompanyId=" + linkedVendorCompanyId +
+                                ", receiverCompanyId=" + companyId);
+            }
+
+            payment.setVendors(linkedVendor);
         }
 
         // Create Payment Details
