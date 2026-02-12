@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
-import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
@@ -51,9 +50,6 @@ public class SellerPaymentService {
     private CustomerRepository customerRepository;
 
     @Autowired
-    private CustomerService customerService;
-
-    @Autowired
     private OrderDetailsRepository orderDetailsRepository;
 
     @Autowired
@@ -84,10 +80,8 @@ public class SellerPaymentService {
             payment.setSenderComp(customer.getCustomerCompany());
             // Find vendor relationship if customer has a company
             Long customersVendorCompanyId = customer.getCustomerCompany().getCompanyId();
-            Vendors buyerVendor = vendorService.getBuyersVendorId(customersVendorCompanyId, companyId);
+            Vendors buyerVendor = vendorService.getBuyersVendorId(customersVendorCompanyId, customer.getCustomerId());
             payment.setVendors(buyerVendor);
-            Customers buyerCustomer = customerService.getBuyersCustomerId(customersVendorCompanyId, companyId);
-            payment.setCustomers(buyerCustomer);
         }
 
         // Create Payment Details
