@@ -41,3 +41,6 @@ app:
     upload:
       item-images: uploads/item_img
       payment-proofs: uploads/payment_proof
+  subscription:
+    razorpay:
+      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}

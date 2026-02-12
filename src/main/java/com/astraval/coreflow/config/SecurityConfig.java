@@ -34,7 +34,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/test/**", "/error").permitAll()
+                .requestMatchers("/api/auth/**", "/api/test/**", "/error", "/api/subscription/webhook/razorpay").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADM")
                 .anyRequest().authenticated()
             )

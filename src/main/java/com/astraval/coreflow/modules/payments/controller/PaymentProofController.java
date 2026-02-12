@@ -12,6 +12,7 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.payments.dto.PaymentProofUploadResponse;
 import com.astraval.coreflow.modules.payments.service.PaymentProofService;
+import com.astraval.coreflow.modules.subscription.security.RequiresFeature;
 
 @RestController
 @RequestMapping("/api/companies")
@@ -21,6 +22,7 @@ public class PaymentProofController {
     private PaymentProofService paymentProofService;
 
     @PostMapping(value = "/{companyId}/payments/payment-proof", consumes = {"multipart/form-data"})
+    @RequiresFeature("OCR_PAYMENT_PROOF")
     public ApiResponse<PaymentProofUploadResponse> uploadPaymentProof(
             @PathVariable Long companyId,
             @RequestParam("file") MultipartFile file) {
