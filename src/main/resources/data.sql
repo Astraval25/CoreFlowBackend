@@ -129,3 +129,71 @@ LEFT JOIN (
     FROM items
     GROUP BY comp_id
 ) i ON i.comp_id = ucm.company_id;
+
+-- Subscription master data
+INSERT INTO subscription_plans (plan_code, name, billing_period, price, is_active, created_dt, modified_dt)
+SELECT 'FREE', 'Free Plan', 'MONTHLY', 0.00, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM subscription_plans WHERE plan_code = 'FREE');
+
+INSERT INTO subscription_plans (plan_code, name, billing_period, price, is_active, created_dt, modified_dt)
+SELECT 'STARTER', 'Starter Plan', 'MONTHLY', 999.00, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM subscription_plans WHERE plan_code = 'STARTER');
+
+INSERT INTO subscription_plans (plan_code, name, billing_period, price, is_active, created_dt, modified_dt)
+SELECT 'PRO', 'Pro Plan', 'MONTHLY', 2499.00, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM subscription_plans WHERE plan_code = 'PRO');
+
+INSERT INTO subscription_plans (plan_code, name, billing_period, price, is_active, created_dt, modified_dt)
+SELECT 'ENTERPRISE', 'Enterprise Plan', 'YEARLY', 24999.00, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM subscription_plans WHERE plan_code = 'ENTERPRISE');
+
+INSERT INTO features (feature_code, name, description, is_active, created_dt, modified_dt)
+SELECT 'OCR_PAYMENT_PROOF', 'OCR Payment Proof', 'Upload and OCR parse payment proof documents', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM features WHERE feature_code = 'OCR_PAYMENT_PROOF');
+
+INSERT INTO features (feature_code, name, description, is_active, created_dt, modified_dt)
+SELECT 'ORDER_EXPORT', 'Order Export', 'Export order data for reporting and analysis', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM features WHERE feature_code = 'ORDER_EXPORT');
+
+INSERT INTO features (feature_code, name, description, is_active, created_dt, modified_dt)
+SELECT 'ADV_REPORTS', 'Advanced Reports', 'Access advanced analytics and report dashboards', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM features WHERE feature_code = 'ADV_REPORTS');
+
+-- STARTER -> OCR_PAYMENT_PROOF
+INSERT INTO plan_features (plan_id, feature_id, limit_value, created_dt)
+SELECT sp.plan_id, f.feature_id, NULL, NOW()
+FROM subscription_plans sp
+JOIN features f ON f.feature_code = 'OCR_PAYMENT_PROOF'
+WHERE sp.plan_code = 'STARTER'
+AND NOT EXISTS (
+    SELECT 1
+    FROM plan_features pf
+    WHERE pf.plan_id = sp.plan_id
+      AND pf.feature_id = f.feature_id
+);
+
+-- PRO -> OCR_PAYMENT_PROOF, ORDER_EXPORT, ADV_REPORTS
+INSERT INTO plan_features (plan_id, feature_id, limit_value, created_dt)
+SELECT sp.plan_id, f.feature_id, NULL, NOW()
+FROM subscription_plans sp
+JOIN features f ON f.feature_code IN ('OCR_PAYMENT_PROOF', 'ORDER_EXPORT', 'ADV_REPORTS')
+WHERE sp.plan_code = 'PRO'
+AND NOT EXISTS (
+    SELECT 1
+    FROM plan_features pf
+    WHERE pf.plan_id = sp.plan_id
+      AND pf.feature_id = f.feature_id
+);
+
+-- ENTERPRISE -> OCR_PAYMENT_PROOF, ORDER_EXPORT, ADV_REPORTS
+INSERT INTO plan_features (plan_id, feature_id, limit_value, created_dt)
+SELECT sp.plan_id, f.feature_id, NULL, NOW()
+FROM subscription_plans sp
+JOIN features f ON f.feature_code IN ('OCR_PAYMENT_PROOF', 'ORDER_EXPORT', 'ADV_REPORTS')
+WHERE sp.plan_code = 'ENTERPRISE'
+AND NOT EXISTS (
+    SELECT 1
+    FROM plan_features pf
+    WHERE pf.plan_id = sp.plan_id
+      AND pf.feature_id = f.feature_id
+);

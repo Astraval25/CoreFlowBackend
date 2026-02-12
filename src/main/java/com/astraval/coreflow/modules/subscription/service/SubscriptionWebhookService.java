@@ -25,17 +25,15 @@ public class SubscriptionWebhookService {
 
     private final CompanySubscriptionRepository companySubscriptionRepository;
     private final SubscriptionWebhookEventRepository subscriptionWebhookEventRepository;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.subscription.razorpay.webhook-secret:}")
     private String razorpayWebhookSecret;
 
     public SubscriptionWebhookService(CompanySubscriptionRepository companySubscriptionRepository,
-            SubscriptionWebhookEventRepository subscriptionWebhookEventRepository,
-            ObjectMapper objectMapper) {
+            SubscriptionWebhookEventRepository subscriptionWebhookEventRepository) {
         this.companySubscriptionRepository = companySubscriptionRepository;
         this.subscriptionWebhookEventRepository = subscriptionWebhookEventRepository;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional

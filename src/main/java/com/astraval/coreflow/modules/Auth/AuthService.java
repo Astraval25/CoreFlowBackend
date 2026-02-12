@@ -9,6 +9,11 @@ import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
 import com.astraval.coreflow.modules.Auth.dto.RegisterResponse;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.subscription.SubscriptionStatus;
+import com.astraval.coreflow.modules.subscription.model.CompanySubscription;
+import com.astraval.coreflow.modules.subscription.model.SubscriptionPlan;
+import com.astraval.coreflow.modules.subscription.repo.CompanySubscriptionRepository;
+import com.astraval.coreflow.modules.subscription.repo.SubscriptionPlanRepository;
 import com.astraval.coreflow.modules.user.User;
 import com.astraval.coreflow.modules.user.UserRepository;
 import com.astraval.coreflow.modules.user.UserService;
@@ -25,6 +30,7 @@ import org.slf4j.Logger;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,11 +47,14 @@ public class AuthService {
     private final CompanyRepository companyRepository;
     private final UserCompanyMapRepository userCompanyMapRepository;
     private final OtpService otpService;
+    private final SubscriptionPlanRepository subscriptionPlanRepository;
+    private final CompanySubscriptionRepository companySubscriptionRepository;
 
     public AuthService(UserRepository userRepository, UserService userService, JwtUtil jwtUtil,
             PasswordEncoder passwordEncoder, UserRoleMapRepository userRoleMapRepository,
             CompanyRepository companyRepository, UserCompanyMapRepository userCompanyMapRepository,
-            OtpService otpService) {
+            OtpService otpService, SubscriptionPlanRepository subscriptionPlanRepository,
+            CompanySubscriptionRepository companySubscriptionRepository) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
@@ -54,6 +63,8 @@ public class AuthService {
         this.companyRepository = companyRepository;
         this.userCompanyMapRepository = userCompanyMapRepository;
         this.otpService = otpService;
+        this.subscriptionPlanRepository = subscriptionPlanRepository;
+        this.companySubscriptionRepository = companySubscriptionRepository;
     }
 
 
@@ -159,6 +170,19 @@ public class AuthService {
         userCompanyMap.setUser(newUser);
         userCompanyMap.setCompany(newCompany);
         userCompanyMapRepository.save(userCompanyMap);
+
+        // 5. Assign default STARTER subscription for newly registered company
+        SubscriptionPlan starterPlan = subscriptionPlanRepository.findByPlanCodeAndIsActiveTrue("STARTER")
+                .orElseThrow(() -> new RuntimeException("STARTER subscription plan not configured"));
+
+        CompanySubscription companySubscription = new CompanySubscription();
+        companySubscription.setCompany(newCompany);
+        companySubscription.setPlan(starterPlan);
+        companySubscription.setStatus(SubscriptionStatus.getActive());
+        companySubscription.setStartAt(LocalDateTime.now());
+        companySubscription.setAutoRenew(false);
+        companySubscription.setPaymentProvider("RAZORPAY");
+        companySubscriptionRepository.save(companySubscription);
         
         RegisterResponse response = new RegisterResponse();
         response.setEmail(newUser.getEmail());
