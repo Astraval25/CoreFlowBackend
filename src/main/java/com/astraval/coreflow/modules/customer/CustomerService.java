@@ -169,4 +169,11 @@ public class CustomerService {
                         "Customer " + customerCompanyId + " not found for company ID: " + companyId));
     }
 
+    // get customer by buyer company id and seller company id
+    public Customers getBuyersCustomerId(Long companyId, Long customerCompanyId) {
+        return customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(companyId, customerCompanyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer " + customerCompanyId + " not found for company ID: " + companyId));
+    }
+
 }
