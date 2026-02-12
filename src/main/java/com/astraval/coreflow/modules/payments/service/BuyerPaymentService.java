@@ -69,8 +69,8 @@ public class BuyerPaymentService {
         Companies senderComp = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        Vendors vendor = vendorRepository.findById(request.getVendorId())
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(request.getVendorId(), companyId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + request.getVendorId()));
         // -------------------------------------
 
         Payments payment = new Payments();
