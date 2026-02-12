@@ -19,8 +19,7 @@ git pull
 ## 3. Deploy JAR
 
 ```bash
-sudo cp /var/www/domains/coreflow.astraval.com/source/build/libs/coreflow-0.0.1-SNAPSHOT.jar /var/www/coreflow/coreflow.jar
-```
+sudo cp /var/www/domains/coreflow.astraval.com/backend/build/libs/coreflow-0.0.1-SNAPSHOT.jar /var/www/coreflow/coreflow.jar```
 ```bash
 # Restart the application after DB setup
 sudo systemctl restart coreflow
