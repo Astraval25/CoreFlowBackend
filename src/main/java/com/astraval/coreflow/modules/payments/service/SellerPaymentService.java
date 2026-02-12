@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
@@ -50,6 +51,9 @@ public class SellerPaymentService {
     private CustomerRepository customerRepository;
 
     @Autowired
+    private CustomerService customerService;
+
+    @Autowired
     private OrderDetailsRepository orderDetailsRepository;
 
     @Autowired
@@ -69,8 +73,7 @@ public class SellerPaymentService {
         Companies receiverComp = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        Customers customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customers customer = customerService.getCustomerById(companyId, request.getCustomerId());
 
         Payments payment = new Payments();
         payment.setReceiverComp(receiverComp);
@@ -80,8 +83,18 @@ public class SellerPaymentService {
             payment.setSenderComp(customer.getCustomerCompany());
             // Find vendor relationship if customer has a company
             Long customersVendorCompanyId = customer.getCustomerCompany().getCompanyId();
-            Vendors buyerVendor = vendorService.getBuyersVendorId(companyId, customersVendorCompanyId);
-            payment.setVendors(buyerVendor);
+            try {
+                Vendors buyerVendor = vendorService.getBuyersVendorId(companyId, customersVendorCompanyId);
+                payment.setVendors(buyerVendor);
+            } catch (RuntimeException ex) {
+                throw new RuntimeException(
+                        "Vendor link not found for payments-received. " +
+                                "customerId=" + customer.getCustomerId() +
+                                ", customerCompanyId=" + customersVendorCompanyId +
+                                ", receiverCompanyId=" + companyId +
+                                ". Please create/link a vendor in receiver company for this customer company.",
+                        ex);
+            }
         }
 
         // Create Payment Details
