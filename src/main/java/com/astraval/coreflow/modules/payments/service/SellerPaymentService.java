@@ -80,7 +80,7 @@ public class SellerPaymentService {
             payment.setSenderComp(customer.getCustomerCompany());
             // Find vendor relationship if customer has a company
             Long customersVendorCompanyId = customer.getCustomerCompany().getCompanyId();
-            Vendors buyerVendor = vendorService.getBuyersVendorId(customersVendorCompanyId, customer.getCustomerId());
+            Vendors buyerVendor = vendorService.getBuyersVendorId(companyId, customersVendorCompanyId);
             payment.setVendors(buyerVendor);
         }
 
