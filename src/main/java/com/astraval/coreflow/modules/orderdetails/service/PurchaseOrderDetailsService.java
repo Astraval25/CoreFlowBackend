@@ -24,6 +24,7 @@ import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.orderdetails.dto.UpdatePurchaseOrder;
+import com.astraval.coreflow.modules.notification.NotificationService;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
 @Service
@@ -51,6 +52,9 @@ public class PurchaseOrderDetailsService {
 
     @Autowired
     private CustomerService customerService;
+
+    @Autowired
+    private NotificationService notificationService;
     
 
     @Transactional
@@ -75,6 +79,15 @@ public class PurchaseOrderDetailsService {
             Long vendorsCustomerCompanyId = myVendor.getVendorCompany().getCompanyId();
             Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
             orderDetails.setCustomers(sellerCustomer);
+
+            notificationService.createCompanyNotification(
+                    buyerCompany.getCompanyId(),
+                    vendorsCustomerCompanyId,
+                    "New Purchase Order",
+                    "A new purchase order is created by " + buyerCompany.getCompanyName(),
+                    "PURCHASE_ORDER_CREATED",
+                    "View Orders",
+                    "/companies/" + vendorsCustomerCompanyId + "/purchase/orders");
         }
         
         
