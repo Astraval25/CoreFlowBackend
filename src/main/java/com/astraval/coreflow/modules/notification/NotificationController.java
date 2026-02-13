@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.notification.dto.CreateNotificationRequest;
 import com.astraval.coreflow.modules.notification.dto.NotificationOpenResponse;
+import com.astraval.coreflow.modules.notification.dto.NotificationPageDto;
 import com.astraval.coreflow.modules.notification.dto.NotificationViewDto;
 
 import jakarta.validation.Valid;
@@ -38,9 +40,10 @@ public class NotificationController {
     }
 
     @GetMapping("/companies/{companyId}/notifications")
-    public ApiResponse<List<NotificationViewDto>> getCompanyNotifications(@PathVariable Long companyId) {
+    public ApiResponse<NotificationPageDto> getCompanyNotifications(@PathVariable Long companyId,
+            @RequestParam(defaultValue = "0") int page) {
         try {
-            return ApiResponseFactory.accepted(notificationService.getCompanyNotifications(companyId),
+            return ApiResponseFactory.accepted(notificationService.getCompanyNotifications(companyId, page),
                     "Notifications retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);

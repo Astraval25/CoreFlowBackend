@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +14,7 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.notification.dto.CreateNotificationRequest;
 import com.astraval.coreflow.modules.notification.dto.NotificationOpenResponse;
+import com.astraval.coreflow.modules.notification.dto.NotificationPageDto;
 import com.astraval.coreflow.modules.notification.dto.NotificationViewDto;
 import com.astraval.coreflow.modules.user.User;
 import com.astraval.coreflow.modules.user.UserRepository;
@@ -70,11 +74,21 @@ public class NotificationService {
         return createNotification(request);
     }
 
-    public List<NotificationViewDto> getCompanyNotifications(Long companyId) {
-        return notificationRepository.findByToCompanyCompanyIdOrderByCreatedDtDesc(companyId)
-                .stream()
-                .map(this::toViewDto)
-                .toList();
+    public NotificationPageDto getCompanyNotifications(Long companyId, int page) {
+        int pageSize = 6;
+        int safePage = Math.max(page, 0);
+        PageRequest pageRequest = PageRequest.of(safePage, pageSize, Sort.by(Sort.Direction.DESC, "createdDt"));
+        Page<Notification> notificationPage = notificationRepository.findByToCompanyCompanyId(companyId, pageRequest);
+
+        NotificationPageDto response = new NotificationPageDto();
+        response.setNotifications(notificationPage.getContent().stream().map(this::toViewDto).toList());
+        response.setPage(notificationPage.getNumber());
+        response.setSize(notificationPage.getSize());
+        response.setTotalElements(notificationPage.getTotalElements());
+        response.setTotalPages(notificationPage.getTotalPages());
+        response.setHasNext(notificationPage.hasNext());
+        response.setHasPrevious(notificationPage.hasPrevious());
+        return response;
     }
 
     public Long getCompanyUnreadCount(Long companyId) {
