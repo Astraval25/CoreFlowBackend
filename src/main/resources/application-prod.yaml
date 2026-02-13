@@ -1,19 +1,19 @@
 server:
-  address: 0.0.0.0
-  port: 8085
+  address: ${PROD_SERVER_ADDRESS:0.0.0.0}
+  port: ${PROD_SERVER_PORT:8085}
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/CoreFlow_prod
-    username: postgres
-    password: root@IET25
-    driver-class-name: org.postgresql.Driver
+    url: ${PROD_DB_URL}
+    username: ${PROD_DB_USERNAME}
+    password: ${PROD_DB_PASSWORD}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
 
 
 upload:
-  path: /uploads
+  path: ${PROD_UPLOAD_PATH:/uploads}
 
 app:
   ocr:
     tesseract:
-      cli: ${TESSERACT_CLI:tesseract}
+      cli: ${PROD_TESSERACT_CLI:tesseract}

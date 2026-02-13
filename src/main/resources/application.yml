@@ -15,10 +15,10 @@ spring:
     defer-datasource-initialization: true
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: karthikeyan.aas@gmail.com
-    password: sbbh oaxk ngxl tfqy
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -41,3 +41,10 @@ app:
     upload:
       item-images: uploads/item_img
       payment-proofs: uploads/payment_proof
+
+firebase:
+  enabled: ${FIREBASE_ENABLED:false}
+  project-id: ${FIREBASE_PROJECT_ID:}
+  credentials:
+    file-path: ${FIREBASE_CREDENTIALS_FILE_PATH:}
+    json: ${FIREBASE_CREDENTIALS_JSON:}

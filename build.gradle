@@ -25,8 +25,12 @@ repositories {
 }
 
 bootRun {
-    systemProperty 'spring.profiles.active', 
-		project.findProperty('spring.profiles.active') ?: 'dev'
+	def activeProfile = project.findProperty('spring.profiles.active') ?:
+		System.getenv('SPRING_PROFILES_ACTIVE') ?:
+		'dev'
+
+	systemProperty 'spring.profiles.active', activeProfile
+	environment 'SPRING_PROFILES_ACTIVE', activeProfile
 }
 
 dependencies {
@@ -57,6 +61,9 @@ dependencies {
 	
 	// logging
 	implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+
+	// Firebase Cloud Messaging
+	implementation 'com.google.firebase:firebase-admin:9.2.0'
 
 	// document text extraction
 	implementation 'org.apache.tika:tika-core:2.9.1'

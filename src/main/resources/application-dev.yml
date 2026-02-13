@@ -1,18 +1,17 @@
 server:
-  port: 8080
+  port: ${DEV_SERVER_PORT:8080}
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/coreflow
-    username: postgres
-    password: 1234567890
-
-    driver-class-name: org.postgresql.Driver
+    url: ${DEV_DB_URL}
+    username: ${DEV_DB_USERNAME}
+    password: ${DEV_DB_PASSWORD}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
 
 upload:
-  path: uploads
+  path: ${DEV_UPLOAD_PATH:uploads}
 
 app:
   ocr:
     tesseract:
-      cli: C:\\Program Files\\Tesseract-OCR\\tesseract.exe
+      cli: ${DEV_TESSERACT_CLI:C:\\Program Files\\Tesseract-OCR\\tesseract.exe}

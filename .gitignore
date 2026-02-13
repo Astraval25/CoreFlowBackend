@@ -38,3 +38,5 @@ out/
 logs/
 uploads/
 src/main/resources/application-dev.yml
+.secrets/iet-linux-vps-firebase-adminsdk-fbsvc-8b25ccafe3.json
+.env
