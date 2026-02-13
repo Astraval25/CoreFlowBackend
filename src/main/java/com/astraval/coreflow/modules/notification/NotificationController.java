@@ -1,6 +1,5 @@
 package com.astraval.coreflow.modules.notification;
 
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +17,6 @@ import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.notification.dto.CreateNotificationRequest;
 import com.astraval.coreflow.modules.notification.dto.NotificationOpenResponse;
 import com.astraval.coreflow.modules.notification.dto.NotificationPageDto;
-import com.astraval.coreflow.modules.notification.dto.NotificationViewDto;
 
 import jakarta.validation.Valid;
 

@@ -25,9 +25,6 @@ public class SecurityConfig {
     
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Autowired
-    private CompanyAclFilter companyAclFilter;
     
     @Autowired
     private CorsConfig corsConfig;

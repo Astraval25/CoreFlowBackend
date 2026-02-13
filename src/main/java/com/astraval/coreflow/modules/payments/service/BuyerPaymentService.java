@@ -31,6 +31,7 @@ import com.astraval.coreflow.modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
+import com.astraval.coreflow.modules.notification.NotificationService;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
 import org.springframework.web.multipart.MultipartFile;
@@ -64,6 +65,9 @@ public class BuyerPaymentService {
 
     @Autowired
     private CustomerVendorLinkRepository customerVendorLinkRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
     public Long createBuyerPayment(Long companyId, CreateBuyerPaymentDto request) {
@@ -120,6 +124,18 @@ public class BuyerPaymentService {
         // Create order allocations if provided
         if (request.getPaymentDetails().getOrderAllocations() != null) {
             createOrderAllocations(savedPayment, request.getPaymentDetails().getOrderAllocations());
+        }
+
+        if (savedPayment.getReceiverComp() != null) {
+            Long toCompanyId = savedPayment.getReceiverComp().getCompanyId();
+            notificationService.createCompanyNotification(
+                    senderComp.getCompanyId(),
+                    toCompanyId,
+                    "New Buyer Payment",
+                    "A buyer payment is made by " + senderComp.getCompanyName(),
+                    "BUYER_PAYMENT_CREATED",
+                    "View Payments",
+                    "/companies/" + toCompanyId + "/payments/received");
         }
 
         return savedPayment.getPaymentId();
