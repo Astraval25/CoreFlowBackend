@@ -1,10 +1,13 @@
 package com.astraval.coreflow.modules.payments.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.PaymentOrderAllocationDto;
 import com.astraval.coreflow.modules.payments.dto.PaymentViewDto;
 import com.astraval.coreflow.modules.payments.model.Payments;
@@ -72,5 +75,38 @@ public class PaymentService {
         dto.setOrderAllocations(allocations);
         
         return dto;
+    }
+
+    @Transactional
+    public void updatePaymentStatus(Long companyId, Long paymentId, String newStatus) {
+        Payments payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
+
+        boolean belongsToCompany = (payment.getSenderComp() != null
+                && payment.getSenderComp().getCompanyId().equals(companyId))
+                || (payment.getReceiverComp() != null
+                        && payment.getReceiverComp().getCompanyId().equals(companyId));
+
+        if (!belongsToCompany) {
+            throw new RuntimeException("Payment does not belong to the requesting company");
+        }
+
+        if (!PaymentStatus.isSupportedStatus(newStatus)) {
+            throw new RuntimeException("Invalid payment status: " + newStatus);
+        }
+
+        if (PaymentStatus.getPaymentFailed().equals(newStatus)) {
+            LocalDateTime paymentMadeAt = payment.getPaymentDate() != null ? payment.getPaymentDate() : payment.getCreatedDt();
+            if (paymentMadeAt == null) {
+                throw new RuntimeException("Payment made date is not available for status validation");
+            }
+
+            if (LocalDateTime.now().isAfter(paymentMadeAt.plusDays(5))) {
+                throw new RuntimeException("PAYMENT_FAILED can only be updated within 5 days of payment made");
+            }
+        }
+
+        payment.setPaymentStatus(newStatus);
+        paymentRepository.save(payment);
     }
 }
