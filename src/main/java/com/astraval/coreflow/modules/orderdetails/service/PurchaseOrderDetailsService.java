@@ -26,6 +26,7 @@ import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.orderdetails.dto.UpdatePurchaseOrder;
 import com.astraval.coreflow.modules.notification.NotificationService;
 import com.astraval.coreflow.modules.vendor.Vendors;
+import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 
 @Service
 public class PurchaseOrderDetailsService {
@@ -53,6 +54,9 @@ public class PurchaseOrderDetailsService {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
+    
     @Autowired
     private NotificationService notificationService;
     
@@ -126,6 +130,7 @@ public class PurchaseOrderDetailsService {
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
         purchaseOrderDetailsRepository.save(savedOrder);
+        partnerBalanceService.refreshDueAmountsForOrder(savedOrder);
 
         return savedOrder.getOrderId();
     }
@@ -142,6 +147,13 @@ public class PurchaseOrderDetailsService {
 
         OrderDetails existingOrder = purchaseOrderDetailsRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        Long previousCustomerId = existingOrder.getCustomers() != null
+                ? existingOrder.getCustomers().getCustomerId()
+                : null;
+        Long previousVendorId = existingOrder.getVendors() != null
+                ? existingOrder.getVendors().getVendorId()
+                : null;
                 
         Vendors vendor = vendorRepository.findById(updateOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
@@ -149,6 +161,13 @@ public class PurchaseOrderDetailsService {
         // Update order details
         existingOrder.setVendors(vendor);
         existingOrder.setSellerCompany(vendor.getVendorCompany());
+        if (vendor.getVendorCompany() != null) {
+            Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
+            Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
+            existingOrder.setCustomers(sellerCustomer);
+        } else {
+            existingOrder.setCustomers(null);
+        }
         existingOrder.setDeliveryCharge(updateOrder.getDeliveryCharge());
         existingOrder.setDiscountAmount(updateOrder.getDiscountAmount());
         existingOrder.setTaxAmount(updateOrder.getTaxAmount());
@@ -183,6 +202,8 @@ public class PurchaseOrderDetailsService {
         existingOrder.setOrderAmount(orderAmount);
         existingOrder.setTotalAmount(totalAmount);
         purchaseOrderDetailsRepository.save(existingOrder);
+        partnerBalanceService.refreshDueAmounts(previousCustomerId, previousVendorId);
+        partnerBalanceService.refreshDueAmountsForOrder(existingOrder);
     }
 
 }

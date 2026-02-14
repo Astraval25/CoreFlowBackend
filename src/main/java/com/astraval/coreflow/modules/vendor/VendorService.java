@@ -11,6 +11,7 @@ import com.astraval.coreflow.modules.address.AddressMapper;
 import com.astraval.coreflow.modules.address.AddressService;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 import com.astraval.coreflow.modules.vendor.dto.CreateUpdateVendorDto;
 import com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto;
 
@@ -29,6 +30,9 @@ public class VendorService {
     @Autowired
     private AddressMapper addressMapper;
 
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
+
 
     @Transactional
     public Long createVendor(Long companyId, CreateUpdateVendorDto request) {
@@ -45,7 +49,6 @@ public class VendorService {
             vendor.setLang(request.getLang());
             vendor.setPan(request.getPan());
             vendor.setGst(request.getGst());
-            vendor.setDueAmount(request.getDueAmount());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Create addresses if provided
@@ -63,7 +66,9 @@ public class VendorService {
                 vendor.setShippingAddrId(vendor.getBillingAddrId());
             }
 
-            return vendorRepository.save(vendor).getVendorId();
+            Vendors savedVendor = vendorRepository.save(vendor);
+            partnerBalanceService.refreshVendorDueAmount(savedVendor.getVendorId());
+            return savedVendor.getVendorId();
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to create vendor: " + e.getMessage(), e);
@@ -83,7 +88,6 @@ public class VendorService {
             vendor.setLang(request.getLang());
             vendor.setPan(request.getPan());
             vendor.setGst(request.getGst());
-            vendor.setDueAmount(request.getDueAmount());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Update billing address
@@ -111,6 +115,7 @@ public class VendorService {
             }
 
             vendorRepository.save(vendor);
+            partnerBalanceService.refreshVendorDueAmount(vendor.getVendorId());
             
         } catch (Exception e) {
             throw new RuntimeException("Failed to update vendor: " + e.getMessage(), e);

@@ -13,6 +13,7 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateUpdateCustomerDto;
 import com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto;
+import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 
 @Service
 public class CustomerService {
@@ -29,6 +30,9 @@ public class CustomerService {
     @Autowired
     private AddressMapper addressMapper;
 
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
+
     @Transactional
     public Long createCustomer(Long companyId, CreateUpdateCustomerDto request) {
         try {
@@ -44,7 +48,6 @@ public class CustomerService {
             customer.setLang(request.getLang());
             customer.setPan(request.getPan());
             customer.setGst(request.getGst());
-            customer.setDueAmount(request.getDueAmount());
             customer.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Create addresses if provided
@@ -62,7 +65,9 @@ public class CustomerService {
                 customer.setShippingAddrId(customer.getBillingAddrId());
             }
 
-            return customerRepository.save(customer).getCustomerId();
+            Customers savedCustomer = customerRepository.save(customer);
+            partnerBalanceService.refreshCustomerDueAmount(savedCustomer.getCustomerId());
+            return savedCustomer.getCustomerId();
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to create customer: " + e.getMessage(), e);
@@ -82,7 +87,6 @@ public class CustomerService {
             customer.setLang(request.getLang());
             customer.setPan(request.getPan());
             customer.setGst(request.getGst());
-            customer.setDueAmount(request.getDueAmount());
             customer.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
             // Update billing address
@@ -110,6 +114,7 @@ public class CustomerService {
             }
 
             customerRepository.save(customer);
+            partnerBalanceService.refreshCustomerDueAmount(customer.getCustomerId());
             
         } catch (Exception e) {
             throw new RuntimeException("Failed to update customer: " + e.getMessage(), e);

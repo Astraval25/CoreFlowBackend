@@ -129,3 +129,115 @@ LEFT JOIN (
     FROM items
     GROUP BY comp_id
 ) i ON i.comp_id = ucm.company_id;
+
+-- =============================
+-- Due amount helper SQL objects
+-- =============================
+
+-- Customer due = sales total - sales payments received
+-- Includes unallocated/advance payments too.
+CREATE OR REPLACE FUNCTION fn_customer_due_amount(p_customer_id BIGINT)
+RETURNS DOUBLE PRECISION AS $$
+  SELECT
+    COALESCE((
+      SELECT SUM(COALESCE(o.total_amount, 0.0))
+      FROM order_details o
+      JOIN customers c ON c.customer_id = o.customer
+      WHERE c.customer_id = p_customer_id
+        AND COALESCE(o.is_active, TRUE) = TRUE
+        AND o.seller_company = c.comp_id
+        AND COALESCE(o.order_status, '') NOT IN (
+          'QUOTATION',
+          'QUOTATION_VIEWED',
+          'QUOTATION_ACCEPTED',
+          'QUOTATION_DECLINED'
+        )
+    ), 0.0)
+    -
+    COALESCE((
+      SELECT SUM(COALESCE(p.amount, 0.0))
+      FROM payments p
+      JOIN customers c ON c.customer_id = p.customer
+      WHERE c.customer_id = p_customer_id
+        AND COALESCE(p.is_active, TRUE) = TRUE
+        AND p.receiver_comp = c.comp_id
+        AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
+    ), 0.0);
+$$ LANGUAGE SQL STABLE;
+
+-- Vendor due = purchase total - purchase payments made
+CREATE OR REPLACE FUNCTION fn_vendor_due_amount(p_vendor_id BIGINT)
+RETURNS DOUBLE PRECISION AS $$
+  SELECT
+    COALESCE((
+      SELECT SUM(COALESCE(o.total_amount, 0.0))
+      FROM order_details o
+      JOIN vendors v ON v.vendor_id = o.vendor
+      WHERE v.vendor_id = p_vendor_id
+        AND COALESCE(o.is_active, TRUE) = TRUE
+        AND o.buyer_company = v.comp_id
+        AND COALESCE(o.order_status, '') NOT IN (
+          'QUOTATION',
+          'QUOTATION_VIEWED',
+          'QUOTATION_ACCEPTED',
+          'QUOTATION_DECLINED'
+        )
+    ), 0.0)
+    -
+    COALESCE((
+      SELECT SUM(COALESCE(p.amount, 0.0))
+      FROM payments p
+      JOIN vendors v ON v.vendor_id = p.vendor
+      WHERE v.vendor_id = p_vendor_id
+        AND COALESCE(p.is_active, TRUE) = TRUE
+        AND p.sender_comp = v.comp_id
+        AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
+    ), 0.0);
+$$ LANGUAGE SQL STABLE;
+
+-- Batch reconciliation helper.
+CREATE OR REPLACE FUNCTION refresh_party_due_amounts()
+RETURNS VOID AS $$
+BEGIN
+  UPDATE customers c
+  SET due_amount = fn_customer_due_amount(c.customer_id);
+
+  UPDATE vendors v
+  SET due_amount = fn_vendor_due_amount(v.vendor_id);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Optional analytics/reporting object.
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_party_due_summary AS
+SELECT
+  'CUSTOMER'::TEXT AS party_type,
+  c.customer_id AS party_id,
+  c.comp_id AS company_id,
+  c.display_name AS party_name,
+  fn_customer_due_amount(c.customer_id) AS due_amount,
+  NOW() AS refreshed_at
+FROM customers c
+WHERE COALESCE(c.is_active, TRUE) = TRUE
+UNION ALL
+SELECT
+  'VENDOR'::TEXT AS party_type,
+  v.vendor_id AS party_id,
+  v.comp_id AS company_id,
+  v.display_name AS party_name,
+  fn_vendor_due_amount(v.vendor_id) AS due_amount,
+  NOW() AS refreshed_at
+FROM vendors v
+WHERE COALESCE(v.is_active, TRUE) = TRUE;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_mv_party_due_summary_party
+  ON mv_party_due_summary (party_type, party_id);
+
+CREATE INDEX IF NOT EXISTS ix_mv_party_due_summary_company_party
+  ON mv_party_due_summary (company_id, party_type);
+
+CREATE OR REPLACE FUNCTION refresh_mv_party_due_summary()
+RETURNS VOID AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW mv_party_due_summary;
+END;
+$$ LANGUAGE plpgsql;

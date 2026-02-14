@@ -5,5 +5,6 @@ public record CustomerSummaryDto(
     String displayName,
     String customerCompanyName,
     String email,
+    Double dueAmount,
     Boolean isActive) {
 }

@@ -38,3 +38,5 @@ out/
 logs/
 uploads/
 src/main/resources/application-dev.yml
+.env
+.secrets/
