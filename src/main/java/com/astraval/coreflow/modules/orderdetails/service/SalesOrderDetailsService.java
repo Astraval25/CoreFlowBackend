@@ -22,6 +22,7 @@ import com.astraval.coreflow.modules.orderdetails.repo.SalesOrderDetailsReposito
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsService;
 import com.astraval.coreflow.modules.orderdetails.dto.UpdateSalesOrder;
+import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 import com.astraval.coreflow.modules.vendor.VendorService;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
@@ -51,6 +52,9 @@ public class SalesOrderDetailsService {
     
     @Autowired
     private VendorService vendorService;
+
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
     
     @Transactional
     public Long createSalesOrder(Long companyId, CreateSalesOrder createOrder) {
@@ -111,6 +115,7 @@ public class SalesOrderDetailsService {
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
         salesOrderDetailsRepository.save(savedOrder);
+        partnerBalanceService.refreshDueAmountsForOrder(savedOrder);
         
         return savedOrder.getOrderId();
     }
@@ -132,6 +137,13 @@ public class SalesOrderDetailsService {
         if (!existingOrder.getSellerCompany().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Order does not belong to the requesting company");
         }
+
+        Long previousCustomerId = existingOrder.getCustomers() != null
+                ? existingOrder.getCustomers().getCustomerId()
+                : null;
+        Long previousVendorId = existingOrder.getVendors() != null
+                ? existingOrder.getVendors().getVendorId()
+                : null;
         
         Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
@@ -139,6 +151,13 @@ public class SalesOrderDetailsService {
         // Update order details
         existingOrder.setCustomers(toCustomers);
         existingOrder.setBuyerCompany(toCustomers.getCustomerCompany() != null ? toCustomers.getCustomerCompany() : existingOrder.getSellerCompany());
+        if (toCustomers.getCustomerCompany() != null) {
+            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+            Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
+            existingOrder.setVendors(buyerVendor);
+        } else {
+            existingOrder.setVendors(null);
+        }
         existingOrder.setDeliveryCharge(updateOrder.getDeliveryCharge());
         existingOrder.setDiscountAmount(updateOrder.getDiscountAmount());
         existingOrder.setTaxAmount(updateOrder.getTaxAmount());
@@ -173,6 +192,8 @@ public class SalesOrderDetailsService {
         existingOrder.setOrderAmount(orderAmount);
         existingOrder.setTotalAmount(totalAmount);
         salesOrderDetailsRepository.save(existingOrder);
+        partnerBalanceService.refreshDueAmounts(previousCustomerId, previousVendorId);
+        partnerBalanceService.refreshDueAmountsForOrder(existingOrder);
     }
     
 }

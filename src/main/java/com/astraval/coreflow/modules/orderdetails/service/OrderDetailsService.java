@@ -17,6 +17,7 @@ import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsRepository;
 import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
 import com.astraval.coreflow.modules.ordersnapshot.repo.OrderSnapshotRepository;
+import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 
 @Service
 public class OrderDetailsService {
@@ -32,8 +33,9 @@ public class OrderDetailsService {
     
     @Autowired
     private OrderItemDetailsRepository orderItemDetailsRepository;
-    
-    
+
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
     
     public OrderDetails getOrderDetailsByOrderId(Long companyId, Long orderId){
         return orderDetailsRepository
@@ -56,7 +58,11 @@ public class OrderDetailsService {
         OrderDetails order = orderDetailsRepository
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        Long customerId = order.getCustomers() != null ? order.getCustomers().getCustomerId() : null;
+        Long vendorId = order.getVendors() != null ? order.getVendors().getVendorId() : null;
         orderDetailsRepository.delete(order);
+        partnerBalanceService.refreshDueAmounts(customerId, vendorId);
     }
     
     @Transactional
@@ -66,6 +72,7 @@ public class OrderDetailsService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setIsActive(false);
         orderDetailsRepository.save(order);
+        partnerBalanceService.refreshDueAmountsForOrder(order);
     }
     
     @Transactional
@@ -75,6 +82,7 @@ public class OrderDetailsService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setIsActive(true);
         orderDetailsRepository.save(order);
+        partnerBalanceService.refreshDueAmountsForOrder(order);
     }
     
     @Transactional
@@ -85,6 +93,7 @@ public class OrderDetailsService {
         
         order.setOrderStatus(newStatus);
         orderDetailsRepository.save(order);
+        partnerBalanceService.refreshDueAmountsForOrder(order);
     }
     
     @Transactional
@@ -102,6 +111,7 @@ public class OrderDetailsService {
         
         order.setOrderStatus(newStatus);
         orderDetailsRepository.save(order);
+        partnerBalanceService.refreshDueAmountsForOrder(order);
     }
     
     @Transactional

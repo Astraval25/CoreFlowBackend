@@ -64,7 +64,7 @@ public class Customers {
     private String gst;
 
     @Column(name = "due_amount")
-    private Double dueAmount;
+    private Double dueAmount = 0.0;
     
     @Column(name = "same_as_billing_address")
     private boolean sameAsBillingAddress;

@@ -69,6 +69,9 @@ public class SellerPaymentService {
     @Autowired
     private PaymentProofTextExtractor paymentProofTextExtractor;
 
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
+
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
         Companies receiverComp = companyRepository.findById(companyId)
@@ -123,6 +126,7 @@ public class SellerPaymentService {
         if (request.getPaymentDetails().getOrderAllocations() != null) {
             createOrderAllocations(savedPayment, request.getPaymentDetails().getOrderAllocations());
         }
+        partnerBalanceService.refreshDueAmountsForPayment(savedPayment);
 
         return savedPayment.getPaymentId();
     }
@@ -237,6 +241,7 @@ public class SellerPaymentService {
         if (request.getOrderAllocations() != null) {
             updateOrderAllocations(payment, request.getOrderAllocations());
         }
+        partnerBalanceService.refreshDueAmountsForPayment(payment);
     }
 
     @Transactional
@@ -254,6 +259,8 @@ public class SellerPaymentService {
             }
             
             PaymentOrderAllocations allocation;
+            OrderDetails previousOrder = null;
+            Double previousAppliedAmount = 0.0;
             
             if (allocationDto.getPaymentOrderAllocationId() != null) {
                 allocation = paymentOrderAllocationRepository.findById(allocationDto.getPaymentOrderAllocationId())
@@ -262,9 +269,29 @@ public class SellerPaymentService {
                 if (!allocation.getPayments().getPaymentId().equals(payment.getPaymentId())) {
                     throw new RuntimeException("Payment allocation does not belong to this payment");
                 }
+
+                previousOrder = allocation.getOrderDetails();
+                previousAppliedAmount = allocation.getAmountApplied() != null ? allocation.getAmountApplied() : 0.0;
             } else {
                 allocation = new PaymentOrderAllocations();
                 allocation.setPayments(payment);
+            }
+
+            Double currentPaidForTarget = paymentOrderAllocationRepository.getTotalPaidAmountForOrder(order.getOrderId());
+            if (currentPaidForTarget == null) {
+                currentPaidForTarget = 0.0;
+            }
+
+            Double nextPaidForTarget = currentPaidForTarget + allocationDto.getAmountApplied();
+            if (previousOrder != null && previousOrder.getOrderId().equals(order.getOrderId())) {
+                nextPaidForTarget = currentPaidForTarget - previousAppliedAmount + allocationDto.getAmountApplied();
+            }
+
+            if (nextPaidForTarget > order.getTotalAmount()) {
+                throw new RuntimeException(
+                        "Payment exceeds remaining amount for Order " + allocationDto.getOrderId() +
+                                ". Amount needed: " + (order.getTotalAmount() - currentPaidForTarget) +
+                                ", Amount trying to pay: " + allocationDto.getAmountApplied());
             }
             
             allocation.setOrderDetails(order);
@@ -274,17 +301,11 @@ public class SellerPaymentService {
             allocation.setAllocationRemarks(allocationDto.getAllocationRemarks());
             
             paymentOrderAllocationRepository.save(allocation);
-            
-            Double totalPaid = paymentOrderAllocationRepository.getTotalPaidAmountForOrder(order.getOrderId());
-            order.setPaidAmount(totalPaid);
-            
-            if (order.getTotalAmount().equals(totalPaid)) {
-                order.setOrderStatus(OrderStatus.getOrderPayed());
-            } else {
-                order.setOrderStatus(OrderStatus.getOrderInvoiced());
+
+            recalculateOrderPaymentState(order);
+            if (previousOrder != null && !previousOrder.getOrderId().equals(order.getOrderId())) {
+                recalculateOrderPaymentState(previousOrder);
             }
-            
-            orderDetailsRepository.save(order);
         });
     }
 
@@ -318,5 +339,21 @@ public class SellerPaymentService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload payment proof: " + e.getMessage(), e);
         }
+    }
+
+    private void recalculateOrderPaymentState(OrderDetails order) {
+        Double totalPaid = paymentOrderAllocationRepository.getTotalPaidAmountForOrder(order.getOrderId());
+        if (totalPaid == null) {
+            totalPaid = 0.0;
+        }
+        order.setPaidAmount(totalPaid);
+
+        if (Math.abs(order.getTotalAmount() - totalPaid) < 0.0001) {
+            order.setOrderStatus(OrderStatus.getOrderPayed());
+        } else {
+            order.setOrderStatus(OrderStatus.getOrderInvoiced());
+        }
+
+        orderDetailsRepository.save(order);
     }
 }
