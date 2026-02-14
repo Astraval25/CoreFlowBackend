@@ -13,6 +13,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -43,6 +44,7 @@ public class SecurityConfig {
                 .authenticationEntryPoint(customAuthEntryPoint()) 
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // .addFilterAfter(companyAclFilter, JwtAuthenticationFilter.class); // user Company Check
         
         return http.build();
     }
@@ -81,5 +83,12 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public FilterRegistrationBean<CompanyAclFilter> companyAclFilterRegistration(CompanyAclFilter filter) {
+        FilterRegistrationBean<CompanyAclFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(true);  // On/Off Company ACK Filter
+        return registration;
     }
 }
