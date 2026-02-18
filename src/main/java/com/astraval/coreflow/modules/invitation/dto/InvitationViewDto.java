@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.invitation.dto;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InvitationViewDto {
     private Long inviteId;
-    private UUID invitationCode;
+    private String invitationCode;
     private String status;
     private String requestedEntityType;
     private Long requestedEntityId;

@@ -1,7 +1,6 @@
 package com.astraval.coreflow.modules.invitation;
 
 import java.util.Map;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,7 +36,7 @@ public class InvitationController {
             return ApiResponseFactory.created(
                     Map.of(
                             "inviteId", invitation.getInviteId().toString(),
-                            "invitationCode", invitation.getInvitationCode().toString()),
+                            "invitationCode", invitation.getInvitationCode()),
                     "Invitation sent successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
@@ -55,7 +54,7 @@ public class InvitationController {
             return ApiResponseFactory.created(
                     Map.of(
                             "inviteId", invitation.getInviteId().toString(),
-                            "invitationCode", invitation.getInvitationCode().toString()),
+                            "invitationCode", invitation.getInvitationCode()),
                     "Invitation sent successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
@@ -65,7 +64,7 @@ public class InvitationController {
     @GetMapping("/{companyId}/invitations/{invitationCode}")
     public ApiResponse<InvitationViewDto> getInvitation(
             @PathVariable Long companyId,
-            @PathVariable UUID invitationCode) {
+            @PathVariable String invitationCode) {
         try {
             InvitationViewDto invitation = invitationService.getInvitationByCode(invitationCode);
             return ApiResponseFactory.accepted(invitation, "Invitation retrieved successfully");
@@ -74,10 +73,42 @@ public class InvitationController {
         }
     }
 
+    @GetMapping("/{companyId}/invitations/customers/{customerId}/code")
+    public ApiResponse<Map<String, String>> getCustomerInvitationCode(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            Invitation invitation = invitationService.getLatestCustomerInvitationByCreator(companyId, customerId);
+            return ApiResponseFactory.accepted(
+                    Map.of(
+                            "inviteId", invitation.getInviteId().toString(),
+                            "invitationCode", invitation.getInvitationCode()),
+                    "Invitation code retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @GetMapping("/{companyId}/invitations/vendors/{vendorId}/code")
+    public ApiResponse<Map<String, String>> getVendorInvitationCode(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId) {
+        try {
+            Invitation invitation = invitationService.getLatestVendorInvitationByCreator(companyId, vendorId);
+            return ApiResponseFactory.accepted(
+                    Map.of(
+                            "inviteId", invitation.getInviteId().toString(),
+                            "invitationCode", invitation.getInvitationCode()),
+                    "Invitation code retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
     @PostMapping("/{companyId}/invitations/{invitationCode}/accept")
     public ApiResponse<String> acceptInvitation(
             @PathVariable Long companyId,
-            @PathVariable UUID invitationCode,
+            @PathVariable String invitationCode,
             @Valid @RequestBody AcceptInvitationDto request) {
         try {
             invitationService.acceptInvitation(companyId, invitationCode, request);
@@ -90,7 +121,7 @@ public class InvitationController {
     @PostMapping("/{companyId}/invitations/{invitationCode}/reject")
     public ApiResponse<String> rejectInvitation(
             @PathVariable Long companyId,
-            @PathVariable UUID invitationCode) {
+            @PathVariable String invitationCode) {
         try {
             invitationService.rejectInvitation(companyId, invitationCode);
             return ApiResponseFactory.accepted("Invitation rejected successfully", "Invitation rejected successfully");
