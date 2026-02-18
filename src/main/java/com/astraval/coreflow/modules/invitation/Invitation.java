@@ -3,7 +3,6 @@ package com.astraval.coreflow.modules.invitation;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import com.astraval.coreflow.modules.companies.Companies;
 
@@ -55,8 +54,8 @@ public class Invitation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "invitation_code", nullable = false, unique = true)
-    private UUID invitationCode;
+    @Column(name = "invitation_code", nullable = false, unique = true, length = 6)
+    private String invitationCode;
 
     @Column(name = "requested_entity_type")
     private String requestedEntityType; // CUSTOMER or VENDOR
@@ -70,10 +69,4 @@ public class Invitation {
     @Column(name = "selected_vendor_id")
     private Long selectedVendorId;
 
-    @PrePersist
-    public void generateInvitationCode() {
-        if (invitationCode == null) {
-            invitationCode = UUID.randomUUID();
-        }
-    }
 }

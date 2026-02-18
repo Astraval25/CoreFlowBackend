@@ -1,7 +1,7 @@
 package com.astraval.coreflow.modules.invitation;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +26,10 @@ public class InvitationService {
     private static final String STATUS_REJECTED = "REJECTED";
     private static final String TYPE_CUSTOMER = "CUSTOMER";
     private static final String TYPE_VENDOR = "VENDOR";
+    private static final String INVITATION_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final int INVITATION_CODE_LENGTH = 6;
+    private static final int MAX_CODE_GENERATION_ATTEMPTS = 30;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired
     private InvitationRepository invitationRepository;
@@ -62,6 +66,7 @@ public class InvitationService {
         invitation.setIsActive(true);
         invitation.setRequestedEntityType(TYPE_CUSTOMER);
         invitation.setRequestedEntityId(customerId);
+        invitation.setInvitationCode(generateUniqueInvitationCode());
         invitation.setCreatedAt(LocalDateTime.now());
         invitation.setUpdatedAt(LocalDateTime.now());
 
@@ -88,14 +93,16 @@ public class InvitationService {
         invitation.setIsActive(true);
         invitation.setRequestedEntityType(TYPE_VENDOR);
         invitation.setRequestedEntityId(vendorId);
+        invitation.setInvitationCode(generateUniqueInvitationCode());
         invitation.setCreatedAt(LocalDateTime.now());
         invitation.setUpdatedAt(LocalDateTime.now());
 
         return invitationRepository.save(invitation);
     }
 
-    public InvitationViewDto getInvitationByCode(UUID code) {
-        Invitation invitation = invitationRepository.findByInvitationCode(code)
+    public InvitationViewDto getInvitationByCode(String code) {
+        String normalizedCode = normalizeInvitationCode(code);
+        Invitation invitation = invitationRepository.findByInvitationCode(normalizedCode)
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
 
         return new InvitationViewDto(
@@ -112,9 +119,30 @@ public class InvitationService {
                 invitation.getAccespedAt());
     }
 
+    public Invitation getLatestCustomerInvitationByCreator(Long companyId, Long customerId) {
+        customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
+                .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
+
+        return invitationRepository
+                .findTopByFromCompanyCompanyIdAndRequestedEntityTypeAndRequestedEntityIdAndStatusAndIsActiveTrueOrderByCreatedAtDesc(
+                        companyId, TYPE_CUSTOMER, customerId, STATUS_PENDING)
+                .orElseThrow(() -> new RuntimeException("No active pending invitation found for customer ID: " + customerId));
+    }
+
+    public Invitation getLatestVendorInvitationByCreator(Long companyId, Long vendorId) {
+        vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+
+        return invitationRepository
+                .findTopByFromCompanyCompanyIdAndRequestedEntityTypeAndRequestedEntityIdAndStatusAndIsActiveTrueOrderByCreatedAtDesc(
+                        companyId, TYPE_VENDOR, vendorId, STATUS_PENDING)
+                .orElseThrow(() -> new RuntimeException("No active pending invitation found for vendor ID: " + vendorId));
+    }
+
     @Transactional
-    public void acceptInvitation(Long companyId, UUID code, AcceptInvitationDto request) {
-        Invitation invitation = invitationRepository.findByInvitationCode(code)
+    public void acceptInvitation(Long companyId, String code, AcceptInvitationDto request) {
+        String normalizedCode = normalizeInvitationCode(code);
+        Invitation invitation = invitationRepository.findByInvitationCode(normalizedCode)
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
 
         if (!STATUS_PENDING.equals(invitation.getStatus())) {
@@ -145,11 +173,11 @@ public class InvitationService {
             }
 
             customer.setCustomerCompany(acceptingCompany);
-            customer.setAcceptedInvitationId(invitation.getInvitationCode().toString());
+            customer.setAcceptedInvitationId(invitation.getInvitationCode());
             customerRepository.save(customer);
 
             vendor.setVendorCompany(invitation.getFromCompany());
-            vendor.setAcceptedInvitationId(invitation.getInvitationCode().toString());
+            vendor.setAcceptedInvitationId(invitation.getInvitationCode());
             vendorRepository.save(vendor);
 
             upsertCustomerVendorLink(customer, vendor);
@@ -177,11 +205,11 @@ public class InvitationService {
             }
 
             vendor.setVendorCompany(acceptingCompany);
-            vendor.setAcceptedInvitationId(invitation.getInvitationCode().toString());
+            vendor.setAcceptedInvitationId(invitation.getInvitationCode());
             vendorRepository.save(vendor);
 
             customer.setCustomerCompany(invitation.getFromCompany());
-            customer.setAcceptedInvitationId(invitation.getInvitationCode().toString());
+            customer.setAcceptedInvitationId(invitation.getInvitationCode());
             customerRepository.save(customer);
 
             upsertCustomerVendorLink(customer, vendor);
@@ -199,8 +227,9 @@ public class InvitationService {
     }
 
     @Transactional
-    public void rejectInvitation(Long companyId, UUID code) {
-        Invitation invitation = invitationRepository.findByInvitationCode(code)
+    public void rejectInvitation(Long companyId, String code) {
+        String normalizedCode = normalizeInvitationCode(code);
+        Invitation invitation = invitationRepository.findByInvitationCode(normalizedCode)
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
 
         if (!STATUS_PENDING.equals(invitation.getStatus())) {
@@ -215,6 +244,44 @@ public class InvitationService {
         invitation.setIsActive(false);
         invitation.setUpdatedAt(LocalDateTime.now());
         invitationRepository.save(invitation);
+    }
+
+    private String generateUniqueInvitationCode() {
+        for (int attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt++) {
+            String code = randomInvitationCode();
+            if (!invitationRepository.existsByInvitationCode(code)) {
+                return code;
+            }
+        }
+        throw new RuntimeException("Failed to generate unique invitation code. Please try again.");
+    }
+
+    private String randomInvitationCode() {
+        StringBuilder code = new StringBuilder(INVITATION_CODE_LENGTH);
+        for (int i = 0; i < INVITATION_CODE_LENGTH; i++) {
+            int idx = RANDOM.nextInt(INVITATION_CODE_ALPHABET.length());
+            code.append(INVITATION_CODE_ALPHABET.charAt(idx));
+        }
+        return code.toString();
+    }
+
+    private String normalizeInvitationCode(String code) {
+        if (code == null || code.isBlank()) {
+            throw new RuntimeException("Invitation code is required");
+        }
+
+        String normalized = code.trim().toUpperCase();
+        if (normalized.length() != INVITATION_CODE_LENGTH) {
+            throw new RuntimeException("Invitation code must be 6 characters");
+        }
+
+        for (int i = 0; i < normalized.length(); i++) {
+            if (INVITATION_CODE_ALPHABET.indexOf(normalized.charAt(i)) < 0) {
+                throw new RuntimeException("Invitation code format is invalid");
+            }
+        }
+
+        return normalized;
     }
 
     private void upsertCustomerVendorLink(Customers customer, Vendors vendor) {
