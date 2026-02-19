@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsFullResponse;
 import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsWithItems;
 import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
@@ -51,6 +52,80 @@ public class OrderDetailsService {
         List<OrderItemDetails> orderItems = orderItemDetailsRepository.findByOrderId(orderId);
         
         return new OrderDetailsWithItems(orderDetails, orderItems);
+    }
+
+    public OrderDetailsFullResponse getOrderDetailsFullByOrderId(Long companyId, Long orderId) {
+        OrderDetails orderDetails = orderDetailsRepository
+                .findOrderForCompany(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        List<OrderItemDetails> orderItems = orderItemDetailsRepository.findByOrderId(orderId);
+
+        OrderDetailsFullResponse response = new OrderDetailsFullResponse();
+        response.setOrderId(orderDetails.getOrderId());
+        response.setOrderNumber(orderDetails.getOrderNumber());
+        response.setOrderDate(orderDetails.getOrderDate());
+
+        if (orderDetails.getSellerCompany() != null) {
+            response.setSellerCompanyId(orderDetails.getSellerCompany().getCompanyId());
+            response.setSellerCompanyName(orderDetails.getSellerCompany().getCompanyName());
+        }
+        if (orderDetails.getBuyerCompany() != null) {
+            response.setBuyerCompanyId(orderDetails.getBuyerCompany().getCompanyId());
+            response.setBuyerCompanyName(orderDetails.getBuyerCompany().getCompanyName());
+        }
+        if (orderDetails.getCustomers() != null) {
+            response.setCustomerId(orderDetails.getCustomers().getCustomerId());
+            response.setCustomerName(orderDetails.getCustomers().getCustomerName());
+            response.setCustomerDisplayName(orderDetails.getCustomers().getDisplayName());
+        }
+        if (orderDetails.getVendors() != null) {
+            response.setVendorId(orderDetails.getVendors().getVendorId());
+            response.setVendorName(orderDetails.getVendors().getVendorName());
+            response.setVendorDisplayName(orderDetails.getVendors().getDisplayName());
+        }
+
+        response.setTaxAmount(orderDetails.getTaxAmount());
+        response.setDiscountAmount(orderDetails.getDiscountAmount());
+        response.setDeliveryCharge(orderDetails.getDeliveryCharge());
+        response.setOrderAmount(orderDetails.getOrderAmount());
+        response.setTotalAmount(orderDetails.getTotalAmount());
+        response.setPaidAmount(orderDetails.getPaidAmount());
+        response.setOrderStatus(orderDetails.getOrderStatus());
+        response.setHasBill(orderDetails.getHasBill());
+        response.setIsActive(orderDetails.getIsActive());
+        response.setCreatedBy(orderDetails.getCreatedBy());
+        response.setCreatedDt(orderDetails.getCreatedDt());
+        response.setLastModifiedBy(orderDetails.getLastModifiedBy());
+        response.setLastModifiedDt(orderDetails.getLastModifiedDt());
+
+        List<OrderDetailsFullResponse.OrderItemDetailsFullResponse> itemResponses = orderItems.stream()
+                .map(this::mapOrderItemDetails)
+                .toList();
+        response.setOrderItems(itemResponses);
+
+        return response;
+    }
+
+    private OrderDetailsFullResponse.OrderItemDetailsFullResponse mapOrderItemDetails(OrderItemDetails orderItem) {
+        OrderDetailsFullResponse.OrderItemDetailsFullResponse itemResponse =
+                new OrderDetailsFullResponse.OrderItemDetailsFullResponse();
+
+        itemResponse.setOrderItemId(orderItem.getOrderItemId());
+        itemResponse.setOrderId(orderItem.getOrderId());
+        if (orderItem.getItemId() != null) {
+            itemResponse.setItemId(orderItem.getItemId().getItemId());
+            itemResponse.setItemName(orderItem.getItemId().getItemName());
+        }
+        itemResponse.setItemDescription(orderItem.getItemDescription());
+        itemResponse.setQuantity(orderItem.getQuantity());
+        itemResponse.setUpdatedPrice(orderItem.getUpdatedPrice());
+        itemResponse.setItemTotal(orderItem.getItemTotal());
+        itemResponse.setReadyStatus(orderItem.getReadyStatus());
+        itemResponse.setStatus(orderItem.getStatus());
+        itemResponse.setIsActive(orderItem.getIsActive());
+
+        return itemResponse;
     }
     
     @Transactional

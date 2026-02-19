@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.orderdetails.OrderStatus;
-import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsWithItems;
+import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsFullResponse;
 import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
 
@@ -27,11 +27,11 @@ public class OrderDetailsController {
     private OrderDetailsService orderDetailsService;
     
     @GetMapping("/{companyId}/orders/{orderId}") // View Order details by Order id
-    private ApiResponse<OrderDetailsWithItems> viewOrderDetailsByOrderId(@PathVariable Long companyId,
+    private ApiResponse<OrderDetailsFullResponse> viewOrderDetailsByOrderId(@PathVariable Long companyId,
             @PathVariable Long orderId) {
         try {
-            OrderDetailsWithItems orderDetailsWithItems = orderDetailsService.getOrderDetailsWithItemsByOrderId(companyId, orderId);
-            return ApiResponseFactory.accepted(orderDetailsWithItems, "Order retrieved successfully");
+            OrderDetailsFullResponse orderDetails = orderDetailsService.getOrderDetailsFullByOrderId(companyId, orderId);
+            return ApiResponseFactory.accepted(orderDetails, "Order retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
         }
