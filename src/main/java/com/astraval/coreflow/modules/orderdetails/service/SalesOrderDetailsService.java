@@ -128,13 +128,19 @@ public class SalesOrderDetailsService {
     @Transactional
     public void updateSalesOrder(Long companyId, Long orderId, UpdateSalesOrder updateOrder) {
         // Validation
-        companyRepository.findById(companyId)
+        Companies requestingCompany = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
         
         OrderDetails existingOrder = salesOrderDetailsRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        
-        if (!existingOrder.getSellerCompany().getCompanyId().equals(companyId)) {
+
+        if (existingOrder.getSellerCompany() == null) {
+            existingOrder.setSellerCompany(requestingCompany);
+        }
+
+        if (existingOrder.getSellerCompany() == null
+                || existingOrder.getSellerCompany().getCompanyId() == null
+                || !existingOrder.getSellerCompany().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Order does not belong to the requesting company");
         }
 
