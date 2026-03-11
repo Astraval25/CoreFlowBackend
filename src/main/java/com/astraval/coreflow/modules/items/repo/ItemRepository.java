@@ -45,7 +45,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
     
     @Query("SELECT new com.astraval.coreflow.modules.items.dto.SellableItemDto(" +
            "i.itemId, i.itemName, i.salesDescription, i.baseSalesPrice, " +
-           "i.taxRate, i.hsnCode, i.fsId) " +
+           "i.taxRate, i.hsnCode, 'ITEM_BASE', i.fsId) " +
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
