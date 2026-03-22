@@ -21,6 +21,7 @@ public class PaymentViewDto {
     private String paymentStatus;
     private String paymentRemarks;
     private Boolean isActive;
+    private String paymentProofFile;
     
     // Company details
     private Long buyerCompanyId;
