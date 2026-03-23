@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerVendorLink;
 import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
@@ -77,17 +76,15 @@ public class SellerPaymentService {
 
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
-        Companies receiverComp = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Customers customer = customerService.getCustomerById(companyId, request.getCustomerId());
 
         Payments payment = new Payments();
-        payment.setReceiverComp(receiverComp);
         payment.setCustomers(customer);
-        
+
         if (customer.getCustomerCompany() != null) {
-            payment.setSenderComp(customer.getCustomerCompany());
             Long expectedVendorCompanyId = customer.getCustomerCompany().getCompanyId();
 
             CustomerVendorLink customerVendorLink = customerVendorLinkRepository

@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
@@ -20,6 +19,8 @@ import com.astraval.coreflow.modules.ordersnapshot.mapper.OrderSnapshotMapper;
 import com.astraval.coreflow.modules.ordersnapshot.repo.SalesOrderSnapshotRepository;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshot;
 import com.astraval.coreflow.modules.orderitemsnapshot.OrderItemSnapshotService;
+import com.astraval.coreflow.modules.vendor.VendorService;
+import com.astraval.coreflow.modules.vendor.Vendors;
 import com.astraval.coreflow.modules.ordersnapshot.dto.UpdateSalesOrder;
 
 @Service
@@ -46,12 +47,15 @@ public class SalesOrderSnapshotService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private VendorService vendorService;
+
     @Transactional
     public Long createSalesOrder(Long companyId, CreateSalesOrder createOrder) {
 
         // Access Validation
         // 1. check the companyId is exist
-        Companies sellerCompany = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
@@ -59,9 +63,12 @@ public class SalesOrderSnapshotService {
         // Access Validation Done if all ok then only allow to create.
 
         OrderSnapshot orderSnapshot = orderSnapshotMapper.toOrderSnapshot(createOrder);
-        orderSnapshot.setSellerCompany(sellerCompany);
-        orderSnapshot.setBuyerCompany(toCustomers.getCustomerCompany() != null ? toCustomers.getCustomerCompany() : sellerCompany);
         orderSnapshot.setCustomers(toCustomers);
+        if (toCustomers.getCustomerCompany() != null) {
+            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+            Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
+            orderSnapshot.setVendors(buyerVendor);
+        }
         orderSnapshot.setOrderDate(LocalDateTime.now());
         orderSnapshot.setDeliveryCharge(createOrder.getDeliveryCharge());
         orderSnapshot.setDiscountAmount(createOrder.getDiscountAmount());
@@ -124,8 +131,13 @@ public class SalesOrderSnapshotService {
 
         // Update order Snapshot
         existingOrder.setCustomers(toCustomers);
-        existingOrder.setBuyerCompany(toCustomers.getCustomerCompany() != null ? toCustomers.getCustomerCompany()
-                : existingOrder.getSellerCompany());
+        if (toCustomers.getCustomerCompany() != null) {
+            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+            Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
+            existingOrder.setVendors(buyerVendor);
+        } else {
+            existingOrder.setVendors(null);
+        }
         existingOrder.setDeliveryCharge(updateOrder.getDeliveryCharge());
         existingOrder.setDiscountAmount(updateOrder.getDiscountAmount());
         existingOrder.setTaxAmount(updateOrder.getTaxAmount());

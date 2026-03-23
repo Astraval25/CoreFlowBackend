@@ -10,7 +10,7 @@ public interface CustomerVendorLinkRepository extends JpaRepository<CustomerVend
 
     Optional<CustomerVendorLink> findByCustomerCustomerId(Long customerId);
 
-    Optional<CustomerVendorLink> findByCustomerCustomerIdAndVendorCompanyId(Long customerId, Long vendorCompanyId);
+    Optional<CustomerVendorLink> findByCustomerCustomerIdAndVendorCompanyCompanyId(Long customerId, Long vendorCompanyId);
 
-    Optional<CustomerVendorLink> findByVendorVendorIdAndCustomerCompanyId(Long vendorId, Long customerCompanyId);
+    Optional<CustomerVendorLink> findByVendorVendorIdAndCustomerCompanyCompanyId(Long vendorId, Long customerCompanyId);
 }

@@ -26,9 +26,11 @@ public interface PurchaseOrderSnapshotRepository extends JpaRepository<OrderSnap
                 o.isActive
             )
             FROM OrderSnapshot o
-                LEFT JOIN o.sellerCompany sc
+                LEFT JOIN o.customers c
+                LEFT JOIN c.company sc
                 LEFT JOIN o.vendors v
-                WHERE o.buyerCompany.companyId = :companyId
+                LEFT JOIN v.company bc
+                WHERE bc.companyId = :companyId
                 ORDER BY o.orderDate DESC
             """)
     List<PurchaseOrderSummaryDto> findPurchaseOrdersByCompanyId(@Param("companyId") Long companyId);

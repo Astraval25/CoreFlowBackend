@@ -19,30 +19,32 @@ public interface OrderSnapshotRepository extends JpaRepository<OrderSnapshot, Lo
 
      @Query("""
                SELECT o FROM OrderSnapshot o
+               LEFT JOIN FETCH o.customers c
+               LEFT JOIN FETCH c.company sc
+               LEFT JOIN FETCH o.vendors v
+               LEFT JOIN FETCH v.company bc
                WHERE o.orderId = :orderId
-               AND (
-                    o.sellerCompany.companyId = :companyId
-                    OR o.buyerCompany.companyId = :companyId
-               )
+               AND (sc.companyId = :companyId OR bc.companyId = :companyId)
                """)
      Optional<OrderSnapshot> findOrderForCompany(@Param("orderId") Long orderId, @Param("companyId") Long companyId);
 
      @Modifying
      @Transactional
-     @Query("UPDATE OrderSnapshot o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.sellerCompany.companyId = :companyId")
+     @Query("UPDATE OrderSnapshot o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.customers.company.companyId = :companyId")
      void updateOrderStatus(@Param("orderId") Long orderId, @Param("companyId") Long companyId,
                @Param("status") String status);
-     
+
      @Query("""
                SELECT o FROM OrderSnapshot o
+               LEFT JOIN FETCH o.customers c
+               LEFT JOIN FETCH c.company sc
+               LEFT JOIN FETCH o.vendors v
+               LEFT JOIN FETCH v.company bc
                WHERE o.orderReference = :orderReference
                AND o.orderStatus = :status
-               AND (
-                    o.sellerCompany.companyId = :companyId
-                    OR o.buyerCompany.companyId = :companyId
-               )
+               AND (sc.companyId = :companyId OR bc.companyId = :companyId)
                """)
-     Optional<OrderSnapshot> findByOrderReferenceAndStatus(@Param("orderReference") Long orderReference, 
-                                                           @Param("status") String status, 
+     Optional<OrderSnapshot> findByOrderReferenceAndStatus(@Param("orderReference") Long orderReference,
+                                                           @Param("status") String status,
                                                            @Param("companyId") Long companyId);
 }

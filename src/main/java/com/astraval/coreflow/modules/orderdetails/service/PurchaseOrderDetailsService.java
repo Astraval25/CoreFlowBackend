@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.Customers;
@@ -65,30 +64,28 @@ public class PurchaseOrderDetailsService {
     public Long createPurchaseOrder(Long companyId, CreatePurchaseOrder createOrder) {
 
         // Access Validation
-        Companies buyerCompany = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Vendors myVendor = vendorRepository.findById(createOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-                
+
 
         OrderDetails orderDetails = orderDetailsMapper.toPurchaseOrderDetails(createOrder);
         // Main id setting...
-        orderDetails.setBuyerCompany(buyerCompany);
         orderDetails.setVendors(myVendor);
-        
+
         if (myVendor.getVendorCompany() != null) {
-            orderDetails.setSellerCompany(myVendor.getVendorCompany());
             // Find buyer company's customer id by order company id
             Long vendorsCustomerCompanyId = myVendor.getVendorCompany().getCompanyId();
             Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
             orderDetails.setCustomers(sellerCustomer);
 
             notificationService.createCompanyNotification(
-                    buyerCompany.getCompanyId(),
+                    companyId,
                     vendorsCustomerCompanyId,
                     "New Purchase Order",
-                    "A new purchase order is created by " + buyerCompany.getCompanyName(),
+                    "A new purchase order is created by " + myVendor.getCompany().getCompanyName(),
                     "PURCHASE_ORDER_CREATED",
                     "View Orders",
                     "/companies/" + vendorsCustomerCompanyId + "/purchase/orders");
@@ -160,7 +157,6 @@ public class PurchaseOrderDetailsService {
 
         // Update order details
         existingOrder.setVendors(vendor);
-        existingOrder.setSellerCompany(vendor.getVendorCompany());
         if (vendor.getVendorCompany() != null) {
             Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
             Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);

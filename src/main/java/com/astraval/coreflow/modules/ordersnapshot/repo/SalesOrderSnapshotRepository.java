@@ -28,16 +28,18 @@ public interface SalesOrderSnapshotRepository extends JpaRepository<OrderSnapsho
                 o.isActive
             )
             FROM OrderSnapshot o
-                LEFT JOIN o.buyerCompany bc
                 LEFT JOIN o.customers c
-                WHERE o.sellerCompany.companyId = :companyId OR o.buyerCompany.companyId = :companyId
+                LEFT JOIN c.company sc
+                LEFT JOIN o.vendors v
+                LEFT JOIN v.company bc
+                WHERE sc.companyId = :companyId OR bc.companyId = :companyId
                 ORDER BY o.orderDate DESC
             """)
     List<SalesOrderSummaryDto> findOrdersByCompanyId(@Param("companyId") Long companyId);
 
     @Modifying
     @Transactional
-    @Query("UPDATE OrderSnapshot o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.sellerCompany.companyId = :companyId")
+    @Query("UPDATE OrderSnapshot o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.customers.company.companyId = :companyId")
     void updateOrderStatus(@Param("orderId") Long orderId, @Param("companyId") Long companyId,
             @Param("status") String status);
 }

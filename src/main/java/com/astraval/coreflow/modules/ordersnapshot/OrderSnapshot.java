@@ -22,6 +22,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -54,20 +55,22 @@ public class OrderSnapshot {
   private LocalDateTime orderDate;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "seller_company")
-  private Companies sellerCompany = null;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "buyer_company")
-  private Companies buyerCompany = null;
-
-  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "customer")
   private Customers customers = null;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "vendor")
   private Vendors vendors = null;
+
+  @Transient
+  public Companies getSellerCompany() {
+      return customers != null ? customers.getCompany() : null;
+  }
+
+  @Transient
+  public Companies getBuyerCompany() {
+      return vendors != null ? vendors.getCompany() : null;
+  }
 
   @PositiveOrZero(message = "Tax amount must be positive or zero at Entity")
   @Column(name = "tax_amount")

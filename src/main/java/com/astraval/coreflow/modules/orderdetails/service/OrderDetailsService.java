@@ -196,8 +196,6 @@ public class OrderDetailsService {
         snapshot.setOrderReference(order.getOrderId());
         snapshot.setOrderNumber(order.getOrderNumber());
         snapshot.setOrderDate(order.getOrderDate());
-        snapshot.setSellerCompany(order.getSellerCompany());
-        snapshot.setBuyerCompany(order.getBuyerCompany());
         snapshot.setCustomers(order.getCustomers());
         snapshot.setVendors(order.getVendors());
         snapshot.setTaxAmount(order.getTaxAmount());

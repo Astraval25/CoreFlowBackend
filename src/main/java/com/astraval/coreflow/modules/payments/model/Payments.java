@@ -24,6 +24,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -44,20 +45,22 @@ public class Payments {
   private Long paymentId;
   
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "receiver_comp")
-  private Companies receiverComp = null;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "sender_comp")
-  private Companies senderComp = null;
-
-  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "customer")
   private Customers customers = null;
-  
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "vendor")
   private Vendors vendors = null;
+
+  @Transient
+  public Companies getReceiverComp() {
+      return customers != null ? customers.getCompany() : null;
+  }
+
+  @Transient
+  public Companies getSenderComp() {
+      return vendors != null ? vendors.getCompany() : null;
+  }
   
   @Column(name = "payment_number")
   private String paymentNumber;

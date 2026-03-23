@@ -147,10 +147,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(o.total_amount, 0.0))
       FROM order_details o
-      JOIN customers c ON c.customer_id = o.customer
-      WHERE c.customer_id = p_customer_id
+      WHERE o.customer = p_customer_id
         AND COALESCE(o.is_active, TRUE) = TRUE
-        AND o.seller_company = c.comp_id
         AND COALESCE(o.order_status, '') NOT IN (
           'QUOTATION',
           'QUOTATION_VIEWED',
@@ -162,10 +160,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(p.amount, 0.0))
       FROM payments p
-      JOIN customers c ON c.customer_id = p.customer
-      WHERE c.customer_id = p_customer_id
+      WHERE p.customer = p_customer_id
         AND COALESCE(p.is_active, TRUE) = TRUE
-        AND p.receiver_comp = c.comp_id
         AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
     ), 0.0);
 $$ LANGUAGE SQL STABLE;
@@ -177,10 +173,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(o.total_amount, 0.0))
       FROM order_details o
-      JOIN vendors v ON v.vendor_id = o.vendor
-      WHERE v.vendor_id = p_vendor_id
+      WHERE o.vendor = p_vendor_id
         AND COALESCE(o.is_active, TRUE) = TRUE
-        AND o.buyer_company = v.comp_id
         AND COALESCE(o.order_status, '') NOT IN (
           'QUOTATION',
           'QUOTATION_VIEWED',
@@ -192,10 +186,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(p.amount, 0.0))
       FROM payments p
-      JOIN vendors v ON v.vendor_id = p.vendor
-      WHERE v.vendor_id = p_vendor_id
+      WHERE p.vendor = p_vendor_id
         AND COALESCE(p.is_active, TRUE) = TRUE
-        AND p.sender_comp = v.comp_id
         AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
     ), 0.0);
 $$ LANGUAGE SQL STABLE;

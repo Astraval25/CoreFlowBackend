@@ -48,12 +48,6 @@ public class CustomerVendorLink {
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendors vendor;
 
-    @Column(name = "customer_company_id", nullable = false)
-    private Long customerCompanyId;
-
-    @Column(name = "vendor_company_id", nullable = false)
-    private Long vendorCompanyId;
-
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

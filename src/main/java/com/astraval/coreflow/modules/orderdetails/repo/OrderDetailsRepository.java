@@ -22,29 +22,32 @@ public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long
 
     @Query("""
             SELECT o FROM OrderDetails o
+            LEFT JOIN FETCH o.customers c
+            LEFT JOIN FETCH c.company sc
+            LEFT JOIN FETCH o.vendors v
+            LEFT JOIN FETCH v.company bc
             WHERE o.orderId = :orderId
-            AND (
-                 o.sellerCompany.companyId = :companyId
-                 OR o.buyerCompany.companyId = :companyId
-            )
+            AND (sc.companyId = :companyId OR bc.companyId = :companyId)
             """)
     Optional<OrderDetails> findOrderForCompany(@Param("orderId") Long orderId, @Param("companyId") Long companyId);
 
     @Modifying
     @Transactional
-    @Query("UPDATE OrderDetails o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.sellerCompany.companyId = :companyId")
+    @Query("UPDATE OrderDetails o SET o.orderStatus = :status WHERE o.orderId = :orderId AND o.customers.company.companyId = :companyId")
     void updateOrderStatus(@Param("orderId") Long orderId, @Param("companyId") Long companyId,
             @Param("status") String status);
 
     @Query("SELECT new com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto(" +
            "o.orderId, o.orderNumber, o.orderDate, o.orderStatus, " +
-           "COALESCE(o.sellerCompany.companyName, ''), o.vendors.displayName, " +
-           "COALESCE(o.sellerCompany.companyId, 0L), o.hasBill, o.orderAmount, o.totalAmount, o.paidAmount, o.isActive) " +
+           "COALESCE(sc.companyName, ''), v.displayName, " +
+           "COALESCE(sc.companyId, 0L), o.hasBill, o.orderAmount, o.totalAmount, o.paidAmount, o.isActive) " +
            "FROM OrderDetails o " +
-           "LEFT JOIN o.sellerCompany " +
-           "LEFT JOIN o.vendors " +
-           "WHERE o.buyerCompany.companyId = :buyerCompanyId " +
-           "AND o.vendors.vendorId = :vendorId " +
+           "LEFT JOIN o.customers c " +
+           "LEFT JOIN c.company sc " +
+           "LEFT JOIN o.vendors v " +
+           "LEFT JOIN v.company bc " +
+           "WHERE bc.companyId = :buyerCompanyId " +
+           "AND v.vendorId = :vendorId " +
            "AND o.orderStatus = :orderStatus")
     List<UnpaidOrderDto> findUnpaidOrdersByBuyerCompanyIdAndVendorId(
             @Param("buyerCompanyId") Long buyerCompanyId,
@@ -53,13 +56,15 @@ public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long
 
     @Query("SELECT new com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto(" +
            "o.orderId, o.orderNumber, o.orderDate, o.orderStatus, " +
-           "COALESCE(o.buyerCompany.companyName, ''), COALESCE(o.customers.displayName, ''), " +
-           "COALESCE(o.sellerCompany.companyId, 0L), o.hasBill, o.orderAmount, o.totalAmount, o.paidAmount, o.isActive) " +
+           "COALESCE(bc.companyName, ''), COALESCE(c.displayName, ''), " +
+           "COALESCE(sc.companyId, 0L), o.hasBill, o.orderAmount, o.totalAmount, o.paidAmount, o.isActive) " +
            "FROM OrderDetails o " +
-           "LEFT JOIN o.buyerCompany " +
-           "LEFT JOIN o.customers " +
-           "WHERE o.sellerCompany.companyId = :sellerCompanyId " +
-           "AND o.customers.customerId = :customerId " +
+           "LEFT JOIN o.customers c " +
+           "LEFT JOIN c.company sc " +
+           "LEFT JOIN o.vendors v " +
+           "LEFT JOIN v.company bc " +
+           "WHERE sc.companyId = :sellerCompanyId " +
+           "AND c.customerId = :customerId " +
            "AND o.orderStatus = :orderStatus")
     List<UnpaidOrderDto> findUnpaidOrdersBySellerCompanyIdAndCustomerId(
             @Param("sellerCompanyId") Long sellerCompanyId,

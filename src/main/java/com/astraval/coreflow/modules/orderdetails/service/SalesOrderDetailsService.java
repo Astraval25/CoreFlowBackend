@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
@@ -61,18 +60,16 @@ public class SalesOrderDetailsService {
         
         // Access Validation
         // 1. check the companyId is exist
-        Companies sellerCompany = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
         Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
         // Access Validation Done if all ok then only allow to create.
-                
+
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
         // Main id setting...
-        orderDetails.setSellerCompany(sellerCompany);
         orderDetails.setCustomers(toCustomers);
         if(toCustomers.getCustomerCompany() != null){
-            orderDetails.setBuyerCompany(toCustomers.getCustomerCompany());
             Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
             orderDetails.setVendors(buyerVendor);
@@ -128,18 +125,13 @@ public class SalesOrderDetailsService {
     @Transactional
     public void updateSalesOrder(Long companyId, Long orderId, UpdateSalesOrder updateOrder) {
         // Validation
-        Companies requestingCompany = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-        
+
         OrderDetails existingOrder = salesOrderDetailsRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (existingOrder.getSellerCompany() == null) {
-            existingOrder.setSellerCompany(requestingCompany);
-        }
-
         if (existingOrder.getSellerCompany() == null
-                || existingOrder.getSellerCompany().getCompanyId() == null
                 || !existingOrder.getSellerCompany().getCompanyId().equals(companyId)) {
             throw new RuntimeException("Order does not belong to the requesting company");
         }
@@ -156,7 +148,6 @@ public class SalesOrderDetailsService {
         
         // Update order details
         existingOrder.setCustomers(toCustomers);
-        existingOrder.setBuyerCompany(toCustomers.getCustomerCompany() != null ? toCustomers.getCustomerCompany() : existingOrder.getSellerCompany());
         if (toCustomers.getCustomerCompany() != null) {
             Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);

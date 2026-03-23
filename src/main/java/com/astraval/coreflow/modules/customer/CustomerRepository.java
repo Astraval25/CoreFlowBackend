@@ -62,10 +62,8 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
              COALESCE((
                SELECT SUM(COALESCE(o.total_amount, 0.0))
                FROM order_details o
-               JOIN customers c ON c.customer_id = o.customer
-               WHERE c.customer_id = :customerId
+               WHERE o.customer = :customerId
                  AND COALESCE(o.is_active, TRUE) = TRUE
-                 AND o.seller_company = c.comp_id
                  AND COALESCE(o.order_status, '') NOT IN (
                    'QUOTATION',
                    'QUOTATION_VIEWED',
@@ -77,10 +75,8 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
              COALESCE((
                SELECT SUM(COALESCE(p.amount, 0.0))
                FROM payments p
-               JOIN customers c ON c.customer_id = p.customer
-               WHERE c.customer_id = :customerId
+               WHERE p.customer = :customerId
                  AND COALESCE(p.is_active, TRUE) = TRUE
-                 AND p.receiver_comp = c.comp_id
                  AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
              ), 0.0)
            """, nativeQuery = true)
