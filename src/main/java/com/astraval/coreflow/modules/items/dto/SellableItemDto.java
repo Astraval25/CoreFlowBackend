@@ -15,5 +15,6 @@ public class SellableItemDto {
     private BigDecimal price;
     private BigDecimal taxRate;
     private String hsnCode;
+    private String source;
     private String fsId;
 }

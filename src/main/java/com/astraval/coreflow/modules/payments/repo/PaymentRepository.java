@@ -66,6 +66,7 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
             LEFT JOIN FETCH p.receiverComp
             LEFT JOIN FETCH p.vendors
             LEFT JOIN FETCH p.customers
+            LEFT JOIN FETCH p.paymentProofFile
             WHERE p.paymentId = :paymentId
             """)
     Optional<Payments> findPaymentWithDetailsById(@Param("paymentId") Long paymentId);

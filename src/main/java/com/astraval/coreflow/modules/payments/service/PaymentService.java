@@ -42,6 +42,9 @@ public class PaymentService {
         dto.setPaymentStatus(payment.getPaymentStatus());
         dto.setPaymentRemarks(payment.getPaymentRemarks());
         dto.setIsActive(payment.getIsActive());
+        if (payment.getPaymentProofFile() != null) {
+            dto.setPaymentProofFile(payment.getPaymentProofFile().getFsId());
+        }
         
         // Company details
         if (payment.getSenderComp() != null) {
