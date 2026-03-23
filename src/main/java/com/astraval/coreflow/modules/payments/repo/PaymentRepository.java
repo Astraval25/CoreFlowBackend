@@ -14,8 +14,11 @@ import com.astraval.coreflow.modules.payments.model.Payments;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payments, Long> {
 
+    @Query(value = "SELECT generate_payment_number(?1)", nativeQuery = true)
+    String generatePaymentNumber(@Param("companyId") Long companyId);
+
     @Query(value = """
-            SELECT 
+            SELECT
               p.payment_id,
               p.payment_date,
               STRING_AGG(poa.order_id::text, ', ') AS order_ids,

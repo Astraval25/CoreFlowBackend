@@ -80,6 +80,10 @@ public class PaymentService {
         return dto;
     }
 
+    public String getNextPaymentNumber(Long companyId) {
+        return paymentRepository.generatePaymentNumber(companyId);
+    }
+
     @Transactional
     public void updatePaymentStatus(Long companyId, Long paymentId, String newStatus) {
         Payments payment = paymentRepository.findById(paymentId)

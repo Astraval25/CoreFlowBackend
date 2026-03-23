@@ -106,6 +106,36 @@ $$ LANGUAGE plpgsql;
 -- SELECT generate_order_number(:companyId);
 
 -- =============================
+-- Payment number generation
+-- =============================
+
+-- Tracks per-company, per-period payment sequences (mirrors company_order_sequence)
+CREATE TABLE IF NOT EXISTS company_payment_sequence (
+  company_id BIGINT,
+  period CHAR(6), -- MMYYYY
+  last_value BIGINT,
+  PRIMARY KEY (company_id, period)
+);
+
+-- Returns the next payment number in the format PAY-MMYYYY-SEQ
+-- Usage: SELECT generate_payment_number(:companyId);
+CREATE OR REPLACE FUNCTION generate_payment_number(p_company_id BIGINT)
+RETURNS TEXT AS $$
+DECLARE
+  v_period TEXT := TO_CHAR(NOW(), 'MMYYYY');
+  v_next BIGINT;
+BEGIN
+  INSERT INTO company_payment_sequence(company_id, period, last_value)
+  VALUES (p_company_id, v_period, 1)
+  ON CONFLICT (company_id, period)
+  DO UPDATE SET last_value = company_payment_sequence.last_value + 1
+  RETURNING last_value INTO v_next;
+
+  RETURN 'PAY-' || v_period || '-' || v_next;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================
 -- Due amount helper SQL objects
 -- =============================
 

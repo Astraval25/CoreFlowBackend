@@ -60,7 +60,7 @@ public class Payments {
   private Vendors vendors = null;
   
   @Column(name = "payment_number")
-  private Long paymentNumber;     // To-do
+  private String paymentNumber;
   
   @Column(name = "payment_date")
   private LocalDateTime paymentDate;

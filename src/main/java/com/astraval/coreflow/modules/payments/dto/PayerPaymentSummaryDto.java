@@ -13,7 +13,7 @@ public class PayerPaymentSummaryDto {
     private Long paymentId;
     private LocalDateTime paymentDate;
     private String orderIds;
-    private Long paymentNumber;
+    private String paymentNumber;
     private Double amount;
     private String vendorName;
     private String modeOfPayment;

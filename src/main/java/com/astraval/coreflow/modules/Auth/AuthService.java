@@ -20,6 +20,7 @@ import com.astraval.coreflow.modules.otp.OtpService;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
 
 import org.slf4j.Logger;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Validated
 public class AuthService {
 
     private static final Logger log = LogUtil.getLogger(AuthService.class);
