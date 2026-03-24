@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class PaymentViewDto {
     // Payment details
     private Long paymentId;
-    private Long paymentNumber;
+    private String paymentNumber;
     private LocalDateTime paymentDate;
     private Double amount;
     private String modeOfPayment;

@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerVendorLink;
 import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
@@ -72,9 +71,12 @@ public class BuyerPaymentService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private PaymentService paymentService;
+
     @Transactional
     public Long createBuyerPayment(Long companyId, CreateBuyerPaymentDto request) {
-        Companies senderComp = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(request.getVendorId(), companyId)
@@ -82,15 +84,13 @@ public class BuyerPaymentService {
         // -------------------------------------
 
         Payments payment = new Payments();
-        payment.setSenderComp(senderComp);
         payment.setVendors(vendor);
 
         if (vendor.getVendorCompany() != null) {
-            payment.setReceiverComp(vendor.getVendorCompany());
             Long expectedCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
 
             CustomerVendorLink customerVendorLink = customerVendorLinkRepository
-                    .findByVendorVendorIdAndCustomerCompanyId(vendor.getVendorId(), expectedCustomerCompanyId)
+                    .findByVendorVendorIdAndCustomerCompanyCompanyId(vendor.getVendorId(), expectedCustomerCompanyId)
                     .orElseThrow(() -> new RuntimeException(
                             "Customer-vendor link not found for payments-made. " +
                                     "vendorId=" + vendor.getVendorId() +
@@ -121,6 +121,7 @@ public class BuyerPaymentService {
         // Create Payment Details
         setPaymentDetails(payment, request.getPaymentDetails());
         payment.setPaymentStatus(PaymentStatus.getPaid());
+        payment.setPaymentNumber(paymentService.getNextPaymentNumber(companyId));
 
         Payments savedPayment = paymentRepository.save(payment);
 
@@ -133,10 +134,10 @@ public class BuyerPaymentService {
         if (savedPayment.getReceiverComp() != null) {
             Long toCompanyId = savedPayment.getReceiverComp().getCompanyId();
             notificationService.createCompanyNotification(
-                    senderComp.getCompanyId(),
+                    companyId,
                     toCompanyId,
                     "New Buyer Payment",
-                    "A buyer payment is made by " + senderComp.getCompanyName(),
+                    "A buyer payment is made by " + vendor.getCompany().getCompanyName(),
                     "BUYER_PAYMENT_CREATED",
                     "View Payments",
                     "/companies/" + toCompanyId + "/payments/received");
@@ -222,7 +223,7 @@ public class BuyerPaymentService {
                 ((Number) row[0]).longValue(),           // payment_id
                 (LocalDateTime) row[1],                  // payment_date
                 (String) row[2],                         // order_ids
-                row[3] != null ? ((Number) row[3]).longValue() : null,  // payment_number
+                row[3] != null ? (String) row[3] : null,  // payment_number
                 row[4] != null ? ((Number) row[4]).doubleValue() : null, // amount
                 (String) row[5],                         // vendor_name
                 (String) row[6],                         // mode_of_payment

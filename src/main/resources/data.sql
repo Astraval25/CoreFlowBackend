@@ -106,6 +106,36 @@ $$ LANGUAGE plpgsql;
 -- SELECT generate_order_number(:companyId);
 
 -- =============================
+-- Payment number generation
+-- =============================
+
+-- Tracks per-company, per-period payment sequences (mirrors company_order_sequence)
+CREATE TABLE IF NOT EXISTS company_payment_sequence (
+  company_id BIGINT,
+  period CHAR(6), -- MMYYYY
+  last_value BIGINT,
+  PRIMARY KEY (company_id, period)
+);
+
+-- Returns the next payment number in the format PAY-MMYYYY-SEQ
+-- Usage: SELECT generate_payment_number(:companyId);
+CREATE OR REPLACE FUNCTION generate_payment_number(p_company_id BIGINT)
+RETURNS TEXT AS $$
+DECLARE
+  v_period TEXT := TO_CHAR(NOW(), 'MMYYYY');
+  v_next BIGINT;
+BEGIN
+  INSERT INTO company_payment_sequence(company_id, period, last_value)
+  VALUES (p_company_id, v_period, 1)
+  ON CONFLICT (company_id, period)
+  DO UPDATE SET last_value = company_payment_sequence.last_value + 1
+  RETURNING last_value INTO v_next;
+
+  RETURN 'PAY-' || v_period || '-' || v_next;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================
 -- Due amount helper SQL objects
 -- =============================
 
@@ -117,10 +147,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(o.total_amount, 0.0))
       FROM order_details o
-      JOIN customers c ON c.customer_id = o.customer
-      WHERE c.customer_id = p_customer_id
+      WHERE o.customer = p_customer_id
         AND COALESCE(o.is_active, TRUE) = TRUE
-        AND o.seller_company = c.comp_id
         AND COALESCE(o.order_status, '') NOT IN (
           'QUOTATION',
           'QUOTATION_VIEWED',
@@ -132,10 +160,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(p.amount, 0.0))
       FROM payments p
-      JOIN customers c ON c.customer_id = p.customer
-      WHERE c.customer_id = p_customer_id
+      WHERE p.customer = p_customer_id
         AND COALESCE(p.is_active, TRUE) = TRUE
-        AND p.receiver_comp = c.comp_id
         AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
     ), 0.0);
 $$ LANGUAGE SQL STABLE;
@@ -147,10 +173,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(o.total_amount, 0.0))
       FROM order_details o
-      JOIN vendors v ON v.vendor_id = o.vendor
-      WHERE v.vendor_id = p_vendor_id
+      WHERE o.vendor = p_vendor_id
         AND COALESCE(o.is_active, TRUE) = TRUE
-        AND o.buyer_company = v.comp_id
         AND COALESCE(o.order_status, '') NOT IN (
           'QUOTATION',
           'QUOTATION_VIEWED',
@@ -162,10 +186,8 @@ RETURNS DOUBLE PRECISION AS $$
     COALESCE((
       SELECT SUM(COALESCE(p.amount, 0.0))
       FROM payments p
-      JOIN vendors v ON v.vendor_id = p.vendor
-      WHERE v.vendor_id = p_vendor_id
+      WHERE p.vendor = p_vendor_id
         AND COALESCE(p.is_active, TRUE) = TRUE
-        AND p.sender_comp = v.comp_id
         AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
     ), 0.0);
 $$ LANGUAGE SQL STABLE;

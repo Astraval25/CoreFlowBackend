@@ -74,10 +74,8 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
              COALESCE((
                SELECT SUM(COALESCE(o.total_amount, 0.0))
                FROM order_details o
-               JOIN vendors v ON v.vendor_id = o.vendor
-               WHERE v.vendor_id = :vendorId
+               WHERE o.vendor = :vendorId
                  AND COALESCE(o.is_active, TRUE) = TRUE
-                 AND o.buyer_company = v.comp_id
                  AND COALESCE(o.order_status, '') NOT IN (
                    'QUOTATION',
                    'QUOTATION_VIEWED',
@@ -89,10 +87,8 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
              COALESCE((
                SELECT SUM(COALESCE(p.amount, 0.0))
                FROM payments p
-               JOIN vendors v ON v.vendor_id = p.vendor
-               WHERE v.vendor_id = :vendorId
+               WHERE p.vendor = :vendorId
                  AND COALESCE(p.is_active, TRUE) = TRUE
-                 AND p.sender_comp = v.comp_id
                  AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
              ), 0.0)
            """, nativeQuery = true)

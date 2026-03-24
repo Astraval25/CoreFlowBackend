@@ -14,8 +14,11 @@ import com.astraval.coreflow.modules.payments.model.Payments;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payments, Long> {
 
+    @Query(value = "SELECT generate_payment_number(?1)", nativeQuery = true)
+    String generatePaymentNumber(@Param("companyId") Long companyId);
+
     @Query(value = """
-            SELECT 
+            SELECT
               p.payment_id,
               p.payment_date,
               STRING_AGG(poa.order_id::text, ', ') AS order_ids,
@@ -25,12 +28,12 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
               p.mode_of_payment,
               p.payment_status,
               p.is_active,
-              p.reference_number 
+              p.reference_number
             FROM payments p
             LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
             LEFT JOIN vendors v ON v.vendor_id = p.vendor
-            WHERE p.sender_comp = :companyId
-            GROUP BY 
+            WHERE v.comp_id = :companyId
+            GROUP BY
               p.payment_id, p.payment_date, p.payment_number, p.amount,
               v.vendor_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number
             ORDER BY p.payment_date DESC
@@ -38,7 +41,7 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
     List<Object[]> findPayerPaymentSummaryByCompanyIdNative(@Param("companyId") Long companyId);
 
     @Query(value = """
-            SELECT 
+            SELECT
               p.payment_id,
               p.payment_date,
               STRING_AGG(poa.order_id::text, ', ') AS order_ids,
@@ -48,12 +51,12 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
               p.mode_of_payment,
               p.payment_status,
               p.is_active,
-              p.reference_number 
+              p.reference_number
             FROM payments p
             LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
             LEFT JOIN customers c ON c.customer_id = p.customer
-            WHERE p.receiver_comp = :companyId
-            GROUP BY 
+            WHERE c.comp_id = :companyId
+            GROUP BY
               p.payment_id, p.payment_date, p.payment_number, p.amount,
               c.customer_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number
             ORDER BY p.payment_date DESC
@@ -62,10 +65,10 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
 
     @Query("""
             SELECT p FROM Payments p
-            LEFT JOIN FETCH p.senderComp
-            LEFT JOIN FETCH p.receiverComp
-            LEFT JOIN FETCH p.vendors
-            LEFT JOIN FETCH p.customers
+            LEFT JOIN FETCH p.customers c
+            LEFT JOIN FETCH c.company
+            LEFT JOIN FETCH p.vendors v
+            LEFT JOIN FETCH v.company
             LEFT JOIN FETCH p.paymentProofFile
             WHERE p.paymentId = :paymentId
             """)

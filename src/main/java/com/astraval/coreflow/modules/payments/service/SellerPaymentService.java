@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.CustomerVendorLink;
 import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
@@ -72,19 +71,20 @@ public class SellerPaymentService {
     @Autowired
     private PartnerBalanceService partnerBalanceService;
 
+    @Autowired
+    private PaymentService paymentService;
+
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
-        Companies receiverComp = companyRepository.findById(companyId)
+        companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Customers customer = customerService.getCustomerById(companyId, request.getCustomerId());
 
         Payments payment = new Payments();
-        payment.setReceiverComp(receiverComp);
         payment.setCustomers(customer);
-        
+
         if (customer.getCustomerCompany() != null) {
-            payment.setSenderComp(customer.getCustomerCompany());
             Long expectedVendorCompanyId = customer.getCustomerCompany().getCompanyId();
 
             CustomerVendorLink customerVendorLink = customerVendorLinkRepository
@@ -119,6 +119,7 @@ public class SellerPaymentService {
         // Create Payment Details
         setPaymentDetails(payment, request.getPaymentDetails());
         payment.setPaymentStatus(PaymentStatus.getPaid());
+        payment.setPaymentNumber(paymentService.getNextPaymentNumber(companyId));
 
         Payments savedPayment = paymentRepository.save(payment);
         
@@ -205,7 +206,7 @@ public class SellerPaymentService {
                 ((Number) row[0]).longValue(),           // payment_id
                 (LocalDateTime) row[1],                  // payment_date
                 (String) row[2],                         // order_ids
-                row[3] != null ? ((Number) row[3]).longValue() : null,  // payment_number
+                row[3] != null ? (String) row[3] : null,  // payment_number
                 row[4] != null ? ((Number) row[4]).doubleValue() : null, // amount
                 (String) row[5],                         // customer_name
                 (String) row[6],                         // mode_of_payment
