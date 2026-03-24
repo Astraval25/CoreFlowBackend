@@ -53,45 +53,106 @@ payment_number = PAY-032026-3         payment_number = PAY-032026-3  <-- A's num
 
 ---
 
-## The Solution: Company-Specific Overlay Tables
+## The Solution: Platform Reference + Company-Specific Overlay
 
-Separate the **shared record** (the single-source-of-truth row) from **company-specific metadata** (each company's own view of that record).
+Two layers solve this problem:
+
+1. **Platform Reference Number** — a globally unique identifier on the shared row that both parties use to refer to the same transaction (like a tracking number).
+2. **Company Overlay Table** — each company gets their own row with their own local number, remarks, and metadata.
 
 ### Architecture
 
 ```
-                    SHARED (single row, both companies read)
-                    ┌─────────────────────────────┐
-                    │       order_details          │
-                    │  order_id = 100              │
-                    │  customer = 5                │
-                    │  vendor = 8                  │
-                    │  total_amount = 50000        │
-                    │  paid_amount = 20000         │
-                    │  order_status = INVOICED     │
-                    │  items, tax, discount...     │
-                    └──────────┬──────────────────┘
-                               │
-              ┌────────────────┴────────────────┐
-              │                                 │
-    COMPANY-SPECIFIC                  COMPANY-SPECIFIC
-    ┌─────────────────────┐          ┌─────────────────────┐
-    │ company_order_ref   │          │ company_order_ref   │
-    │ company_id = 1      │          │ company_id = 2      │
-    │ order_id = 100      │          │ order_id = 100      │
-    │ local_order_number  │          │ local_order_number  │
-    │   = "INV-032026-5"  │          │   = "PO-032026-12"  │
-    │ internal_remarks    │          │ internal_remarks    │
-    │   = "Rush order"    │          │   = "Check quality" │
-    │ internal_status     │          │ internal_status     │
-    │   = "APPROVED"      │          │   = "PENDING_REVIEW"│
-    └─────────────────────┘          └─────────────────────┘
-       Company A (Seller)               Company B (Buyer)
+                        SHARED (single row, both companies read)
+                        ┌─────────────────────────────────────┐
+                        │          order_details               │
+                        │  order_id = 100                      │
+                        │  platform_ref = "CF-ORD-20260324-100"│  <-- common identifier
+                        │  customer = 5                        │
+                        │  vendor = 8                          │
+                        │  total_amount = 50000                │
+                        │  paid_amount = 20000                 │
+                        │  order_status = INVOICED             │
+                        │  items, tax, discount...             │
+                        └──────────────┬──────────────────────┘
+                                       │
+                  ┌────────────────────┴─────────────────────┐
+                  │                                          │
+       COMPANY-SPECIFIC                           COMPANY-SPECIFIC
+       ┌──────────────────────┐                   ┌──────────────────────┐
+       │  company_order_ref   │                   │  company_order_ref   │
+       │  company_id = 1      │                   │  company_id = 2      │
+       │  order_id = 100      │                   │  order_id = 100      │
+       │  local_order_number  │                   │  local_order_number  │
+       │    = "SO-032026-5"   │                   │    = "PO-032026-12"  │
+       │  internal_remarks    │                   │  internal_remarks    │
+       │    = "Rush order"    │                   │    = "Check quality" │
+       │  internal_status     │                   │  internal_status     │
+       │    = "APPROVED"      │                   │    = "PENDING_REVIEW"│
+       └──────────────────────┘                   └──────────────────────┘
+          Company A (Seller)                         Company B (Buyer)
 ```
 
-### New Tables
+---
 
-#### `company_order_ref`
+## Platform Reference Number
+
+A **platform-level identifier** that uniquely identifies an order or payment across the entire platform. Both companies see and can share this number to refer to the same transaction — like a tracking number.
+
+### Format
+
+```
+CF-ORD-YYYYMMDD-{SEQ}      (orders)
+CF-PAY-YYYYMMDD-{SEQ}      (payments)
+```
+
+Examples:
+- `CF-ORD-20260324-1042` — the 1042nd order created on the platform on 2026-03-24
+- `CF-PAY-20260324-387` — the 387th payment on that date
+
+### Where it lives
+
+```sql
+-- On the shared order_details table
+ALTER TABLE order_details ADD COLUMN platform_ref VARCHAR(50) UNIQUE;
+
+-- On the shared payments table
+ALTER TABLE payments ADD COLUMN platform_ref VARCHAR(50) UNIQUE;
+```
+
+### Generation (platform-wide sequence, NOT per-company)
+
+```sql
+CREATE SEQUENCE IF NOT EXISTS platform_order_seq;
+CREATE SEQUENCE IF NOT EXISTS platform_payment_seq;
+
+CREATE OR REPLACE FUNCTION generate_platform_order_ref()
+RETURNS TEXT AS $$
+BEGIN
+  RETURN 'CF-ORD-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || nextval('platform_order_seq');
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION generate_platform_payment_ref()
+RETURNS TEXT AS $$
+BEGIN
+  RETURN 'CF-PAY-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || nextval('platform_payment_seq');
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Use cases for Platform Reference
+
+- **Cross-company communication**: "I'm calling about order CF-ORD-20260324-1042" — both parties know exactly which order.
+- **Support tickets**: Customer support can look up any transaction by platform ref.
+- **Payment matching**: Link a payment to an order using platform refs visible to both parties.
+- **Audit trail**: A single reference that never changes regardless of each company's local numbering.
+
+---
+
+## Company-Specific Overlay Tables
+
+### `company_order_ref`
 
 Each company gets its own row per order, storing company-specific metadata.
 
@@ -100,11 +161,11 @@ CREATE TABLE IF NOT EXISTS company_order_ref (
     company_order_ref_id BIGSERIAL PRIMARY KEY,
     company_id           BIGINT NOT NULL REFERENCES companies(comp_id),
     order_id             BIGINT NOT NULL REFERENCES order_details(order_id),
-    local_order_number   VARCHAR(50),      -- company's own order number
+    local_order_number   VARCHAR(50),      -- company's own order number (customizable format)
     internal_remarks     TEXT,              -- private notes (not visible to other party)
     internal_status      VARCHAR(50),       -- company's own approval/workflow status
     internal_tags        VARCHAR(255),      -- company's own categorization
-    custom_reference     VARCHAR(100),      -- company's own reference (PO number, etc.)
+    custom_reference     VARCHAR(100),      -- company's own external reference (PO number, etc.)
 
     -- Audit
     created_by           BIGINT,
@@ -116,7 +177,7 @@ CREATE TABLE IF NOT EXISTS company_order_ref (
 );
 ```
 
-#### `company_payment_ref`
+### `company_payment_ref`
 
 Same pattern for payments.
 
@@ -125,7 +186,7 @@ CREATE TABLE IF NOT EXISTS company_payment_ref (
     company_payment_ref_id BIGSERIAL PRIMARY KEY,
     company_id             BIGINT NOT NULL REFERENCES companies(comp_id),
     payment_id             BIGINT NOT NULL REFERENCES payments(payment_id),
-    local_payment_number   VARCHAR(50),      -- company's own payment number
+    local_payment_number   VARCHAR(50),      -- company's own payment number (customizable format)
     internal_remarks       TEXT,
     internal_status        VARCHAR(50),
     custom_reference       VARCHAR(100),
@@ -140,85 +201,123 @@ CREATE TABLE IF NOT EXISTS company_payment_ref (
 );
 ```
 
-### How It Works
+### Company-Level Number Format (Customizable)
 
-#### Creating an Order
+Each company configures their own number format via the `company_config` table (see [customization.md](customization.md)).
+
+```
+Company A (Seller) config:
+  sales_order_prefix  = "SO"
+  format              = "{PREFIX}-{MMYYYY}-{SEQ}"
+  Result              = "SO-032026-5"
+
+Company B (Buyer) config:
+  purchase_order_prefix = "PO"
+  format                = "{PREFIX}-{MMYYYY}-{SEQ}"
+  Result                = "PO-032026-12"
+```
+
+The `generate_order_number()` function reads the company's format config and generates accordingly. See [customization.md](customization.md) for the full format specification.
+
+---
+
+## How It Works End-to-End
+
+### Creating a Sales Order (linked parties)
 
 When Company A (seller) creates a sales order for linked Company B (buyer):
 
 ```
-1. Insert into order_details          → shared row (order_id = 100)
-2. Insert into company_order_ref      → Company A's local ref (INV-032026-5)
-3. Insert into company_order_ref      → Company B's local ref (PO-032026-12)
-         ↑                                      ↑
-   Seller's sequence                      Buyer's sequence
-   generate_order_number(companyA)        generate_order_number(companyB)
+Step 1: Insert into order_details
+        → platform_ref = generate_platform_order_ref()     = "CF-ORD-20260324-1042"
+        → customer = 5, vendor = 8
+        → total_amount, tax, items...
+
+Step 2: Insert into company_order_ref for Company A (seller)
+        → local_order_number = generate_order_number(companyA)  = "SO-032026-5"
+           (uses Company A's sales order format config)
+
+Step 3: Insert into company_order_ref for Company B (buyer)
+        → local_order_number = generate_order_number(companyB)  = "PO-032026-12"
+           (uses Company B's purchase order format config)
 ```
 
-#### Reading an Order
+### Creating an Order (unlinked party)
+
+When a company creates an order for an **unlinked** customer/vendor, only ONE `company_order_ref` row is created — for the creating company. The platform ref is still generated on the shared row.
+
+If the parties later become linked, a `company_order_ref` row can be created for the newly linked company at that time.
+
+### Reading an Order
 
 When Company A views the order:
 ```sql
-SELECT o.*, cor.local_order_number, cor.internal_remarks, cor.internal_status
+SELECT o.order_id, o.platform_ref, o.total_amount, o.order_status,
+       cor.local_order_number, cor.internal_remarks, cor.internal_status
 FROM order_details o
 JOIN company_order_ref cor ON cor.order_id = o.order_id AND cor.company_id = :myCompanyId
 WHERE o.order_id = :orderId
 ```
 
-Company A sees `local_order_number = INV-032026-5` (their own number).
-Company B sees `local_order_number = PO-032026-12` (their own number).
-Both see the same `total_amount`, `items`, `paid_amount`, etc.
+| Field | Company A sees | Company B sees |
+|---|---|---|
+| `platform_ref` | CF-ORD-20260324-1042 | CF-ORD-20260324-1042 (same) |
+| `local_order_number` | SO-032026-5 | PO-032026-12 |
+| `total_amount` | 50000 | 50000 (same) |
+| `internal_remarks` | "Rush order" | "Check quality" |
 
-#### Listing Orders
+### Creating a Payment (linked parties)
 
-```sql
--- Company A's sales order list
-SELECT o.order_id, cor.local_order_number, o.order_date, o.total_amount, ...
-FROM order_details o
-JOIN company_order_ref cor ON cor.order_id = o.order_id AND cor.company_id = :myCompanyId
-JOIN o.customers c
-JOIN c.company sc
-WHERE sc.comp_id = :myCompanyId
-ORDER BY o.order_date DESC
+Same pattern:
+
+```
+Step 1: Insert into payments
+        → platform_ref = generate_platform_payment_ref()   = "CF-PAY-20260324-387"
+        → customer = 5, vendor = 8, amount, mode...
+
+Step 2: Insert into company_payment_ref for sender (buyer)
+        → local_payment_number = generate_payment_number(buyerCompany) = "PAY-032026-3"
+
+Step 3: Insert into company_payment_ref for receiver (seller)
+        → local_payment_number = generate_payment_number(sellerCompany) = "REC-032026-8"
 ```
 
-Each company always sees their own order numbers in their own lists.
-
 ---
 
-### What Stays in `order_details` vs What Moves to `company_order_ref`
+## What Stays in `order_details` vs What Goes Where
 
-| Column | Stays in `order_details` | Moves to `company_order_ref` | Why |
-|---|---|---|---|
-| `order_id` | YES | - | Primary key |
-| `customer` / `vendor` | YES | - | Defines the relationship |
-| `total_amount`, `tax`, `discount` | YES | - | Agreed upon by both parties |
-| `paid_amount` | YES | - | Factual, same for both |
-| `order_status` | YES | - | Shared transaction status |
-| `order_number` | REMOVE | YES (`local_order_number`) | Each company has their own |
-| `payment_remarks` | Depends | Could split | Shared vs private remarks |
-
-The `order_number` column on `order_details` can either:
-- **Option A**: Be removed entirely (each company uses `company_order_ref.local_order_number`)
-- **Option B**: Be kept as a "canonical" reference (the creator's number) while each company also has their own local number
-
-Option B is safer for a gradual migration — keep the existing `order_number` as-is and add the overlay table on top.
-
----
-
-### For Unlinked Parties
-
-When a company creates an order for an **unlinked** customer/vendor (no linked company on the other side), only ONE `company_order_ref` row is created — for the creating company. There is no second company to generate a number for.
-
-If the parties later become linked, a `company_order_ref` row can be created for the newly linked company at that time.
-
----
-
-### Summary
-
-| Concept | Table | Visibility |
+| Data | Table | Why |
 |---|---|---|
-| Transaction data (amount, items, status) | `order_details` / `payments` | Both companies see the SAME data |
-| Company-specific metadata (order number, notes) | `company_order_ref` / `company_payment_ref` | Each company sees ONLY THEIR OWN data |
+| `order_id` | `order_details` | Primary key |
+| `platform_ref` | `order_details` | Common identifier for both parties |
+| `customer` / `vendor` | `order_details` | Defines the B2B relationship |
+| `total_amount`, `tax`, `discount` | `order_details` | Agreed upon by both parties |
+| `paid_amount` | `order_details` | Factual, same for both |
+| `order_status` | `order_details` | Shared transaction status |
+| `order_number` | `company_order_ref` (`local_order_number`) | Each company has their own |
+| Private remarks | `company_order_ref` (`internal_remarks`) | Not visible to other party |
+| Internal approval | `company_order_ref` (`internal_status`) | Each company's own workflow |
 
-This pattern is called **"shared record + company overlay"** — the shared record is the single source of truth for the transaction, while the overlay tables let each company maintain their own perspective on that transaction without breaking the single-source principle.
+### Migration approach
+
+The existing `order_number` column on `order_details` can be kept as-is during migration. The overlay tables are additive — no existing data or API needs to break. Gradually:
+1. Add `platform_ref` to shared tables
+2. Add overlay tables
+3. Populate overlay `local_order_number` from existing `order_number` for creator company
+4. Update APIs to read from overlay instead of shared `order_number`
+5. Eventually deprecate the shared `order_number` column
+
+---
+
+## Three-Layer Summary
+
+| Layer | Table | Scope | Example |
+|---|---|---|---|
+| Platform identity | `order_details.platform_ref` | Global, same for everyone | `CF-ORD-20260324-1042` |
+| Shared transaction data | `order_details.*` | Both companies see the same values | `total_amount = 50000` |
+| Company-specific metadata | `company_order_ref` | Each company sees only their own | `local_order_number = "SO-032026-5"` |
+
+This design ensures:
+- Both parties can always identify the same transaction (platform ref)
+- Transaction data is never duplicated (single-source)
+- Each company maintains full control over their own numbering, notes, and workflows (overlay)
