@@ -2,19 +2,62 @@
 
 ## Overview
 
-Each company on the CoreFlow platform can customize various aspects of their experience. All company-level configuration is stored in a single `company_config` table, designed to be extended with new config keys over time without schema changes.
+Each company on the CoreFlow platform can customize various aspects of their experience. The customization system uses two tables:
+
+1. **`config_definition`** — platform-wide table defining all available config keys with their default values. Managed by admins. No redeploy needed to change defaults.
+2. **`company_config`** — sparse table storing only the overrides per company. If a company hasn't overridden a key, the platform default from `config_definition` is used.
+
+```
+Resolution order:  company_config (override)  →  config_definition (default)
+```
 
 ---
 
-## `company_config` Table
+## Tables
+
+### `config_definition` (Platform Defaults)
+
+One row per config key. Defines what configs exist, their defaults, data types, and descriptions. This is the **single source of truth for all default values** — no defaults are hardcoded in Java or SQL.
+
+```sql
+CREATE TABLE IF NOT EXISTS config_definition (
+    config_definition_id BIGSERIAL PRIMARY KEY,
+    config_key           VARCHAR(100) NOT NULL UNIQUE,
+    default_value        VARCHAR(500) NOT NULL,
+    data_type            VARCHAR(20)  NOT NULL DEFAULT 'STRING',  -- STRING, INTEGER, BOOLEAN, DECIMAL
+    category             VARCHAR(50),                             -- grouping: 'NUMBERING', 'DISPLAY', 'TAX', etc.
+    description          VARCHAR(500),
+    is_active            BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_dt           TIMESTAMP DEFAULT NOW(),
+    modified_dt          TIMESTAMP
+);
+```
+
+**Seed data** (inserted once at deployment):
+
+```sql
+INSERT INTO config_definition (config_key, default_value, data_type, category, description) VALUES
+-- Number format
+('sales_order_prefix',    'SO',                       'STRING',  'NUMBERING', 'Prefix for sales order numbers'),
+('purchase_order_prefix', 'PO',                       'STRING',  'NUMBERING', 'Prefix for purchase order numbers'),
+('payment_out_prefix',    'PAY',                      'STRING',  'NUMBERING', 'Prefix for outgoing payment numbers (buyer side)'),
+('payment_in_prefix',     'REC',                      'STRING',  'NUMBERING', 'Prefix for incoming payment numbers (seller side)'),
+('number_format',         '{PREFIX}-{MMYYYY}-{SEQ}',  'STRING',  'NUMBERING', 'Format template for all number generation'),
+('seq_padding',           '0',                        'INTEGER', 'NUMBERING', 'Zero-pad sequence number (0 = no padding, 4 = 0005)')
+ON CONFLICT (config_key) DO NOTHING;
+```
+
+### `company_config` (Company Overrides)
+
+Sparse table — only rows where a company has explicitly overridden a default. If no row exists for a `(company_id, config_key)` pair, the platform default from `config_definition` is used.
 
 ```sql
 CREATE TABLE IF NOT EXISTS company_config (
     company_config_id BIGSERIAL PRIMARY KEY,
     company_id        BIGINT NOT NULL REFERENCES companies(comp_id),
-    config_key        VARCHAR(100) NOT NULL,
+    config_key        VARCHAR(100) NOT NULL REFERENCES config_definition(config_key),
     config_value      VARCHAR(500) NOT NULL,
-    description       VARCHAR(255),
 
     -- Audit
     created_by        BIGINT,
@@ -26,11 +69,67 @@ CREATE TABLE IF NOT EXISTS company_config (
 );
 ```
 
-### Design Rationale
+### Resolution Logic
 
-- **Key-value pair**: Each config is a `(company_id, config_key, config_value)` tuple. New customizations can be added by inserting new keys — no ALTER TABLE needed.
-- **Defaults**: If a company has no row for a given `config_key`, the application uses a platform default. This means the table is sparse — only companies that override defaults have rows.
-- **Typed in code**: The Java service layer interprets `config_value` based on the `config_key` (e.g., parse as String for prefixes, Integer for sequence padding).
+```
+Has company_config row for (company_id, config_key)?
+  YES → use company_config.config_value
+  NO  → use config_definition.default_value
+```
+
+**In SQL:**
+
+```sql
+-- Get effective config value for a company
+SELECT COALESCE(
+    (SELECT config_value FROM company_config
+     WHERE company_id = p_company_id AND config_key = 'sales_order_prefix'),
+    (SELECT default_value FROM config_definition
+     WHERE config_key = 'sales_order_prefix')
+) INTO v_prefix;
+```
+
+**In Java:**
+
+```java
+public String getConfig(Long companyId, String key) {
+    return companyConfigRepo
+        .findByCompanyCompanyIdAndConfigKey(companyId, key)
+        .map(CompanyConfig::getConfigValue)
+        .orElseGet(() -> configDefinitionRepo
+            .findByConfigKey(key)
+            .map(ConfigDefinition::getDefaultValue)
+            .orElse(null));
+}
+```
+
+### Example State
+
+```
+config_definition:
+┌──────────────────────┬───────────────────────────┐
+│ config_key           │ default_value             │
+├──────────────────────┼───────────────────────────┤
+│ sales_order_prefix   │ SO                        │
+│ purchase_order_prefix│ PO                        │
+│ number_format        │ {PREFIX}-{MMYYYY}-{SEQ}   │
+│ seq_padding          │ 0                         │
+└──────────────────────┴───────────────────────────┘
+
+company_config (only overrides):
+┌────────────┬──────────────────────┬──────────────────────────┐
+│ company_id │ config_key           │ config_value             │
+├────────────┼──────────────────────┼──────────────────────────┤
+│ 2          │ sales_order_prefix   │ INV                      │
+│ 2          │ seq_padding          │ 4                        │
+│ 3          │ number_format        │ {PREFIX}/{YYYY}/{MM}/{SEQ}│
+└────────────┴──────────────────────┴──────────────────────────┘
+
+Effective values:
+  Company 1: SO-032026-5          (all defaults, no overrides)
+  Company 2: INV-032026-0005      (custom prefix + padding)
+  Company 3: SO/2026/03/5         (custom format, default prefix)
+```
 
 ---
 
@@ -38,14 +137,14 @@ CREATE TABLE IF NOT EXISTS company_config (
 
 ### Config Keys
 
-| Config Key | Default Value | Description |
-|---|---|---|
-| `sales_order_prefix` | `SO` | Prefix for sales order numbers |
-| `purchase_order_prefix` | `PO` | Prefix for purchase order numbers |
-| `payment_out_prefix` | `PAY` | Prefix for outgoing payment numbers (buyer side) |
-| `payment_in_prefix` | `REC` | Prefix for incoming payment numbers (seller side) |
-| `number_format` | `{PREFIX}-{MMYYYY}-{SEQ}` | Format template for all number generation |
-| `seq_padding` | `0` | Zero-pad the sequence number (0 = no padding, 4 = "0005") |
+| Config Key | Default Value | Data Type | Description |
+|---|---|---|---|
+| `sales_order_prefix` | `SO` | STRING | Prefix for sales order numbers |
+| `purchase_order_prefix` | `PO` | STRING | Prefix for purchase order numbers |
+| `payment_out_prefix` | `PAY` | STRING | Prefix for outgoing payment numbers (buyer side) |
+| `payment_in_prefix` | `REC` | STRING | Prefix for incoming payment numbers (seller side) |
+| `number_format` | `{PREFIX}-{MMYYYY}-{SEQ}` | STRING | Format template for all number generation |
+| `seq_padding` | `0` | INTEGER | Zero-pad the sequence number (0 = no padding, 4 = "0005") |
 
 ### Format Tokens
 
@@ -60,30 +159,32 @@ The `number_format` template supports these tokens:
 | `{MMYYYY}` | Month + year | `032026` |
 | `{YYYYMM}` | Year + month | `202603` |
 | `{DD}` | 2-digit day | `24` |
-| `{SEQ}` | Auto-incrementing sequence number (per company, per period) | `5` or `0005` |
+| `{SEQ}` | Auto-incrementing sequence number (per company, per type, per period) | `5` or `0005` |
 
 ### Examples
 
-**Company A** — default config:
+**Company A** — no overrides (all defaults):
 ```
-sales_order_prefix  = "SO"
-number_format       = "{PREFIX}-{MMYYYY}-{SEQ}"
+sales_order_prefix  = "SO"       (from config_definition)
+number_format       = "{PREFIX}-{MMYYYY}-{SEQ}"  (from config_definition)
+seq_padding         = 0          (from config_definition)
 Result              = "SO-032026-5"
 ```
 
-**Company B** — custom config:
+**Company B** — overrides prefix and padding:
 ```
-sales_order_prefix  = "INV"
-number_format       = "{PREFIX}/{YYYY}/{MM}/{SEQ}"
-seq_padding         = 4
-Result              = "INV/2026/03/0012"
+sales_order_prefix  = "INV"      (from company_config)
+number_format       = "{PREFIX}-{MMYYYY}-{SEQ}"  (from config_definition, not overridden)
+seq_padding         = 4          (from company_config)
+Result              = "INV-032026-0005"
 ```
 
-**Company C** — minimal:
+**Company C** — overrides format:
 ```
-purchase_order_prefix = "PUR"
-number_format         = "{PREFIX}-{SEQ}"
-Result                = "PUR-42"
+sales_order_prefix  = "SO"       (from config_definition, not overridden)
+number_format       = "{PREFIX}/{YYYY}/{MM}/{SEQ}"  (from company_config)
+seq_padding         = 0          (from config_definition, not overridden)
+Result              = "SO/2026/03/5"
 ```
 
 ### Sequence Reset Period
@@ -93,11 +194,23 @@ The sequence counter resets based on the period tokens in the format:
 - If format contains only `{YYYY}` or `{YY}` → resets yearly
 - If format has no date tokens → never resets (continuous)
 
-This is managed by the existing `company_order_sequence` / `company_payment_sequence` tables, with the period key derived from the format.
+### Unified Sequence Table
 
-### SQL Function Update
+Replace the separate `company_order_sequence` and `company_payment_sequence` tables with one:
 
-The `generate_order_number()` and `generate_payment_number()` functions would be updated to:
+```sql
+CREATE TABLE IF NOT EXISTS company_number_sequence (
+    company_id   BIGINT,
+    number_type  VARCHAR(20),   -- 'SALES_ORDER', 'PURCHASE_ORDER', 'PAYMENT_OUT', 'PAYMENT_IN'
+    period       CHAR(6),
+    last_value   BIGINT,
+    PRIMARY KEY (company_id, number_type, period)
+);
+```
+
+### SQL Function
+
+The `generate_company_number()` function reads from both tables — company override first, then platform default:
 
 ```sql
 CREATE OR REPLACE FUNCTION generate_company_number(
@@ -114,7 +227,7 @@ DECLARE
     v_result TEXT;
     v_prefix_key TEXT;
 BEGIN
-    -- Determine prefix config key based on type
+    -- Determine which prefix key to look up based on type
     v_prefix_key := CASE p_type
         WHEN 'SALES_ORDER'    THEN 'sales_order_prefix'
         WHEN 'PURCHASE_ORDER' THEN 'purchase_order_prefix'
@@ -122,35 +235,34 @@ BEGIN
         WHEN 'PAYMENT_IN'     THEN 'payment_in_prefix'
     END;
 
-    -- Read company config (with defaults)
+    -- Resolve prefix: company override → platform default
     SELECT COALESCE(
         (SELECT config_value FROM company_config
          WHERE company_id = p_company_id AND config_key = v_prefix_key),
-        CASE p_type
-            WHEN 'SALES_ORDER'    THEN 'SO'
-            WHEN 'PURCHASE_ORDER' THEN 'PO'
-            WHEN 'PAYMENT_OUT'    THEN 'PAY'
-            WHEN 'PAYMENT_IN'     THEN 'REC'
-        END
+        (SELECT default_value FROM config_definition
+         WHERE config_key = v_prefix_key)
     ) INTO v_prefix;
 
+    -- Resolve format: company override → platform default
     SELECT COALESCE(
         (SELECT config_value FROM company_config
          WHERE company_id = p_company_id AND config_key = 'number_format'),
-        '{PREFIX}-{MMYYYY}-{SEQ}'
+        (SELECT default_value FROM config_definition
+         WHERE config_key = 'number_format')
     ) INTO v_format;
 
+    -- Resolve padding: company override → platform default
     SELECT COALESCE(
         (SELECT config_value::INT FROM company_config
          WHERE company_id = p_company_id AND config_key = 'seq_padding'),
-        0
+        (SELECT default_value::INT FROM config_definition
+         WHERE config_key = 'seq_padding')
     ) INTO v_padding;
 
     -- Determine period for sequence grouping
     v_period := TO_CHAR(NOW(), 'MMYYYY');
 
-    -- Get next sequence (reuses existing sequence tables)
-    -- Use a unified sequence table keyed by (company_id, type, period)
+    -- Get next sequence value (atomic upsert)
     INSERT INTO company_number_sequence(company_id, number_type, period, last_value)
     VALUES (p_company_id, p_type, v_period, 1)
     ON CONFLICT (company_id, number_type, period)
@@ -178,49 +290,49 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-### Unified Sequence Table
+---
 
-Replace the separate `company_order_sequence` and `company_payment_sequence` tables with one:
+## Java Entities
 
-```sql
-CREATE TABLE IF NOT EXISTS company_number_sequence (
-    company_id   BIGINT,
-    number_type  VARCHAR(20),   -- 'SALES_ORDER', 'PURCHASE_ORDER', 'PAYMENT_OUT', 'PAYMENT_IN'
-    period       CHAR(6),
-    last_value   BIGINT,
-    PRIMARY KEY (company_id, number_type, period)
-);
+### `ConfigDefinition`
+
+```java
+@Entity
+@Table(name = "config_definition")
+public class ConfigDefinition {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "config_definition_id")
+    private Long configDefinitionId;
+
+    @Column(name = "config_key", nullable = false, unique = true, length = 100)
+    private String configKey;
+
+    @Column(name = "default_value", nullable = false, length = 500)
+    private String defaultValue;
+
+    @Column(name = "data_type", nullable = false, length = 20)
+    private String dataType;  // STRING, INTEGER, BOOLEAN, DECIMAL
+
+    @Column(name = "category", length = 50)
+    private String category;  // NUMBERING, DISPLAY, TAX, etc.
+
+    @Column(name = "description", length = 500)
+    private String description;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @Column(name = "created_dt")
+    private LocalDateTime createdDt;
+
+    @Column(name = "modified_dt")
+    private LocalDateTime modifiedDt;
+}
 ```
 
----
-
-## 2. Future Customization Candidates
-
-These are areas in the current codebase where company-level customization could be added. Each uses the same `company_config` table — just new `config_key` entries.
-
-### Confirmed Patterns (already exist as hardcoded values)
-
-| Area | Current State | Proposed Config Keys |
-|---|---|---|
-| **Order number format** | Hardcoded `ORD-MMYYYY-SEQ` in SQL | `sales_order_prefix`, `purchase_order_prefix`, `number_format`, `seq_padding` |
-| **Payment number format** | Hardcoded `PAY-MMYYYY-SEQ` in SQL | `payment_out_prefix`, `payment_in_prefix` (shares `number_format`) |
-| **Email templates** | Global `email_templates` table | Could add company_id FK for company-specific templates |
-
-### Potential Future Candidates (need confirmation)
-
-| Area | What it would do | Config Keys |
-|---|---|---|
-| **Currency** | No currency field exists; all amounts are unitless. Allow companies to set their currency. | `currency_code` (e.g., `INR`, `USD`), `currency_symbol` (e.g., `₹`, `$`) |
-| **Tax defaults** | Tax rate is set per-item. A company-level default tax rate would auto-populate. | `default_tax_rate` (e.g., `18`), `tax_label` (e.g., `GST`, `VAT`) |
-| **Date format** | API returns ISO dates. Companies may want display format customization. | `date_format` (e.g., `DD/MM/YYYY`, `MM-DD-YYYY`) |
-| **Order statuses** | Hardcoded strings (`QUOTATION`, `INVOICED`, `DELIVERED`, etc.). Companies may want custom workflow statuses. | Would need a separate `company_order_status` table rather than a simple config key |
-| **Payment modes** | Free-text `mode_of_payment`. Companies may want a predefined list. | Would need a separate `company_payment_mode` table |
-| **Auto-numbering scope** | Sequences reset monthly. Some companies may want yearly or never-reset. | `seq_reset_period` (e.g., `MONTHLY`, `YEARLY`, `NEVER`) |
-| **Due amount thresholds** | Alert when a customer/vendor's due amount exceeds a threshold. | `due_amount_alert_threshold` |
-
----
-
-## Java Entity (for reference)
+### `CompanyConfig`
 
 ```java
 @Entity
@@ -244,9 +356,6 @@ public class CompanyConfig {
     @Column(name = "config_value", nullable = false, length = 500)
     private String configValue;
 
-    @Column(name = "description", length = 255)
-    private String description;
-
     @CreatedBy
     @Column(name = "created_by")
     private Long createdBy;
@@ -265,39 +374,119 @@ public class CompanyConfig {
 }
 ```
 
-### Service Usage Pattern
+### `CompanyConfigService`
 
 ```java
 @Service
 public class CompanyConfigService {
 
     @Autowired
-    private CompanyConfigRepository configRepository;
+    private CompanyConfigRepository companyConfigRepo;
 
-    private static final Map<String, String> DEFAULTS = Map.of(
-        "sales_order_prefix", "SO",
-        "purchase_order_prefix", "PO",
-        "payment_out_prefix", "PAY",
-        "payment_in_prefix", "REC",
-        "number_format", "{PREFIX}-{MMYYYY}-{SEQ}",
-        "seq_padding", "0"
-    );
+    @Autowired
+    private ConfigDefinitionRepository configDefinitionRepo;
 
+    /**
+     * Get effective config value for a company.
+     * Resolution: company_config (override) → config_definition (default)
+     */
     public String getConfig(Long companyId, String key) {
-        return configRepository
+        return companyConfigRepo
             .findByCompanyCompanyIdAndConfigKey(companyId, key)
             .map(CompanyConfig::getConfigValue)
-            .orElse(DEFAULTS.get(key));
+            .orElseGet(() -> configDefinitionRepo
+                .findByConfigKey(key)
+                .map(ConfigDefinition::getDefaultValue)
+                .orElse(null));
     }
 
-    public void setConfig(Long companyId, String key, String value) {
-        CompanyConfig config = configRepository
+    /**
+     * Get all effective configs for a company (defaults + overrides merged).
+     */
+    public Map<String, String> getAllConfigs(Long companyId) {
+        // Start with all defaults
+        Map<String, String> result = configDefinitionRepo.findAll().stream()
+            .collect(Collectors.toMap(
+                ConfigDefinition::getConfigKey,
+                ConfigDefinition::getDefaultValue
+            ));
+
+        // Apply company overrides on top
+        companyConfigRepo.findByCompanyCompanyId(companyId)
+            .forEach(cc -> result.put(cc.getConfigKey(), cc.getConfigValue()));
+
+        return result;
+    }
+
+    /**
+     * Set a company-specific override. Creates or updates.
+     */
+    public void setConfig(Long companyId, String key, String value, Companies company) {
+        CompanyConfig config = companyConfigRepo
             .findByCompanyCompanyIdAndConfigKey(companyId, key)
-            .orElse(new CompanyConfig());
-        config.setCompany(/* resolve company */);
-        config.setConfigKey(key);
+            .orElseGet(() -> {
+                CompanyConfig c = new CompanyConfig();
+                c.setCompany(company);
+                c.setConfigKey(key);
+                return c;
+            });
         config.setConfigValue(value);
-        configRepository.save(config);
+        companyConfigRepo.save(config);
+    }
+
+    /**
+     * Remove a company override (revert to platform default).
+     */
+    public void resetToDefault(Long companyId, String key) {
+        companyConfigRepo
+            .findByCompanyCompanyIdAndConfigKey(companyId, key)
+            .ifPresent(companyConfigRepo::delete);
     }
 }
 ```
+
+---
+
+## 2. Future Customization Candidates
+
+These are areas in the current codebase where company-level customization could be added. Each uses the same two-table pattern — add a row to `config_definition` for the default, companies override via `company_config`.
+
+### Confirmed Patterns (already exist as hardcoded values)
+
+| Area | Current State | Config Keys |
+|---|---|---|
+| **Order number format** | Hardcoded `ORD-MMYYYY-SEQ` in SQL | `sales_order_prefix`, `purchase_order_prefix`, `number_format`, `seq_padding` |
+| **Payment number format** | Hardcoded `PAY-MMYYYY-SEQ` in SQL | `payment_out_prefix`, `payment_in_prefix` (shares `number_format`) |
+| **Email templates** | Global `email_templates` table | Could add company_id FK for company-specific templates |
+
+### Potential Future Candidates (need confirmation)
+
+| Area | What it would do | Config Keys | Notes |
+|---|---|---|---|
+| **Currency** | Set company's currency (no currency field exists currently) | `currency_code` (`INR`, `USD`), `currency_symbol` (`₹`, `$`) | Simple key-value config |
+| **Tax defaults** | Company-level default tax rate, auto-populates new items | `default_tax_rate` (`18`), `tax_label` (`GST`, `VAT`) | Simple key-value config |
+| **Date format** | Display format for dates in exports/PDFs | `date_format` (`DD/MM/YYYY`, `MM-DD-YYYY`) | Simple key-value config |
+| **Auto-numbering scope** | Control when sequences reset | `seq_reset_period` (`MONTHLY`, `YEARLY`, `NEVER`) | Simple key-value config |
+| **Due amount thresholds** | Alert when due amount exceeds a limit | `due_amount_alert_threshold` | Simple key-value config |
+| **Order statuses** | Custom workflow statuses beyond hardcoded ones | Needs separate `company_order_status` table | Too complex for key-value |
+| **Payment modes** | Predefined list instead of free-text | Needs separate `company_payment_mode` table | Too complex for key-value |
+
+### Adding a New Config
+
+To add a new customization:
+
+1. Insert a row into `config_definition`:
+   ```sql
+   INSERT INTO config_definition (config_key, default_value, data_type, category, description)
+   VALUES ('currency_code', 'INR', 'STRING', 'DISPLAY', 'Company currency ISO code');
+   ```
+
+2. No code changes needed for resolution — `CompanyConfigService.getConfig()` already handles it.
+
+3. Companies that want a different value insert into `company_config`:
+   ```sql
+   INSERT INTO company_config (company_id, config_key, config_value)
+   VALUES (5, 'currency_code', 'USD');
+   ```
+
+No schema changes. No redeployment. No migration scripts.
