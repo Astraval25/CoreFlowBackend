@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.modules.companyref.CompanyPaymentRefRepository;
 import com.astraval.coreflow.modules.payments.PaymentStatus;
 import com.astraval.coreflow.modules.payments.dto.PaymentOrderAllocationDto;
 import com.astraval.coreflow.modules.payments.dto.PaymentViewDto;
@@ -18,15 +19,23 @@ public class PaymentService {
 
     @Autowired
     private PaymentRepository paymentRepository;
-  
-    public PaymentViewDto getPaymentViewById(Long paymentId) {
+
+    @Autowired
+    private CompanyPaymentRefRepository companyPaymentRefRepository;
+
+    public PaymentViewDto getPaymentViewById(Long companyId, Long paymentId) {
         Payments payment = paymentRepository.findPaymentWithDetailsById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
         
         List<PaymentOrderAllocationDto> allocations = paymentRepository
                 .findPaymentOrderAllocationsByPaymentId(paymentId);
         
-        return mapToPaymentViewDto(payment, allocations);
+        PaymentViewDto dto = mapToPaymentViewDto(payment, allocations);
+
+        companyPaymentRefRepository.findByCompanyCompanyIdAndPaymentPaymentId(companyId, paymentId)
+                .ifPresent(ref -> dto.setLocalPaymentNumber(ref.getLocalPaymentNumber()));
+
+        return dto;
     }
     
     private PaymentViewDto mapToPaymentViewDto(Payments payment, List<PaymentOrderAllocationDto> allocations) {

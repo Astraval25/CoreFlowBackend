@@ -252,7 +252,8 @@ public class BuyerPaymentService {
                 (String) row[7],                         // payment_status
                 (Boolean) row[8],                        // is_active
                 (String) row[9],                         // reference_number
-                row[10] != null ? (String) row[10] : null // platform_ref
+                row[10] != null ? (String) row[10] : null, // platform_ref
+                row[11] != null ? (String) row[11] : null  // local_payment_number
         );
     }
     

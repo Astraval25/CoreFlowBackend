@@ -32,14 +32,17 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
               p.payment_status,
               p.is_active,
               p.reference_number,
-              p.platform_ref
+              p.platform_ref,
+              cpr.local_payment_number
             FROM payments p
             LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
             LEFT JOIN vendors v ON v.vendor_id = p.vendor
+            LEFT JOIN company_payment_ref cpr ON cpr.payment_id = p.payment_id AND cpr.company_id = :companyId
             WHERE v.comp_id = :companyId
             GROUP BY
               p.payment_id, p.payment_date, p.payment_number, p.amount,
-              v.vendor_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number, p.platform_ref
+              v.vendor_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number, p.platform_ref,
+              cpr.local_payment_number
             ORDER BY p.payment_date DESC
             """, nativeQuery = true)
     List<Object[]> findPayerPaymentSummaryByCompanyIdNative(@Param("companyId") Long companyId);
@@ -56,14 +59,17 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
               p.payment_status,
               p.is_active,
               p.reference_number,
-              p.platform_ref
+              p.platform_ref,
+              cpr.local_payment_number
             FROM payments p
             LEFT JOIN payment_order_allocations poa ON p.payment_id = poa.payment_id
             LEFT JOIN customers c ON c.customer_id = p.customer
+            LEFT JOIN company_payment_ref cpr ON cpr.payment_id = p.payment_id AND cpr.company_id = :companyId
             WHERE c.comp_id = :companyId
             GROUP BY
               p.payment_id, p.payment_date, p.payment_number, p.amount,
-              c.customer_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number, p.platform_ref
+              c.customer_name, p.mode_of_payment, p.payment_status, p.is_active, p.reference_number, p.platform_ref,
+              cpr.local_payment_number
             ORDER BY p.payment_date DESC
             """, nativeQuery = true)
     List<Object[]> findPayeePaymentSummaryByCompanyIdNative(@Param("companyId") Long companyId);

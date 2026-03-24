@@ -21,4 +21,5 @@ public class PayerPaymentSummaryDto {
     private Boolean isActive;
     private String referenceNumber;
     private String platformRef;
+    private String localPaymentNumber;
 }

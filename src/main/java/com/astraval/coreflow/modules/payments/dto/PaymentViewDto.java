@@ -15,6 +15,7 @@ public class PaymentViewDto {
     private Long paymentId;
     private String paymentNumber;
     private String platformRef;
+    private String localPaymentNumber;
     private LocalDateTime paymentDate;
     private Double amount;
     private String modeOfPayment;

@@ -24,13 +24,16 @@ public interface PurchaseOrderSnapshotRepository extends JpaRepository<OrderSnap
                 o.paidAmount,
                 o.orderStatus,
                 o.isActive,
-                o.platformRef
+                o.platformRef,
+                cor.localOrderNumber
             )
             FROM OrderSnapshot o
                 LEFT JOIN o.customers c
                 LEFT JOIN c.company sc
                 LEFT JOIN o.vendors v
                 LEFT JOIN v.company bc
+                LEFT JOIN com.astraval.coreflow.modules.companyref.CompanyOrderRef cor
+                    ON cor.orderDetails.orderId = o.orderReference AND cor.company.companyId = :companyId
                 WHERE bc.companyId = :companyId
                 ORDER BY o.orderDate DESC
             """)
