@@ -33,6 +33,8 @@ import com.astraval.coreflow.modules.payments.model.Payments;
 import com.astraval.coreflow.modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
+import com.astraval.coreflow.modules.companyref.CompanyRefService;
+import com.astraval.coreflow.modules.config.CompanyNumberSequenceRepository;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -73,6 +75,12 @@ public class SellerPaymentService {
 
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private CompanyRefService companyRefService;
+
+    @Autowired
+    private CompanyNumberSequenceRepository companyNumberSequenceRepository;
 
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
@@ -121,8 +129,22 @@ public class SellerPaymentService {
         payment.setPaymentStatus(PaymentStatus.getPaid());
         payment.setPaymentNumber(paymentService.getNextPaymentNumber(companyId));
 
+        // Platform reference number
+        payment.setPlatformRef(paymentRepository.generatePlatformPaymentRef());
+
         Payments savedPayment = paymentRepository.save(payment);
-        
+
+        // Company overlay for seller (payee)
+        String sellerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(companyId, "PAYMENT_IN");
+        companyRefService.createPaymentRef(companyId, savedPayment, sellerLocalNumber);
+
+        // Company overlay for buyer (payer, if linked)
+        if (customer.getCustomerCompany() != null) {
+            Long buyerCompanyId = customer.getCustomerCompany().getCompanyId();
+            String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(buyerCompanyId, "PAYMENT_OUT");
+            companyRefService.createPaymentRef(buyerCompanyId, savedPayment, buyerLocalNumber);
+        }
+
         // Create order allocations if provided
         if (request.getPaymentDetails().getOrderAllocations() != null) {
             createOrderAllocations(savedPayment, request.getPaymentDetails().getOrderAllocations());
@@ -212,7 +234,8 @@ public class SellerPaymentService {
                 (String) row[6],                         // mode_of_payment
                 (String) row[7],                         // payment_status
                 (Boolean) row[8],                        // is_active
-                (String) row[9]                          // reference_number
+                (String) row[9],                         // reference_number
+                row[10] != null ? (String) row[10] : null // platform_ref
         );
     }
 

@@ -35,6 +35,7 @@ public class PaymentService {
         // Payment details
         dto.setPaymentId(payment.getPaymentId());
         dto.setPaymentNumber(payment.getPaymentNumber());
+        dto.setPlatformRef(payment.getPlatformRef());
         dto.setPaymentDate(payment.getPaymentDate());
         dto.setAmount(payment.getAmount());
         dto.setModeOfPayment(payment.getModeOfPayment());

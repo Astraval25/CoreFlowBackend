@@ -23,7 +23,8 @@ public interface PurchaseOrderDetailsRepository extends JpaRepository<OrderDetai
           o.totalAmount,
           o.paidAmount,
           o.orderStatus,
-          o.isActive
+          o.isActive,
+          o.platformRef
       )
       FROM OrderDetails o
           LEFT JOIN o.customers c

@@ -23,7 +23,8 @@ public interface PurchaseOrderSnapshotRepository extends JpaRepository<OrderSnap
                 o.totalAmount,
                 o.paidAmount,
                 o.orderStatus,
-                o.isActive
+                o.isActive,
+                o.platformRef
             )
             FROM OrderSnapshot o
                 LEFT JOIN o.customers c

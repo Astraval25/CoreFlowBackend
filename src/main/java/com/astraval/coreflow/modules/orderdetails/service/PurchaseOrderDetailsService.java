@@ -26,6 +26,9 @@ import com.astraval.coreflow.modules.orderdetails.dto.UpdatePurchaseOrder;
 import com.astraval.coreflow.modules.notification.NotificationService;
 import com.astraval.coreflow.modules.vendor.Vendors;
 import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
+import com.astraval.coreflow.modules.companyref.CompanyRefService;
+import com.astraval.coreflow.modules.config.CompanyNumberSequenceRepository;
+import com.astraval.coreflow.modules.orderdetails.repo.OrderDetailsRepository;
 
 @Service
 public class PurchaseOrderDetailsService {
@@ -58,6 +61,15 @@ public class PurchaseOrderDetailsService {
     
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private CompanyRefService companyRefService;
+
+    @Autowired
+    private CompanyNumberSequenceRepository companyNumberSequenceRepository;
+
+    @Autowired
+    private OrderDetailsRepository orderDetailsRepository;
     
 
     @Transactional
@@ -126,7 +138,22 @@ public class PurchaseOrderDetailsService {
         Double totalAmount = orderAmount - createOrder.getDiscountAmount() + createOrder.getTaxAmount();
         savedOrder.setOrderAmount(orderAmount);
         savedOrder.setTotalAmount(totalAmount);
+
+        // Platform reference number
+        savedOrder.setPlatformRef(orderDetailsRepository.generatePlatformOrderRef());
         purchaseOrderDetailsRepository.save(savedOrder);
+
+        // Company overlay for buyer
+        String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(companyId, "PURCHASE_ORDER");
+        companyRefService.createOrderRef(companyId, savedOrder, buyerLocalNumber);
+
+        // Company overlay for seller (if linked)
+        if (myVendor.getVendorCompany() != null) {
+            Long sellerCompanyId = myVendor.getVendorCompany().getCompanyId();
+            String sellerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(sellerCompanyId, "SALES_ORDER");
+            companyRefService.createOrderRef(sellerCompanyId, savedOrder, sellerLocalNumber);
+        }
+
         partnerBalanceService.refreshDueAmountsForOrder(savedOrder);
 
         return savedOrder.getOrderId();

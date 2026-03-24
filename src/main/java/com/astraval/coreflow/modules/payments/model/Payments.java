@@ -87,7 +87,9 @@ public class Payments {
   @Column(name = "payment_remarks")
   private String paymentRemarks;
 
-  
+  @Column(name = "platform_ref", unique = true)
+  private String platformRef;
+
   // Default fields..
   @Column(name = "is_active", nullable = false)
   private Boolean isActive = true;

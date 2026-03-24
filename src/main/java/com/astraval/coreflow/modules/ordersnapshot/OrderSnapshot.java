@@ -102,6 +102,9 @@ public class OrderSnapshot {
   @Column(name = "has_bill")
   private Boolean hasBill = false;
 
+  @Column(name = "platform_ref")
+  private String platformRef;
+
   // Default fields..
   @Column(name = "is_active", nullable = false)
   private Boolean isActive = true;

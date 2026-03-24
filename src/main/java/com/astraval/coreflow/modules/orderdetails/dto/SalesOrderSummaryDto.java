@@ -10,6 +10,7 @@ public record SalesOrderSummaryDto(
     String vendorName,
     Double totalAmount,
     Double paidAmount,
-        String orderStatus,
-        Boolean isActive) {
+    String orderStatus,
+    Boolean isActive,
+    String platformRef) {
 }

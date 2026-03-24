@@ -25,7 +25,8 @@ public interface SalesOrderDetailsRepository extends JpaRepository<OrderDetails,
                 o.totalAmount,
                 o.paidAmount,
                 o.orderStatus,
-                o.isActive
+                o.isActive,
+                o.platformRef
             )
             FROM OrderDetails o
                 LEFT JOIN o.customers c

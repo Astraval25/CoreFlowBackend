@@ -97,6 +97,7 @@ public class OrderDetailsService {
         response.setCreatedBy(orderDetails.getCreatedBy());
         response.setCreatedDt(orderDetails.getCreatedDt());
         response.setLastModifiedBy(orderDetails.getLastModifiedBy());
+        response.setPlatformRef(orderDetails.getPlatformRef());
         response.setLastModifiedDt(orderDetails.getLastModifiedDt());
 
         List<OrderDetailsFullResponse.OrderItemDetailsFullResponse> itemResponses = orderItems.stream()
@@ -207,6 +208,7 @@ public class OrderDetailsService {
         snapshot.setOrderStatus(order.getOrderStatus());
         snapshot.setHasBill(order.getHasBill());
         snapshot.setIsActive(order.getIsActive());
+        snapshot.setPlatformRef(order.getPlatformRef());
         
         OrderSnapshot savedSnapshot = orderSnapshotRepository.save(snapshot);
         

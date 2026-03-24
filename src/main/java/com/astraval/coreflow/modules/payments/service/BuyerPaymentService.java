@@ -33,6 +33,8 @@ import com.astraval.coreflow.modules.payments.repo.PaymentRepository;
 import com.astraval.coreflow.modules.notification.NotificationService;
 import com.astraval.coreflow.modules.vendor.VendorRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
+import com.astraval.coreflow.modules.companyref.CompanyRefService;
+import com.astraval.coreflow.modules.config.CompanyNumberSequenceRepository;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -73,6 +75,12 @@ public class BuyerPaymentService {
 
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private CompanyRefService companyRefService;
+
+    @Autowired
+    private CompanyNumberSequenceRepository companyNumberSequenceRepository;
 
     @Transactional
     public Long createBuyerPayment(Long companyId, CreateBuyerPaymentDto request) {
@@ -123,7 +131,21 @@ public class BuyerPaymentService {
         payment.setPaymentStatus(PaymentStatus.getPaid());
         payment.setPaymentNumber(paymentService.getNextPaymentNumber(companyId));
 
+        // Platform reference number
+        payment.setPlatformRef(paymentRepository.generatePlatformPaymentRef());
+
         Payments savedPayment = paymentRepository.save(payment);
+
+        // Company overlay for buyer (payer)
+        String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(companyId, "PAYMENT_OUT");
+        companyRefService.createPaymentRef(companyId, savedPayment, buyerLocalNumber);
+
+        // Company overlay for seller (payee, if linked)
+        if (vendor.getVendorCompany() != null) {
+            Long sellerCompanyId = vendor.getVendorCompany().getCompanyId();
+            String sellerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(sellerCompanyId, "PAYMENT_IN");
+            companyRefService.createPaymentRef(sellerCompanyId, savedPayment, sellerLocalNumber);
+        }
 
         // Create order allocations if provided
         if (request.getPaymentDetails().getOrderAllocations() != null) {
@@ -229,7 +251,8 @@ public class BuyerPaymentService {
                 (String) row[6],                         // mode_of_payment
                 (String) row[7],                         // payment_status
                 (Boolean) row[8],                        // is_active
-                (String) row[9]                          // reference_number
+                (String) row[9],                         // reference_number
+                row[10] != null ? (String) row[10] : null // platform_ref
         );
     }
     

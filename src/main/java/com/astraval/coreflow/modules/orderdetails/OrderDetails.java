@@ -98,9 +98,10 @@ public class OrderDetails {
   
   @Column(name = "has_bill")
   private Boolean hasBill = false;
-  
 
-  
+  @Column(name = "platform_ref", unique = true)
+  private String platformRef;
+
   // Default fields...
   @Column(name = "is_active", nullable = false)
   private Boolean isActive = true;
