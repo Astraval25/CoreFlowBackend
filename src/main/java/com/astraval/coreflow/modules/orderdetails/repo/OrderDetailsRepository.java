@@ -20,6 +20,9 @@ public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long
     @Query(value = "SELECT generate_order_number(?1)", nativeQuery = true)
     String generateOrderNumber(@Param("companyId") Long companyId);
 
+    @Query(value = "SELECT generate_platform_order_ref()", nativeQuery = true)
+    String generatePlatformOrderRef();
+
     @Query("""
             SELECT o FROM OrderDetails o
             LEFT JOIN FETCH o.customers c

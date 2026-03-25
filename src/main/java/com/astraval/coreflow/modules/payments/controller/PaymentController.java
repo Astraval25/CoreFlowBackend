@@ -25,7 +25,7 @@ public class PaymentController {
             @PathVariable Long companyId,
             @PathVariable Long paymentId) {
         try {
-            PaymentViewDto payment = PaymentService.getPaymentViewById(paymentId);
+            PaymentViewDto payment = PaymentService.getPaymentViewById(companyId, paymentId);
             return ApiResponseFactory.accepted(payment, "Payment details retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);

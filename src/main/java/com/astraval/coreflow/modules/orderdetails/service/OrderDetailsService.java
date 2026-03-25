@@ -18,6 +18,8 @@ import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsRepository;
 import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
 import com.astraval.coreflow.modules.ordersnapshot.repo.OrderSnapshotRepository;
+import com.astraval.coreflow.modules.companyref.CompanyOrderRef;
+import com.astraval.coreflow.modules.companyref.CompanyOrderRefRepository;
 import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 
 @Service
@@ -34,6 +36,9 @@ public class OrderDetailsService {
     
     @Autowired
     private OrderItemDetailsRepository orderItemDetailsRepository;
+
+    @Autowired
+    private CompanyOrderRefRepository companyOrderRefRepository;
 
     @Autowired
     private PartnerBalanceService partnerBalanceService;
@@ -97,7 +102,11 @@ public class OrderDetailsService {
         response.setCreatedBy(orderDetails.getCreatedBy());
         response.setCreatedDt(orderDetails.getCreatedDt());
         response.setLastModifiedBy(orderDetails.getLastModifiedBy());
+        response.setPlatformRef(orderDetails.getPlatformRef());
         response.setLastModifiedDt(orderDetails.getLastModifiedDt());
+
+        companyOrderRefRepository.findByCompanyCompanyIdAndOrderDetailsOrderId(companyId, orderId)
+                .ifPresent(ref -> response.setLocalOrderNumber(ref.getLocalOrderNumber()));
 
         List<OrderDetailsFullResponse.OrderItemDetailsFullResponse> itemResponses = orderItems.stream()
                 .map(this::mapOrderItemDetails)
@@ -207,6 +216,7 @@ public class OrderDetailsService {
         snapshot.setOrderStatus(order.getOrderStatus());
         snapshot.setHasBill(order.getHasBill());
         snapshot.setIsActive(order.getIsActive());
+        snapshot.setPlatformRef(order.getPlatformRef());
         
         OrderSnapshot savedSnapshot = orderSnapshotRepository.save(snapshot);
         

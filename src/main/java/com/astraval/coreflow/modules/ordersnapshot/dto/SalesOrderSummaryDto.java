@@ -11,5 +11,7 @@ public record SalesOrderSummaryDto(
                 Double totalAmount,
                 Double paidAmount,
                 String orderStatus,
-                Boolean isActive) {
+                Boolean isActive,
+                String platformRef,
+                String localOrderNumber) {
 }

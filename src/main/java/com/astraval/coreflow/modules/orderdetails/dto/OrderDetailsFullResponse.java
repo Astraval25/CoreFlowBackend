@@ -9,6 +9,8 @@ import lombok.Data;
 public class OrderDetailsFullResponse {
     private Long orderId;
     private String orderNumber;
+    private String platformRef;
+    private String localOrderNumber;
     private LocalDateTime orderDate;
 
     private Long sellerCompanyId;

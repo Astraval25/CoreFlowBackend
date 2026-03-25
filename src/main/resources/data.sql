@@ -238,3 +238,116 @@ BEGIN
   REFRESH MATERIALIZED VIEW mv_party_due_summary;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =============================
+-- Config definition seed data
+-- =============================
+INSERT INTO config_definition (config_key, default_value, data_type, category, description, is_active, created_dt)
+VALUES
+  ('sales_order_prefix', 'SO', 'STRING', 'NUMBERING', 'Prefix for sales order numbers', true, NOW()),
+  ('purchase_order_prefix', 'PO', 'STRING', 'NUMBERING', 'Prefix for purchase order numbers', true, NOW()),
+  ('payment_out_prefix', 'PAY', 'STRING', 'NUMBERING', 'Prefix for outgoing payment numbers (buyer side)', true, NOW()),
+  ('payment_in_prefix', 'REC', 'STRING', 'NUMBERING', 'Prefix for incoming payment numbers (seller side)', true, NOW()),
+  ('number_format', '{PREFIX}-{MMYYYY}-{SEQ}', 'STRING', 'NUMBERING', 'Format template for number generation', true, NOW()),
+  ('seq_padding', '0', 'INTEGER', 'NUMBERING', 'Zero-pad sequence number (0=no padding, 4=0005)', true, NOW())
+ON CONFLICT DO NOTHING;
+
+-- =============================
+-- Unified company number generation
+-- =============================
+-- Replaces separate generate_order_number / generate_payment_number with a configurable version.
+-- Reads format config from config_definition (defaults) + company_config (overrides).
+-- Types: 'SALES_ORDER', 'PURCHASE_ORDER', 'PAYMENT_OUT', 'PAYMENT_IN'
+
+CREATE OR REPLACE FUNCTION generate_company_number(
+  p_company_id BIGINT,
+  p_number_type TEXT
+)
+RETURNS TEXT AS $$
+DECLARE
+  v_period TEXT := TO_CHAR(NOW(), 'MMYYYY');
+  v_next BIGINT;
+  v_prefix TEXT;
+  v_format TEXT;
+  v_padding INT;
+  v_prefix_key TEXT;
+  v_result TEXT;
+BEGIN
+  v_prefix_key := CASE p_number_type
+    WHEN 'SALES_ORDER'    THEN 'sales_order_prefix'
+    WHEN 'PURCHASE_ORDER' THEN 'purchase_order_prefix'
+    WHEN 'PAYMENT_OUT'    THEN 'payment_out_prefix'
+    WHEN 'PAYMENT_IN'     THEN 'payment_in_prefix'
+    ELSE NULL
+  END;
+
+  IF v_prefix_key IS NULL THEN
+    RAISE EXCEPTION 'Unknown number type: %', p_number_type;
+  END IF;
+
+  -- Resolve prefix: company override -> platform default
+  SELECT COALESCE(
+    (SELECT config_value FROM company_config WHERE company_id = p_company_id AND config_key = v_prefix_key),
+    (SELECT default_value FROM config_definition WHERE config_key = v_prefix_key)
+  ) INTO v_prefix;
+
+  -- Resolve format template
+  SELECT COALESCE(
+    (SELECT config_value FROM company_config WHERE company_id = p_company_id AND config_key = 'number_format'),
+    (SELECT default_value FROM config_definition WHERE config_key = 'number_format')
+  ) INTO v_format;
+
+  -- Resolve sequence padding
+  SELECT COALESCE(
+    (SELECT config_value::INT FROM company_config WHERE company_id = p_company_id AND config_key = 'seq_padding'),
+    (SELECT default_value::INT FROM config_definition WHERE config_key = 'seq_padding'),
+    0
+  ) INTO v_padding;
+
+  -- Atomic sequence increment
+  INSERT INTO company_number_sequence(company_id, number_type, period, last_value)
+  VALUES (p_company_id, p_number_type, v_period, 1)
+  ON CONFLICT (company_id, number_type, period)
+  DO UPDATE SET last_value = company_number_sequence.last_value + 1
+  RETURNING last_value INTO v_next;
+
+  -- Build result from format template
+  v_result := v_format;
+  v_result := REPLACE(v_result, '{PREFIX}', COALESCE(v_prefix, ''));
+  v_result := REPLACE(v_result, '{YYYY}', TO_CHAR(NOW(), 'YYYY'));
+  v_result := REPLACE(v_result, '{YY}', TO_CHAR(NOW(), 'YY'));
+  v_result := REPLACE(v_result, '{MM}', TO_CHAR(NOW(), 'MM'));
+  v_result := REPLACE(v_result, '{DD}', TO_CHAR(NOW(), 'DD'));
+  v_result := REPLACE(v_result, '{MMYYYY}', TO_CHAR(NOW(), 'MMYYYY'));
+  v_result := REPLACE(v_result, '{YYYYMM}', TO_CHAR(NOW(), 'YYYYMM'));
+
+  IF v_padding > 0 THEN
+    v_result := REPLACE(v_result, '{SEQ}', LPAD(v_next::TEXT, v_padding, '0'));
+  ELSE
+    v_result := REPLACE(v_result, '{SEQ}', v_next::TEXT);
+  END IF;
+
+  RETURN v_result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================
+-- Platform reference numbers
+-- =============================
+-- Global sequences (not per-company) for platform-wide order/payment identifiers.
+CREATE SEQUENCE IF NOT EXISTS platform_order_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS platform_payment_seq START 1;
+
+CREATE OR REPLACE FUNCTION generate_platform_order_ref()
+RETURNS TEXT AS $$
+BEGIN
+  RETURN 'CF-ORD-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || nextval('platform_order_seq');
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION generate_platform_payment_ref()
+RETURNS TEXT AS $$
+BEGIN
+  RETURN 'CF-PAY-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || nextval('platform_payment_seq');
+END;
+$$ LANGUAGE plpgsql;
