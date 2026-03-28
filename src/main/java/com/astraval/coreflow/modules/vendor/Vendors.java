@@ -40,7 +40,7 @@ public class Vendors {
     private Companies vendorCompany = null;
 
     @Column(name = "accepted_invitation_id")
-    private String acceptedInvitationId = null;
+    private Long acceptedInvitationId = null;
 
     @Column(name = "vendor_name", nullable = false)
     private String vendorName;

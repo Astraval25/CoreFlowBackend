@@ -40,7 +40,7 @@ public class Customers {
     private Companies customerCompany = null;
 
     @Column(name = "accepted_invitation_id")
-    private String acceptedInvitationId = null;
+    private Long acceptedInvitationId = null;
 
     @Column(name = "customer_name", nullable = false)
     private String customerName;
