@@ -16,6 +16,7 @@ public record VendorItemSummaryDto(
     BigDecimal taxRate,
     Boolean isActive,
     String source,
-    String fsId
+        String fsId,
+        Boolean editable
 ) {
 }

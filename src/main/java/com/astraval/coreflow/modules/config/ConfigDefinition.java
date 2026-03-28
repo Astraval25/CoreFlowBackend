@@ -18,7 +18,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "config_definition")
+@Table(name = "config_definition_master")
 public class ConfigDefinition {
 
     @Id

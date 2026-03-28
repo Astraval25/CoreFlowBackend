@@ -291,6 +291,8 @@ public class InvitationService {
         link.setCustomer(customer);
         link.setVendor(vendor);
         link.setIsActive(true);
+        link.setCustomerCompany(customer.getCompany());
+        link.setVendorCompany(vendor.getCompany());
         customerVendorLinkRepository.save(link);
     }
 }

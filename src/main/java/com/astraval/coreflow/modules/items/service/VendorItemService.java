@@ -9,12 +9,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.modules.customer.CustomerVendorLink;
+import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
 import com.astraval.coreflow.modules.items.dto.CreateVendorItemDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemSummaryDto;
 import com.astraval.coreflow.modules.items.dto.UpdateVendorItemDto;
+import com.astraval.coreflow.modules.items.model.ItemCustomerPrice;
 import com.astraval.coreflow.modules.items.model.ItemVendorPrice;
 import com.astraval.coreflow.modules.items.model.Items;
+import com.astraval.coreflow.modules.items.repo.ItemCustomerPriceRepository;
 import com.astraval.coreflow.modules.items.repo.ItemRepository;
 import com.astraval.coreflow.modules.items.repo.ItemVendorPriceRepository;
 import com.astraval.coreflow.modules.vendor.Vendors;
@@ -31,6 +35,12 @@ public class VendorItemService {
 
     @Autowired
     private VendorRepository vendorRepository;
+
+    @Autowired
+    private ItemCustomerPriceRepository itemCustomerPriceRepository;
+
+    @Autowired
+    private CustomerVendorLinkRepository customerVendorLinkRepository;
 
     @Transactional
     public Long createVendorItem(Long companyId, Long vendorId, CreateVendorItemDto request) {
@@ -127,9 +137,28 @@ public class VendorItemService {
     }
 
     public List<VendorItemSummaryDto> getMappedItemsByVendor(Long companyId, Long vendorId) {
-        validateVendor(companyId, vendorId);
-        List<ItemVendorPrice> prices = itemVendorPriceRepository
-                .findByVendorVendorId(vendorId);
+        Vendors vendor = getVendorOrThrow(companyId, vendorId);
+
+        if (vendor.getVendorCompany() != null) {
+            // Linked vendor: show items from the linked company's customer
+            // (ItemCustomerPrice)
+            Long vendorCompanyId = vendor.getVendorCompany().getCompanyId();
+            CustomerVendorLink link = customerVendorLinkRepository
+                    .findByVendorVendorIdAndCustomerCompanyCompanyId(vendorId, vendorCompanyId)
+                    .orElse(null);
+            if (link == null) {
+                return List.of();
+            }
+            Long customerId = link.getCustomer().getCustomerId();
+            List<ItemCustomerPrice> customerPrices = itemCustomerPriceRepository
+                    .findByCustomerCustomerIdAndIsActiveTrue(customerId);
+            return customerPrices.stream()
+                    .map(this::toSummaryDtoFromCustomerPrice)
+                    .toList();
+        }
+
+        // Not linked: show items added directly to this vendor (ItemVendorPrice)
+        List<ItemVendorPrice> prices = itemVendorPriceRepository.findByVendorVendorId(vendorId);
         return prices.stream()
                 .map(price -> toSummaryDto(price.getItem(), price))
                 .toList();
@@ -188,7 +217,7 @@ public class VendorItemService {
     private VendorItemSummaryDto toSummaryDto(Items item, ItemVendorPrice price) {
         boolean isVendorItemSource = price != null
                 && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null);
-        String source = isVendorItemSource ? "CUSTOMER_ITEM" : "ITEM_BASE";
+        String source = isVendorItemSource ? "VENDOR_ITEM" : "ITEM_BASE";
         boolean itemActive = Boolean.TRUE.equals(item.getIsActive());
         boolean mappingActive = !isVendorItemSource || Boolean.TRUE.equals(price.getIsActive());
         Boolean isActive = itemActive && mappingActive;
@@ -203,7 +232,31 @@ public class VendorItemService {
                 item.getTaxRate(),
                 isActive,
                 source,
-                item.getFsId());
+                item.getFsId(),
+                true);
+    }
+
+    private VendorItemSummaryDto toSummaryDtoFromCustomerPrice(ItemCustomerPrice customerPrice) {
+        Items item = customerPrice.getItem();
+        BigDecimal purchasePrice = customerPrice.getSalesPrice() != null
+                ? customerPrice.getSalesPrice()
+                : item.getBaseSalesPrice();
+        String purchaseDescription = customerPrice.getSalesDescription() != null
+                ? customerPrice.getSalesDescription()
+                : item.getSalesDescription();
+        return new VendorItemSummaryDto(
+                item.getItemId(),
+                item.getItemName(),
+                item.getItemType(),
+                item.getUnit(),
+                purchasePrice,
+                purchaseDescription,
+                item.getHsnCode(),
+                item.getTaxRate(),
+                Boolean.TRUE.equals(item.getIsActive()),
+                "CUSTOMER_ITEM",
+                item.getFsId(),
+                false);
     }
 
     private BigDecimal resolvePurchasePrice(Items item, ItemVendorPrice price) {

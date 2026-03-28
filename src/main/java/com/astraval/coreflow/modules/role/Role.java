@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 
 @Entity
-@Table(name = "roles")
+@Table(name = "roles_master")
 @Getter
 public class Role {
 

@@ -1,10 +1,10 @@
 -- Table: Roles insert query
-INSERT INTO public.roles (role_code,landing_url,role_name) VALUES
+INSERT INTO public.roles_master (role_code,landing_url,role_name) VALUES
 	 ('ADM','/admin/dashboard','ADMIN user');
 
 -- Table: Email Template insert query.
 INSERT INTO
-  email_templates (
+  email_templates_master (
     name,
     from_email,
     to_email,
@@ -242,7 +242,7 @@ $$ LANGUAGE plpgsql;
 -- =============================
 -- Config definition seed data
 -- =============================
-INSERT INTO config_definition (config_key, default_value, data_type, category, description, is_active, created_dt)
+INSERT INTO config_definition_master (config_key, default_value, data_type, category, description, is_active, created_dt)
 VALUES
   ('sales_order_prefix', 'SO', 'STRING', 'NUMBERING', 'Prefix for sales order numbers', true, NOW()),
   ('purchase_order_prefix', 'PO', 'STRING', 'NUMBERING', 'Prefix for purchase order numbers', true, NOW()),
@@ -288,19 +288,19 @@ BEGIN
   -- Resolve prefix: company override -> platform default
   SELECT COALESCE(
     (SELECT config_value FROM company_config WHERE company_id = p_company_id AND config_key = v_prefix_key),
-    (SELECT default_value FROM config_definition WHERE config_key = v_prefix_key)
+    (SELECT default_value FROM config_definition_master WHERE config_key = v_prefix_key)
   ) INTO v_prefix;
 
   -- Resolve format template
   SELECT COALESCE(
     (SELECT config_value FROM company_config WHERE company_id = p_company_id AND config_key = 'number_format'),
-    (SELECT default_value FROM config_definition WHERE config_key = 'number_format')
+    (SELECT default_value FROM config_definition_master WHERE config_key = 'number_format')
   ) INTO v_format;
 
   -- Resolve sequence padding
   SELECT COALESCE(
     (SELECT config_value::INT FROM company_config WHERE company_id = p_company_id AND config_key = 'seq_padding'),
-    (SELECT default_value::INT FROM config_definition WHERE config_key = 'seq_padding'),
+    (SELECT default_value::INT FROM config_definition_master WHERE config_key = 'seq_padding'),
     0
   ) INTO v_padding;
 

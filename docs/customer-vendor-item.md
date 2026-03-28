@@ -1,5 +1,22 @@
 # Customer/Vendor Specific Item Pricing
 
+## Item listing
+this only applies for vendor not for customer. 
+### Case 1
+- vendor have not linked to company B AND vendor have no item add
+- Expected result: nothing show.
+### Case 2
+- vendor have not linked to company B but vendor item is add
+- Expected result: the company A customer items want to show.
+
+### Case 3
+- vendor have linked to company B customer AND company B customer have no item add
+- Expected result: nothing show.
+### Case 4
+- vendor have linked to company B customer but company B customer item is add 
+- Expected result: the company B add that item to the linked customer that want to show in company A vendor.
+
+before linking if item added to vendor means show that items after linked even the item is added show the item that are lined to respective customer on the linked company customer.
 ## Overview
 
 In CoreFlow, items (products/services) belong to a company. Each item has **base prices** set by the owning company. However, the price charged to a specific customer or paid to a specific vendor can differ from the base price.
