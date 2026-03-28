@@ -6,6 +6,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
 import jakarta.persistence.Column;
@@ -43,10 +44,18 @@ public class CustomerVendorLink {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customers customer;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_company", nullable = false)
+    private Companies customerCompany;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendors vendor;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_company", nullable = false)
+    private Companies vendorCompany;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

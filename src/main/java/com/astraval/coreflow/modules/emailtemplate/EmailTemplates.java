@@ -15,7 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "email_templates")
+@Table(name = "email_templates_master")
 public class EmailTemplates {
 
   @Id
