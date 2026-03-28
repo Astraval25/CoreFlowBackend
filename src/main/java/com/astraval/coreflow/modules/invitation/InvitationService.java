@@ -173,11 +173,11 @@ public class InvitationService {
             }
 
             customer.setCustomerCompany(acceptingCompany);
-            customer.setAcceptedInvitationId(invitation.getInvitationCode());
+            customer.setAcceptedInvitationId(invitation.getInviteId());
             customerRepository.save(customer);
 
             vendor.setVendorCompany(invitation.getFromCompany());
-            vendor.setAcceptedInvitationId(invitation.getInvitationCode());
+            vendor.setAcceptedInvitationId(invitation.getInviteId());
             vendorRepository.save(vendor);
 
             upsertCustomerVendorLink(customer, vendor);
@@ -205,11 +205,11 @@ public class InvitationService {
             }
 
             vendor.setVendorCompany(acceptingCompany);
-            vendor.setAcceptedInvitationId(invitation.getInvitationCode());
+            vendor.setAcceptedInvitationId(invitation.getInviteId());
             vendorRepository.save(vendor);
 
             customer.setCustomerCompany(invitation.getFromCompany());
-            customer.setAcceptedInvitationId(invitation.getInvitationCode());
+            customer.setAcceptedInvitationId(invitation.getInviteId());
             customerRepository.save(customer);
 
             upsertCustomerVendorLink(customer, vendor);
@@ -289,10 +289,13 @@ public class InvitationService {
                 .orElseGet(CustomerVendorLink::new);
 
         link.setCustomer(customer);
+        
         link.setVendor(vendor);
+        
+        link.setCustomerCompany(vendor.getCompany());
+        link.setVendorCompany(customer.getCompany());
+        
         link.setIsActive(true);
-        link.setCustomerCompany(customer.getCompany());
-        link.setVendorCompany(vendor.getCompany());
         customerVendorLinkRepository.save(link);
     }
 }
