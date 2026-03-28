@@ -50,9 +50,6 @@ public class SellerPaymentService {
     private CompanyRepository companyRepository;
 
     @Autowired
-    private CustomerRepository customerRepository;
-
-    @Autowired
     private CustomerService customerService;
 
     @Autowired
