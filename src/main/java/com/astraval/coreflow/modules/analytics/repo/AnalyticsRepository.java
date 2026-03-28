@@ -424,52 +424,67 @@ public class AnalyticsRepository {
     // Section 3: Cash Flow
     // ========================
 
-    public Object[] cashFlow(Long companyId, LocalDateTime startDate, LocalDateTime endDate) {
+    public List<Object[]> cashFlow(Long companyId, LocalDateTime startDate, LocalDateTime endDate) {
         String sql = """
-                WITH incoming_before AS (
-                    SELECT COALESCE(SUM(p.amount), 0) AS total
-                    FROM payments p
-                    JOIN customers c ON p.customer = c.customer_id
-                    WHERE c.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
-                      AND p.payment_date < :startDate
+                WITH initial_balance AS (
+                    SELECT
+                        COALESCE((SELECT SUM(p.amount) FROM payments p
+                            JOIN customers c ON p.customer = c.customer_id
+                            WHERE c.comp_id = :companyId AND p.is_active = true
+                              AND p.payment_status != 'PAYMENT_DECLINED'
+                              AND p.payment_date < :startDate), 0)
+                        - COALESCE((SELECT SUM(p.amount) FROM payments p
+                            JOIN vendors v ON p.vendor = v.vendor_id
+                            WHERE v.comp_id = :companyId AND p.is_active = true
+                              AND p.payment_status != 'PAYMENT_DECLINED'
+                              AND p.payment_date < :startDate), 0) AS opening
                 ),
-                outgoing_before AS (
-                    SELECT COALESCE(SUM(p.amount), 0) AS total
-                    FROM payments p
-                    JOIN vendors v ON p.vendor = v.vendor_id
-                    WHERE v.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
-                      AND p.payment_date < :startDate
-                ),
-                incoming_period AS (
-                    SELECT COALESCE(SUM(p.amount), 0) AS total
+                monthly_incoming AS (
+                    SELECT TO_CHAR(p.payment_date, 'YYYY-MM') AS m, COALESCE(SUM(p.amount), 0) AS total
                     FROM payments p
                     JOIN customers c ON p.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND p.is_active = true
                       AND p.payment_status != 'PAYMENT_DECLINED'
                       AND p.payment_date BETWEEN :startDate AND :endDate
+                    GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ),
-                outgoing_period AS (
-                    SELECT COALESCE(SUM(p.amount), 0) AS total
+                monthly_outgoing AS (
+                    SELECT TO_CHAR(p.payment_date, 'YYYY-MM') AS m, COALESCE(SUM(p.amount), 0) AS total
                     FROM payments p
                     JOIN vendors v ON p.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND p.is_active = true
                       AND p.payment_status != 'PAYMENT_DECLINED'
                       AND p.payment_date BETWEEN :startDate AND :endDate
+                    GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
+                ),
+                monthly AS (
+                    SELECT g.month,
+                        COALESCE(mi.total, 0) AS incoming,
+                        COALESCE(mo.total, 0) AS outgoing
+                    FROM (
+                        SELECT TO_CHAR(gs.month, 'YYYY-MM') AS month
+                        FROM generate_series(DATE_TRUNC('month', CAST(:startDate AS timestamp)),
+                                             DATE_TRUNC('month', CAST(:endDate AS timestamp)), '1 month') gs(month)
+                    ) g
+                    LEFT JOIN monthly_incoming mi ON g.month = mi.m
+                    LEFT JOIN monthly_outgoing mo ON g.month = mo.m
                 )
-                SELECT
-                    (SELECT total FROM incoming_before) - (SELECT total FROM outgoing_before) AS opening_balance,
-                    (SELECT total FROM incoming_period) AS incoming,
-                    (SELECT total FROM outgoing_period) AS outgoing,
-                    (SELECT total FROM incoming_before) - (SELECT total FROM outgoing_before)
-                        + (SELECT total FROM incoming_period) - (SELECT total FROM outgoing_period) AS closing_balance
+                SELECT m.month,
+                    (SELECT opening FROM initial_balance)
+                        + COALESCE(SUM(m2.incoming - m2.outgoing) OVER (ORDER BY m2.month ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS opening_balance,
+                    m.incoming,
+                    m.outgoing,
+                    (SELECT opening FROM initial_balance)
+                        + SUM(m2.incoming - m2.outgoing) OVER (ORDER BY m2.month) AS closing_balance
+                FROM monthly m
+                JOIN monthly m2 ON m.month = m2.month
+                ORDER BY m.month
                 """;
         Query q = em.createNativeQuery(sql);
         q.setParameter("companyId", companyId);
         q.setParameter("startDate", startDate);
         q.setParameter("endDate", endDate);
-        return (Object[]) q.getSingleResult();
+        return q.getResultList();
     }
 
     // ========================
@@ -478,32 +493,37 @@ public class AnalyticsRepository {
 
     public List<Object[]> revenueVsExpense(Long companyId, LocalDateTime startDate, LocalDateTime endDate) {
         String sql = """
-                SELECT month, COALESCE(revenue, 0) AS revenue, COALESCE(expense, 0) AS expense,
-                    COALESCE(revenue, 0) - COALESCE(expense, 0) AS net_profit
+                SELECT months.month,
+                    COALESCE(sales.revenue, 0) AS revenue,
+                    COALESCE(purchases.expense, 0) AS expense,
+                    COALESCE(sales.revenue, 0) - COALESCE(purchases.expense, 0) AS net_profit,
+                    SUM(COALESCE(sales.revenue, 0)) OVER (ORDER BY months.month) AS running_revenue,
+                    SUM(COALESCE(purchases.expense, 0)) OVER (ORDER BY months.month) AS running_expense,
+                    SUM(COALESCE(sales.revenue, 0) - COALESCE(purchases.expense, 0)) OVER (ORDER BY months.month) AS running_net_profit
                 FROM (
                     SELECT TO_CHAR(gs.month, 'YYYY-MM') AS month
                     FROM generate_series(DATE_TRUNC('month', CAST(:startDate AS timestamp)),
                                          DATE_TRUNC('month', CAST(:endDate AS timestamp)), '1 month') gs(month)
                 ) months
                 LEFT JOIN (
-                    SELECT TO_CHAR(od.order_date, 'YYYY-MM') AS month, SUM(od.total_amount) AS revenue
+                    SELECT TO_CHAR(od.order_date, 'YYYY-MM') AS s_month, SUM(od.total_amount) AS revenue
                     FROM order_details od
                     JOIN customers c ON od.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND od.is_active = true
                       AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
-                ) sales ON months.month = sales.month
+                ) sales ON months.month = sales.s_month
                 LEFT JOIN (
-                    SELECT TO_CHAR(od.order_date, 'YYYY-MM') AS month, SUM(od.total_amount) AS expense
+                    SELECT TO_CHAR(od.order_date, 'YYYY-MM') AS p_month, SUM(od.total_amount) AS expense
                     FROM order_details od
                     JOIN vendors v ON od.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND od.is_active = true
                       AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
-                ) purchases ON months.month = purchases.month
-                ORDER BY month
+                ) purchases ON months.month = purchases.p_month
+                ORDER BY months.month
                 """;
         Query q = em.createNativeQuery(sql);
         q.setParameter("companyId", companyId);
@@ -616,40 +636,37 @@ public class AnalyticsRepository {
     // Section 3: Business Growth
     // ========================
 
-    public Object[] businessGrowth(Long companyId, LocalDateTime currentStart, LocalDateTime currentEnd,
-                                   LocalDateTime previousStart, LocalDateTime previousEnd) {
+
+    public List<Object[]> businessGrowth(Long companyId, LocalDateTime startDate, LocalDateTime endDate) {
         String sql = """
-                WITH current_period AS (
-                    SELECT COALESCE(SUM(od.total_amount), 0) AS total
-                    FROM order_details od
-                    JOIN customers c ON od.customer = c.customer_id
-                    WHERE c.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
-                      AND od.order_date BETWEEN :currentStart AND :currentEnd
-                ),
-                previous_period AS (
-                    SELECT COALESCE(SUM(od.total_amount), 0) AS total
-                    FROM order_details od
-                    JOIN customers c ON od.customer = c.customer_id
-                    WHERE c.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
-                      AND od.order_date BETWEEN :previousStart AND :previousEnd
-                )
-                SELECT
-                    (SELECT total FROM current_period) AS current_amount,
-                    (SELECT total FROM previous_period) AS previous_amount,
-                    CASE WHEN (SELECT total FROM previous_period) > 0
-                        THEN (((SELECT total FROM current_period) - (SELECT total FROM previous_period))
-                              / (SELECT total FROM previous_period)) * 100
+                SELECT m.month,
+                    COALESCE(s.monthly_amount, 0) AS current_month_amount,
+                    SUM(COALESCE(s.monthly_amount, 0)) OVER (ORDER BY m.month) AS running_total,
+                    LAG(COALESCE(s.monthly_amount, 0), 1, 0.0) OVER (ORDER BY m.month) AS previous_month_amount,
+                    CASE WHEN LAG(COALESCE(s.monthly_amount, 0), 1, 0.0) OVER (ORDER BY m.month) > 0
+                        THEN ((COALESCE(s.monthly_amount, 0) - LAG(COALESCE(s.monthly_amount, 0), 1, 0.0) OVER (ORDER BY m.month))
+                              / LAG(COALESCE(s.monthly_amount, 0), 1, 0.0) OVER (ORDER BY m.month)) * 100
                         ELSE 0 END AS growth_percentage
+                FROM (
+                    SELECT TO_CHAR(gs.month, 'YYYY-MM') AS month
+                    FROM genera
+
+                LEFT JOIN (
+                    SELECT TO_CHAR(od.order_date, 'YYYY-MM') AS s_month, SUM(od.total_amount) AS monthly_amount
+                    FROM order_details od
+                    JOIN customers c ON od.customer = c.customer_id
+                    WHERE c.comp_id = :companyId AND od.is_active = true
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_date BETWEEN :startDate AND :endDate
+                    GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
+                ) s ON m.month = s.s_month
+                ORDER BY m.month
                 """;
         Query q = em.createNativeQuery(sql);
         q.setParameter("companyId", companyId);
-        q.setParameter("currentStart", currentStart);
-        q.setParameter("currentEnd", currentEnd);
-        q.setParameter("previousStart", previousStart);
-        q.setParameter("previousEnd", previousEnd);
-        return (Object[]) q.getSingleResult();
+        q.setParameter("startDate", startDate);
+        q.setParameter("endDate", endDate);
+        return q.getResultList();
     }
 
     // ========================

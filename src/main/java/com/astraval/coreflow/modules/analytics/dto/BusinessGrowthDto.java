@@ -1,7 +1,9 @@
 package com.astraval.coreflow.modules.analytics.dto;
 
 public record BusinessGrowthDto(
-    Double currentPeriodAmount,
-    Double previousPeriodAmount,
+    String month,
+    Double currentMonthAmount,
+    Double runningTotal,
+    Double previousMonthAmount,
     Double growthPercentage
 ) {}

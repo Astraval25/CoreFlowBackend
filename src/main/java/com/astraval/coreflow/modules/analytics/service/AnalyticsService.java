@@ -3,7 +3,7 @@ package com.astraval.coreflow.modules.analytics.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -242,14 +242,15 @@ public class AnalyticsService {
     // Section 3: Cash Flow
     // ========================
 
-    public CashFlowDto getCashFlow(Long companyId, LocalDate startDate, LocalDate endDate) {
-        Object[] r = analyticsRepository.cashFlow(companyId, toStartOfDay(startDate), toEndOfDay(endDate));
-        return new CashFlowDto(
-                toDouble(r[0]),
+    public List<CashFlowDto> getCashFlow(Long companyId, LocalDate startDate, LocalDate endDate) {
+        List<Object[]> rows = analyticsRepository.cashFlow(companyId, toStartOfDay(startDate), toEndOfDay(endDate));
+        return rows.stream().map(r -> new CashFlowDto(
+                (String) r[0],
                 toDouble(r[1]),
                 toDouble(r[2]),
-                toDouble(r[3])
-        );
+                toDouble(r[3]),
+                toDouble(r[4])
+        )).toList();
     }
 
     // ========================
@@ -262,7 +263,10 @@ public class AnalyticsService {
                 (String) r[0],
                 toDouble(r[1]),
                 toDouble(r[2]),
-                toDouble(r[3])
+                toDouble(r[3]),
+                toDouble(r[4]),
+                toDouble(r[5]),
+                toDouble(r[6])
         )).toList();
     }
 
@@ -312,19 +316,15 @@ public class AnalyticsService {
     // Section 3: Business Growth
     // ========================
 
-    public BusinessGrowthDto getBusinessGrowth(Long companyId, LocalDate startDate, LocalDate endDate) {
-        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
-        LocalDate previousEnd = startDate.minusDays(1);
-        LocalDate previousStart = previousEnd.minusDays(daysBetween);
-
-        Object[] r = analyticsRepository.businessGrowth(companyId,
-                toStartOfDay(startDate), toEndOfDay(endDate),
-                toStartOfDay(previousStart), toEndOfDay(previousEnd));
-        return new BusinessGrowthDto(
-                toDouble(r[0]),
+    public List<BusinessGrowthDto> getBusinessGrowth(Long companyId, LocalDate startDate, LocalDate endDate) {
+        List<Object[]> rows = analyticsRepository.businessGrowth(companyId, toStartOfDay(startDate), toEndOfDay(endDate));
+        return rows.stream().map(r -> new BusinessGrowthDto(
+                (String) r[0],
                 toDouble(r[1]),
-                toDouble(r[2])
-        );
+                toDouble(r[2]),
+                toDouble(r[3]),
+                toDouble(r[4])
+        )).toList();
     }
 
     // ========================

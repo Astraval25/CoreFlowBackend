@@ -34,8 +34,18 @@ import com.astraval.coreflow.modules.analytics.service.AnalyticsService;
 @RequestMapping("/api/companies")
 public class AnalyticsController {
 
+    private static final int DEFAULT_PERIOD_YEARS = 1;
+
     @Autowired
     private AnalyticsService analyticsService;
+
+    private LocalDate defaultStart(LocalDate startDate) {
+        return startDate != null ? startDate : LocalDate.now().minusYears(DEFAULT_PERIOD_YEARS);
+    }
+
+    private LocalDate defaultEnd(LocalDate endDate) {
+        return endDate != null ? endDate : LocalDate.now();
+    }
 
     // ========================
     // Section 1: Order Frequency
@@ -44,18 +54,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/order-frequency")
     public ApiResponse<List<OrderFrequencyDto>> salesOrderFrequency(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesOrderFrequency(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesOrderFrequency(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales order frequency retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/order-frequency")
     public ApiResponse<List<OrderFrequencyDto>> purchaseOrderFrequency(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchaseOrderFrequency(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchaseOrderFrequency(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase order frequency retrieved");
     }
 
@@ -66,18 +76,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/payment-frequency")
     public ApiResponse<List<PaymentFrequencyDto>> salesPaymentFrequency(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesPaymentFrequency(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesPaymentFrequency(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales payment frequency retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/payment-frequency")
     public ApiResponse<List<PaymentFrequencyDto>> purchasePaymentFrequency(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchasePaymentFrequency(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchasePaymentFrequency(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase payment frequency retrieved");
     }
 
@@ -88,18 +98,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/item-frequency")
     public ApiResponse<List<ItemFrequencyDto>> salesItemFrequency(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesItemFrequency(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesItemFrequency(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales item frequency retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/item-frequency")
     public ApiResponse<List<ItemFrequencyDto>> purchaseItemFrequency(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchaseItemFrequency(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchaseItemFrequency(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase item frequency retrieved");
     }
 
@@ -110,18 +120,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/running-order-amount")
     public ApiResponse<List<RunningAmountDto>> salesRunningOrderAmount(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesRunningOrderAmount(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesRunningOrderAmount(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales running order amount retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/running-order-amount")
     public ApiResponse<List<RunningAmountDto>> purchaseRunningOrderAmount(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchaseRunningOrderAmount(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchaseRunningOrderAmount(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase running order amount retrieved");
     }
 
@@ -132,18 +142,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/running-payment-amount")
     public ApiResponse<List<RunningAmountDto>> salesRunningPaymentAmount(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesRunningPaymentAmount(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesRunningPaymentAmount(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales running payment amount retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/running-payment-amount")
     public ApiResponse<List<RunningAmountDto>> purchaseRunningPaymentAmount(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchaseRunningPaymentAmount(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchaseRunningPaymentAmount(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase running payment amount retrieved");
     }
 
@@ -154,18 +164,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/by-customer")
     public ApiResponse<List<SalesPurchaseByPartyDto>> salesByCustomer(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesByCustomer(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesByCustomer(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales by customer retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/by-vendor")
     public ApiResponse<List<SalesPurchaseByPartyDto>> purchaseByVendor(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchaseByVendor(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchaseByVendor(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase by vendor retrieved");
     }
 
@@ -176,18 +186,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/by-item")
     public ApiResponse<List<SalesPurchaseByItemDto>> salesByItem(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesByItem(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesByItem(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales by item retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/by-item")
     public ApiResponse<List<SalesPurchaseByItemDto>> purchaseByItem(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchaseByItem(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchaseByItem(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase by item retrieved");
     }
 
@@ -198,18 +208,18 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/sales/summary")
     public ApiResponse<SalesPurchaseSummaryDto> salesSummary(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getSalesSummary(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getSalesSummary(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Sales summary retrieved");
     }
 
     @GetMapping("/{companyId}/analytics/purchase/summary")
     public ApiResponse<SalesPurchaseSummaryDto> purchaseSummary(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPurchaseSummary(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPurchaseSummary(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase summary retrieved");
     }
 
@@ -220,9 +230,9 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/profit/by-item")
     public ApiResponse<List<ProfitByItemDto>> profitByItem(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getProfitByItem(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getProfitByItem(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Profit by item retrieved");
     }
 
@@ -231,11 +241,11 @@ public class AnalyticsController {
     // ========================
 
     @GetMapping("/{companyId}/analytics/dashboard/cash-flow")
-    public ApiResponse<CashFlowDto> cashFlow(
+    public ApiResponse<List<CashFlowDto>> cashFlow(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getCashFlow(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getCashFlow(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Cash flow retrieved");
     }
 
@@ -246,9 +256,9 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/dashboard/revenue-expense")
     public ApiResponse<List<RevenueExpenseDto>> revenueVsExpense(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getRevenueVsExpense(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getRevenueVsExpense(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Revenue vs expense retrieved");
     }
 
@@ -259,10 +269,10 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/dashboard/top-selling-items")
     public ApiResponse<List<TopItemDto>> topSellingItems(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "10") int limit) {
-        return ApiResponseFactory.ok(analyticsService.getTopSellingItems(companyId, startDate, endDate, limit),
+        return ApiResponseFactory.ok(analyticsService.getTopSellingItems(companyId, defaultStart(startDate), defaultEnd(endDate), limit),
                 "Top selling items retrieved");
     }
 
@@ -273,10 +283,10 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/dashboard/top-profitable-items")
     public ApiResponse<List<TopItemDto>> topProfitableItems(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "10") int limit) {
-        return ApiResponseFactory.ok(analyticsService.getTopProfitableItems(companyId, startDate, endDate, limit),
+        return ApiResponseFactory.ok(analyticsService.getTopProfitableItems(companyId, defaultStart(startDate), defaultEnd(endDate), limit),
                 "Top profitable items retrieved");
     }
 
@@ -287,9 +297,9 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/dashboard/payment-mode-distribution")
     public ApiResponse<List<PaymentModeDistributionDto>> paymentModeDistribution(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getPaymentModeDistribution(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getPaymentModeDistribution(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Payment mode distribution retrieved");
     }
 
@@ -298,11 +308,11 @@ public class AnalyticsController {
     // ========================
 
     @GetMapping("/{companyId}/analytics/dashboard/business-growth")
-    public ApiResponse<BusinessGrowthDto> businessGrowth(
+    public ApiResponse<List<BusinessGrowthDto>> businessGrowth(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getBusinessGrowth(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getBusinessGrowth(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Business growth retrieved");
     }
 
@@ -313,9 +323,9 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/dashboard/kpi")
     public ApiResponse<DashboardKpiDto> dashboardKpi(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getDashboardKpi(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getDashboardKpi(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Dashboard KPI retrieved");
     }
 
@@ -326,9 +336,9 @@ public class AnalyticsController {
     @GetMapping("/{companyId}/analytics/dashboard/monthly-trend")
     public ApiResponse<List<MonthlyTrendDto>> monthlyTrend(
             @PathVariable Long companyId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ApiResponseFactory.ok(analyticsService.getMonthlyTrend(companyId, startDate, endDate),
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(analyticsService.getMonthlyTrend(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Monthly trend retrieved");
     }
 }
