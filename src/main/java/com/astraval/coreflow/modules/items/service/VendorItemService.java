@@ -142,9 +142,8 @@ public class VendorItemService {
         if (vendor.getVendorCompany() != null) {
             // Linked vendor: show items from the linked company's customer
             // (ItemCustomerPrice)
-            Long vendorCompanyId = vendor.getVendorCompany().getCompanyId();
             CustomerVendorLink link = customerVendorLinkRepository
-                    .findByVendorVendorIdAndCustomerCompanyCompanyId(vendorId, vendorCompanyId)
+                    .findByVendorVendorIdAndCustomerCompanyCompanyId(vendorId, companyId)
                     .orElse(null);
             if (link == null) {
                 return List.of();
