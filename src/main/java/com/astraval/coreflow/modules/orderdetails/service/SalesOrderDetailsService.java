@@ -87,7 +87,10 @@ public class SalesOrderDetailsService {
             orderDetails.setVendors(buyerVendor);
         }
         
-        orderDetails.setOrderDate(LocalDateTime.now());
+        LocalDateTime orderDate = createOrder.getOrderDate() != null
+                ? createOrder.getOrderDate()
+                : LocalDateTime.now();
+        orderDetails.setOrderDate(orderDate);
         orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
@@ -186,6 +189,9 @@ public class SalesOrderDetailsService {
         existingOrder.setDiscountAmount(updateOrder.getDiscountAmount());
         existingOrder.setTaxAmount(updateOrder.getTaxAmount());
         existingOrder.setHasBill(updateOrder.isHasBill());
+        if (updateOrder.getOrderDate() != null) {
+            existingOrder.setOrderDate(updateOrder.getOrderDate());
+        }
         
         // Delete existing order items
         orderItemDetailsService.deleteOrderItemsByOrderId(orderId);

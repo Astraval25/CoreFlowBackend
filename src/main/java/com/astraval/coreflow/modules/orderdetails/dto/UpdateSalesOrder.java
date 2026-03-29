@@ -1,5 +1,6 @@
 package com.astraval.coreflow.modules.orderdetails.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.astraval.coreflow.modules.orderitemdetails.dto.CreateOrderItem;
@@ -20,6 +21,8 @@ public class UpdateSalesOrder {
     
     @PositiveOrZero(message = "Discount amount must be positive or zero")
     private Double discountAmount;
+
+    private LocalDateTime orderDate;
     
     @NotNull(message = "Delivery charge is required")
     @PositiveOrZero(message = "Delivery charge must be positive or zero")
