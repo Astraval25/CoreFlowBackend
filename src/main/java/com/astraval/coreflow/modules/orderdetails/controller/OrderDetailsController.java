@@ -15,6 +15,7 @@ import com.astraval.coreflow.modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.modules.orderdetails.dto.OrderDetailsFullResponse;
 import com.astraval.coreflow.modules.orderdetails.dto.UnpaidOrderDto;
 import com.astraval.coreflow.modules.orderdetails.service.OrderDetailsService;
+import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,6 +80,36 @@ public class OrderDetailsController {
         }
     }
     
+    // Get Payment Details By OrderId
+    @GetMapping("/{companyId}/orders/{orderId}/payment-details")
+    public ApiResponse<List<PayerPaymentSummaryDto>> getPaymentDetailsByOrder(@PathVariable Long companyId,
+            @PathVariable Long orderId) {
+        try {
+            List<PayerPaymentSummaryDto> paymentDetails = orderDetailsService.getPaymentDetailsByOrder(companyId,
+                    orderId);
+            return ApiResponseFactory.accepted(paymentDetails, "Payment details retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PutMapping("/{companyId}/orders/{orderId}/cancel-order")
+    public ApiResponse<List<PayerPaymentSummaryDto>> convertToCancelOrder(@PathVariable Long companyId,
+            @PathVariable Long orderId) {
+        try {
+            List<PayerPaymentSummaryDto> paymentDetails = orderDetailsService.getPaymentDetailsByOrder(companyId,
+                    orderId);
+            if (paymentDetails == null || paymentDetails.isEmpty()) {
+                orderDetailsService.updateOrderStatusWithOrderSnapshot(companyId, orderId, OrderStatus.getOrderCancelled());
+                return ApiResponseFactory.accepted(paymentDetails, "Order canceled successfully");
+            }
+            return ApiResponseFactory.validation(paymentDetails,
+                    "Cannot cancel order with existing payments. Please resolve payments first.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
     // Update Order Status.
     @PutMapping("/{companyId}/orders/{orderId}/sales-order")
     public ApiResponse<String> convertToSalesOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
@@ -179,6 +210,16 @@ public class OrderDetailsController {
         try {
             orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getOrderPayed());
             return ApiResponseFactory.accepted("Order marked as paid.", "Order marked as paid.");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+    
+    @PutMapping("/{companyId}/orders/{orderId}/cancelled")
+    public ApiResponse<String> cancelOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getOrderCancelled());
+            return ApiResponseFactory.accepted("Order cancelled.", "Order cancelled.");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
