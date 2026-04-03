@@ -215,13 +215,5 @@ public class OrderDetailsController {
         }
     }
     
-    @PutMapping("/{companyId}/orders/{orderId}/cancelled")
-    public ApiResponse<String> cancelOrder(@PathVariable Long companyId, @PathVariable Long orderId) {
-        try {
-            orderDetailsService.updateOrderStatus(companyId, orderId, OrderStatus.getOrderCancelled());
-            return ApiResponseFactory.accepted("Order cancelled.", "Order cancelled.");
-        } catch (RuntimeException e) {
-            return ApiResponseFactory.error(e.getMessage(), 406);
-        }
-    }
+    
 }

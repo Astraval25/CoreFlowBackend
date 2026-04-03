@@ -318,7 +318,7 @@ public class ItemService {
         else{
             Long vendorCompanyId = vendor.getVendorCompany().getCompanyId();
             CustomerVendorLink customerVendorLink = customerVendorLinkRepository
-                    .findByVendorVendorIdAndCustomerCompanyCompanyId(vendorId, vendorCompanyId)
+                    .findByVendorVendorIdAndVendorCompanyCompanyId(vendorId, vendorCompanyId)
                     .orElseThrow(() -> new RuntimeException(
                             "Vendor Link not present in customer_vendor_link table: " + vendorId));
             

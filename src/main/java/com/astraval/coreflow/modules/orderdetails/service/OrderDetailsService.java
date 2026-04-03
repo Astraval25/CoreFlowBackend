@@ -190,10 +190,6 @@ public class OrderDetailsService {
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         
-        if (!OrderStatus.getOrderViewed().equals(order.getOrderStatus())) {  // before updating check the order is in "Viewed" status.
-            throw new RuntimeException("Order status can only be updated from Open status");
-        }
-        
         // Create snapshot before updating status
         createOrderSnapshot(order);
         
