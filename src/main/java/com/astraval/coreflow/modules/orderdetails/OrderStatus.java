@@ -13,10 +13,12 @@ public class OrderStatus {
     
     // Invoice Status
     public static final String ORDER_INVOICED = "ORDER_INVOICED";
-    
+
     // Payment Status
     public static final String ORDER_PAYED = "ORDER_PAYED";
-    
+
+    // Cancel Status
+    public static final String ORDER_CANCELLED = "ORDER_CANCELLED";
 
     public static String getQuotation() {       // Action Status
         return QUOTATION;
@@ -48,5 +50,9 @@ public class OrderStatus {
     
     public static String getOrderPayed() {      // Action Status
         return ORDER_PAYED;
+    }
+    
+    public static String getOrderCancelled() {  // Action Status
+        return ORDER_CANCELLED;
     }
 }

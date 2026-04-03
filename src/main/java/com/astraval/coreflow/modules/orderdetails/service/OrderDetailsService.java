@@ -19,7 +19,9 @@ import com.astraval.coreflow.modules.orderitemdetails.OrderItemDetailsRepository
 import com.astraval.coreflow.modules.ordersnapshot.OrderSnapshot;
 import com.astraval.coreflow.modules.ordersnapshot.repo.OrderSnapshotRepository;
 import com.astraval.coreflow.modules.companyref.CompanyOrderRefRepository;
+import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
+import com.astraval.coreflow.modules.payments.service.PaymentService;
 
 @Service
 public class OrderDetailsService {
@@ -41,6 +43,9 @@ public class OrderDetailsService {
 
     @Autowired
     private PartnerBalanceService partnerBalanceService;
+    
+    @Autowired
+    private PaymentService paymentService;
     
     public OrderDetails getOrderDetailsByOrderId(Long companyId, Long orderId){
         return orderDetailsRepository
@@ -185,10 +190,6 @@ public class OrderDetailsService {
                 .findOrderForCompany(orderId, companyId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         
-        if (!OrderStatus.getOrderViewed().equals(order.getOrderStatus())) {  // before updating check the order is in "Viewed" status.
-            throw new RuntimeException("Order status can only be updated from Open status");
-        }
-        
         // Create snapshot before updating status
         createOrderSnapshot(order);
         
@@ -234,6 +235,16 @@ public class OrderDetailsService {
             
             orderItemSnapshotService.createOrderItem(itemSnapshot);
         });
+    }
+    
+    // get payment details for order.
+    public List<PayerPaymentSummaryDto> getPaymentDetailsByOrder(Long companyId, Long orderId) {
+        orderDetailsRepository
+                .findOrderForCompany(orderId, companyId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        return paymentService.getPaymentDetailsForOrder(companyId, orderId);
+        
     }
     
     // -----------------------> Helper functions

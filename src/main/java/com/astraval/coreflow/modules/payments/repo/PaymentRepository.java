@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.dto.PaymentOrderAllocationDto;
 import com.astraval.coreflow.modules.payments.model.Payments;
 
@@ -100,5 +101,32 @@ public interface PaymentRepository extends JpaRepository<Payments, Long> {
             ORDER BY poa.allocationDate DESC
             """)
     List<PaymentOrderAllocationDto> findPaymentOrderAllocationsByPaymentId(@Param("paymentId") Long paymentId);
+
+    @Query("""
+            SELECT DISTINCT new com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto(
+              p.paymentId,
+              p.paymentDate,
+              CONCAT('', poa.orderDetails.orderId),
+              p.paymentNumber,
+              p.amount,
+              v.vendorName,
+              p.modeOfPayment,
+              p.paymentStatus,
+              p.isActive,
+              p.referenceNumber,
+              p.platformRef,
+              cpr.localPaymentNumber
+            )
+            FROM PaymentOrderAllocations poa
+            JOIN poa.payments p
+            LEFT JOIN p.vendors v
+            LEFT JOIN CompanyPaymentRef cpr
+              ON cpr.payment = p AND cpr.company.companyId = :companyId
+            WHERE poa.orderDetails.orderId = :orderId
+            ORDER BY p.paymentDate DESC
+            """)
+    List<PayerPaymentSummaryDto> findPaymentDetailsForOrder(
+            @Param("companyId") Long companyId,
+            @Param("orderId") Long orderId);
 
 }

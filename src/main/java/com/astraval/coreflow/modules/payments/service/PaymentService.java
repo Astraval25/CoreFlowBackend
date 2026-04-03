@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companyref.CompanyPaymentRefRepository;
 import com.astraval.coreflow.modules.payments.PaymentStatus;
+import com.astraval.coreflow.modules.payments.dto.PayerPaymentSummaryDto;
 import com.astraval.coreflow.modules.payments.dto.PaymentOrderAllocationDto;
 import com.astraval.coreflow.modules.payments.dto.PaymentViewDto;
 import com.astraval.coreflow.modules.payments.model.Payments;
@@ -126,4 +127,13 @@ public class PaymentService {
         payment.setPaymentStatus(newStatus);
         paymentRepository.save(payment);
     }
+    
+    public List<PayerPaymentSummaryDto>  getPaymentDetailsForOrder(Long orderId) {
+        return getPaymentDetailsForOrder(null, orderId);
+    }
+
+    public List<PayerPaymentSummaryDto> getPaymentDetailsForOrder(Long companyId, Long orderId) {
+        return paymentRepository.findPaymentDetailsForOrder(companyId, orderId);
+    }
+
 }
