@@ -63,7 +63,7 @@ public class Payments {
   }
   
   @Column(name = "payment_number")
-  private String paymentNumber;
+  private String paymentNumber;  // not used
   
   @Column(name = "payment_date")
   private LocalDateTime paymentDate;

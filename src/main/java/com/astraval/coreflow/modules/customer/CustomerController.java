@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
+import com.astraval.coreflow.common.util.PaginationRequest;
 import com.astraval.coreflow.modules.customer.dto.CreateUpdateCustomerDto;
+import com.astraval.coreflow.modules.customer.dto.CustomerOrderPaymentSummaryDto;
 import com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto;
 
 import jakarta.validation.Valid;
@@ -122,6 +125,23 @@ public class CustomerController {
             return ApiResponseFactory.updated(null, "Customer activated successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
+        }
+    }
+
+    @GetMapping("/{companyId}/customers/{customerId}/orders-payments")
+    public ApiResponse<CustomerOrderPaymentSummaryDto> getOrdersAndPaymentsByCustomer(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId,
+            @ModelAttribute PaginationRequest paginationRequest) {
+        try {
+            CustomerOrderPaymentSummaryDto result = customerService.getOrdersAndPaymentsByCustomer(
+                    companyId, customerId, paginationRequest);
+            return ApiResponseFactory.okWithPagination(
+                    result,
+                    "Orders and payments retrieved successfully",
+                    result.getPaginationInfo());
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
 

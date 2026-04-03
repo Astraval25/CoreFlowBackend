@@ -3,6 +3,8 @@ package com.astraval.coreflow.modules.customer;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -86,5 +88,54 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
     @Transactional
     @Query("UPDATE Customers c SET c.dueAmount = :dueAmount WHERE c.customerId = :customerId")
     int updateDueAmount(@Param("customerId") Long customerId, @Param("dueAmount") Double dueAmount);
+
+    @Query(value = """
+            SELECT o.order_id, o.order_number, o.total_amount,
+                   o.platform_ref, o.paid_amount, o.order_date
+            FROM order_details o
+            WHERE o.customer = :customerId
+              AND COALESCE(o.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR o.order_number ILIKE CONCAT('%', :search, '%')
+                   OR o.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(o.total_amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            ORDER BY o.order_date DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM order_details o
+            WHERE o.customer = :customerId AND COALESCE(o.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR o.order_number ILIKE CONCAT('%', :search, '%')
+                   OR o.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(o.total_amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            """,
+            nativeQuery = true)
+    Page<Object[]> findOrdersByCustomerId(
+            @Param("customerId") Long customerId,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = """
+            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount
+            FROM payments p
+            WHERE p.customer = :customerId
+              AND COALESCE(p.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR p.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(p.amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            ORDER BY p.payment_date DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM payments p
+            WHERE p.customer = :customerId AND COALESCE(p.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR p.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(p.amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            """,
+            nativeQuery = true)
+    Page<Object[]> findPaymentsByCustomerId(
+            @Param("customerId") Long customerId,
+            @Param("search") String search,
+            Pageable pageable);
 
 }
