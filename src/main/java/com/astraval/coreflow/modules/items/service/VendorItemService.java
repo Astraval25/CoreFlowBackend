@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astraval.coreflow.modules.customer.CustomerVendorLink;
-import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
+import com.astraval.coreflow.modules.companylink.CompanyLink;
+import com.astraval.coreflow.modules.companylink.CompanyLinkRepository;
 import com.astraval.coreflow.modules.items.dto.CreateVendorItemDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemDetailDto;
 import com.astraval.coreflow.modules.items.dto.VendorItemSummaryDto;
@@ -40,7 +40,7 @@ public class VendorItemService {
     private ItemCustomerPriceRepository itemCustomerPriceRepository;
 
     @Autowired
-    private CustomerVendorLinkRepository customerVendorLinkRepository;
+    private CompanyLinkRepository customerVendorLinkRepository;
 
     @Transactional
     public Long createVendorItem(Long companyId, Long vendorId, CreateVendorItemDto request) {
@@ -142,7 +142,7 @@ public class VendorItemService {
         if (vendor.getVendorCompany() != null) {
             // Linked vendor: show items from the linked company's customer
             // (ItemCustomerPrice)
-            CustomerVendorLink link = customerVendorLinkRepository
+            CompanyLink link = customerVendorLinkRepository
                     .findByVendorVendorIdAndCustomerCompanyCompanyId(vendorId, companyId)
                     .orElse(null);
             if (link == null) {
