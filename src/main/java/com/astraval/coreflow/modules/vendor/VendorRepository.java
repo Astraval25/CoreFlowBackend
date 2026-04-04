@@ -3,6 +3,8 @@ package com.astraval.coreflow.modules.vendor;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -99,5 +101,53 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
     @Query("UPDATE Vendors v SET v.dueAmount = :dueAmount WHERE v.vendorId = :vendorId")
     int updateDueAmount(@Param("vendorId") Long vendorId, @Param("dueAmount") Double dueAmount);
 
+    @Query(value = """
+            SELECT o.order_id, o.order_number, o.total_amount,
+                   o.platform_ref, o.paid_amount, o.order_date
+            FROM order_details o
+            WHERE o.vendor = :vendorId
+              AND COALESCE(o.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR o.order_number ILIKE CONCAT('%', :search, '%')
+                   OR o.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(o.total_amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            ORDER BY o.order_date DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM order_details o
+            WHERE o.vendor = :vendorId AND COALESCE(o.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR o.order_number ILIKE CONCAT('%', :search, '%')
+                   OR o.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(o.total_amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            """,
+            nativeQuery = true)
+    Page<Object[]> findOrdersByVendorId(
+            @Param("vendorId") Long vendorId,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = """
+            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount
+            FROM payments p
+            WHERE p.vendor = :vendorId
+              AND COALESCE(p.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR p.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(p.amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            ORDER BY p.payment_date DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM payments p
+            WHERE p.vendor = :vendorId AND COALESCE(p.is_active, TRUE) = TRUE
+              AND (:search IS NULL OR :search = ''
+                   OR p.platform_ref ILIKE CONCAT('%', :search, '%')
+                   OR CAST(p.amount AS VARCHAR) ILIKE CONCAT('%', :search, '%'))
+            """,
+            nativeQuery = true)
+    Page<Object[]> findPaymentsByVendorId(
+            @Param("vendorId") Long vendorId,
+            @Param("search") String search,
+            Pageable pageable);
 
 }

@@ -7,6 +7,12 @@ public class ApiResponseFactory {
         return new ApiResponse<>(true, 200, message, data);
     }
 
+    public static <T> ApiResponse<T> okWithPagination(T data, String message, PaginationInfo pagination) {
+        ApiResponse<T> response = new ApiResponse<>(true, 200, message, data);
+        response.setPagination(pagination);
+        return response;
+    }
+
     public static <T> ApiResponse<T> created(T data, String message){
         return new ApiResponse<>(true, 201, message, data);
     }

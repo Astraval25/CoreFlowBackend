@@ -1,11 +1,16 @@
 package com.astraval.coreflow.modules.vendor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.common.util.PaginationInfo;
+import com.astraval.coreflow.common.util.PaginationRequest;
 import com.astraval.coreflow.modules.address.Address;
 import com.astraval.coreflow.modules.address.AddressMapper;
 import com.astraval.coreflow.modules.address.AddressService;
@@ -13,6 +18,9 @@ import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 import com.astraval.coreflow.modules.vendor.dto.CreateUpdateVendorDto;
+import com.astraval.coreflow.modules.vendor.dto.VendorOrderPaymentSummaryDto;
+import com.astraval.coreflow.modules.vendor.dto.VendorOrderSummaryDto;
+import com.astraval.coreflow.modules.vendor.dto.VendorPaymentSummaryDto;
 import com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto;
 
 @Service
@@ -180,5 +188,50 @@ public class VendorService {
                 .orElseThrow(() -> new RuntimeException(
                         "Vendor link not found. Expected vendors row with comp_id=" + companyId +
                                 " and vendor_comp_id=" + vendorCompanyId));
+    }
+
+    public VendorOrderPaymentSummaryDto getOrdersAndPaymentsByVendor(
+            Long companyId, Long vendorId, PaginationRequest paginationRequest) {
+
+        vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+
+        PageRequest pageRequest = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
+        String search = paginationRequest.getSearch();
+
+        Page<Object[]> orderResults = vendorRepository.findOrdersByVendorId(vendorId, search, pageRequest);
+        Page<Object[]> paymentResults = vendorRepository.findPaymentsByVendorId(vendorId, search, pageRequest);
+
+        List<VendorOrderSummaryDto> orders = orderResults.map(row -> new VendorOrderSummaryDto(
+                row[0] != null ? ((Number) row[0]).longValue() : null,
+                (String) row[1],
+                row[2] != null ? ((Number) row[2]).doubleValue() : null,
+                (String) row[3],
+                row[4] != null ? ((Number) row[4]).doubleValue() : null,
+                row[5] != null ? (LocalDateTime) row[5] : null
+        )).getContent();
+
+        List<VendorPaymentSummaryDto> payments = paymentResults.map(row -> new VendorPaymentSummaryDto(
+                row[0] != null ? ((Number) row[0]).longValue() : null,
+                (String) row[1],
+                row[2] != null ? (LocalDateTime) row[2] : null,
+                row[3] != null ? ((Number) row[3]).doubleValue() : null
+        )).getContent();
+
+        PaginationInfo paginationInfo = new PaginationInfo(
+                paginationRequest.getPage(),
+                paginationRequest.getSize(),
+                orderResults.getTotalElements() + paymentResults.getTotalElements(),
+                Math.max(orderResults.getTotalPages(), paymentResults.getTotalPages()),
+                orderResults.hasNext() || paymentResults.hasNext(),
+                orderResults.hasPrevious() || paymentResults.hasPrevious(),
+                paginationRequest.getSearch(),
+                paginationRequest.getSortBy(),
+                paginationRequest.getSortDirection()
+        );
+
+        VendorOrderPaymentSummaryDto result = new VendorOrderPaymentSummaryDto(orders, payments);
+        result.setPaginationInfo(paginationInfo);
+        return result;
     }
 }

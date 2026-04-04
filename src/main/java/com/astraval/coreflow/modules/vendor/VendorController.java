@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
+import com.astraval.coreflow.common.util.PaginationRequest;
 import com.astraval.coreflow.modules.vendor.dto.CreateUpdateVendorDto;
+import com.astraval.coreflow.modules.vendor.dto.VendorOrderPaymentSummaryDto;
 import com.astraval.coreflow.modules.vendor.dto.VendorSummaryDto;
 
 import jakarta.validation.Valid;
@@ -122,6 +125,23 @@ public class VendorController {
             return ApiResponseFactory.updated(null, "Vendor activated successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
+        }
+    }
+
+    @GetMapping("/{companyId}/vendors/{vendorId}/orders-payments")
+    public ApiResponse<VendorOrderPaymentSummaryDto> getOrdersAndPaymentsByVendor(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId,
+            @ModelAttribute PaginationRequest paginationRequest) {
+        try {
+            VendorOrderPaymentSummaryDto result = vendorService.getOrdersAndPaymentsByVendor(
+                    companyId, vendorId, paginationRequest);
+            return ApiResponseFactory.okWithPagination(
+                    result,
+                    "Orders and payments retrieved successfully",
+                    result.getPaginationInfo());
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
 

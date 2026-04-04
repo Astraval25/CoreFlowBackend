@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
-import com.astraval.coreflow.modules.customer.CustomerVendorLink;
-import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
+import com.astraval.coreflow.modules.companylink.CompanyLink;
+import com.astraval.coreflow.modules.companylink.CompanyLinkRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.invitation.dto.AcceptInvitationDto;
@@ -44,7 +44,7 @@ public class InvitationService {
     private VendorRepository vendorRepository;
 
     @Autowired
-    private CustomerVendorLinkRepository customerVendorLinkRepository;
+    private CompanyLinkRepository customerVendorLinkRepository;
 
     @Transactional
     public Invitation sendCustomerInvite(Long companyId, Long customerId, String emailOverride) {
@@ -285,8 +285,8 @@ public class InvitationService {
     }
 
     private void upsertCustomerVendorLink(Customers customer, Vendors vendor) {
-        CustomerVendorLink link = customerVendorLinkRepository.findByCustomerCustomerId(customer.getCustomerId())
-                .orElseGet(CustomerVendorLink::new);
+        CompanyLink link = customerVendorLinkRepository.findByCustomerCustomerId(customer.getCustomerId())
+                .orElseGet(CompanyLink::new);
 
         link.setCustomer(customer);
         

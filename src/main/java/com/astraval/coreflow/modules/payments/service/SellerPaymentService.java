@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.modules.companies.CompanyRepository;
-import com.astraval.coreflow.modules.customer.CustomerVendorLink;
-import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
+import com.astraval.coreflow.modules.companylink.CompanyLink;
+import com.astraval.coreflow.modules.companylink.CompanyLinkRepository;
 import com.astraval.coreflow.modules.customer.CustomerService;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
 import com.astraval.coreflow.modules.customer.Customers;
@@ -53,7 +53,7 @@ public class SellerPaymentService {
     private CustomerService customerService;
 
     @Autowired
-    private CustomerVendorLinkRepository customerVendorLinkRepository;
+    private CompanyLinkRepository customerVendorLinkRepository;
 
     @Autowired
     private OrderDetailsRepository orderDetailsRepository;
@@ -92,7 +92,7 @@ public class SellerPaymentService {
         if (customer.getCustomerCompany() != null) {
             Long expectedVendorCompanyId = customer.getCustomerCompany().getCompanyId();
 
-            CustomerVendorLink customerVendorLink = customerVendorLinkRepository
+            CompanyLink customerVendorLink = customerVendorLinkRepository
                     .findByCustomerCustomerId(customer.getCustomerId())
                     .orElseThrow(() -> new RuntimeException(
                             "Customer-vendor link not found for payments-received. " +

@@ -1,17 +1,25 @@
 package com.astraval.coreflow.modules.customer;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.common.util.PaginationInfo;
+import com.astraval.coreflow.common.util.PaginationRequest;
 import com.astraval.coreflow.modules.address.Address;
 import com.astraval.coreflow.modules.address.AddressMapper;
 import com.astraval.coreflow.modules.address.AddressService;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.customer.dto.CreateUpdateCustomerDto;
+import com.astraval.coreflow.modules.customer.dto.CustomerOrderPaymentSummaryDto;
+import com.astraval.coreflow.modules.customer.dto.CustomerOrderSummaryDto;
+import com.astraval.coreflow.modules.customer.dto.CustomerPaymentSummaryDto;
 import com.astraval.coreflow.modules.customer.dto.CustomerSummaryDto;
 import com.astraval.coreflow.modules.payments.service.PartnerBalanceService;
 
@@ -179,6 +187,52 @@ public class CustomerService {
         return customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(companyId, customerCompanyId)
                 .orElseThrow(() -> new RuntimeException(
                         "Customer " + customerCompanyId + " not found for company ID: " + companyId));
+    }
+
+    public CustomerOrderPaymentSummaryDto getOrdersAndPaymentsByCustomer(
+            Long companyId, Long customerId, PaginationRequest paginationRequest) {
+
+        // Validate customer belongs to this company
+        customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
+                .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
+
+        PageRequest pageRequest = PageRequest.of(paginationRequest.getPage(), paginationRequest.getSize());
+        String search = paginationRequest.getSearch();
+
+        Page<Object[]> orderResults = customerRepository.findOrdersByCustomerId(customerId, search, pageRequest);
+        Page<Object[]> paymentResults = customerRepository.findPaymentsByCustomerId(customerId, search, pageRequest);
+
+        List<CustomerOrderSummaryDto> orders = orderResults.map(row -> new CustomerOrderSummaryDto(
+                row[0] != null ? ((Number) row[0]).longValue() : null,
+                (String) row[1],
+                row[2] != null ? ((Number) row[2]).doubleValue() : null,
+                (String) row[3],
+                row[4] != null ? ((Number) row[4]).doubleValue() : null,
+                row[5] != null ? (LocalDateTime) row[5] : null
+        )).getContent();
+
+        List<CustomerPaymentSummaryDto> payments = paymentResults.map(row -> new CustomerPaymentSummaryDto(
+                row[0] != null ? ((Number) row[0]).longValue() : null,
+                (String) row[1],
+                row[2] != null ? (LocalDateTime) row[2] : null,
+                row[3] != null ? ((Number) row[3]).doubleValue() : null
+        )).getContent();
+
+        PaginationInfo paginationInfo = new PaginationInfo(
+                paginationRequest.getPage(),
+                paginationRequest.getSize(),
+                orderResults.getTotalElements() + paymentResults.getTotalElements(),
+                Math.max(orderResults.getTotalPages(), paymentResults.getTotalPages()),
+                orderResults.hasNext() || paymentResults.hasNext(),
+                orderResults.hasPrevious() || paymentResults.hasPrevious(),
+                paginationRequest.getSearch(),
+                paginationRequest.getSortBy(),
+                paginationRequest.getSortDirection()
+        );
+
+        CustomerOrderPaymentSummaryDto result = new CustomerOrderPaymentSummaryDto(orders, payments);
+        result.setPaginationInfo(paginationInfo);
+        return result;
     }
 
 }

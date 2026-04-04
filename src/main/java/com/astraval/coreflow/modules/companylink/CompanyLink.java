@@ -1,4 +1,4 @@
-package com.astraval.coreflow.modules.customer;
+package com.astraval.coreflow.modules.companylink;
 
 import java.time.LocalDateTime;
 
@@ -7,6 +7,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.astraval.coreflow.modules.companies.Companies;
+import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.vendor.Vendors;
 
 import jakarta.persistence.Column;
@@ -51,14 +52,14 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "customer_vendor_link", uniqueConstraints = @UniqueConstraint(columnNames = "customer_id"))
+@Table(name = "company_link", uniqueConstraints = @UniqueConstraint(columnNames = "customer_id"))
 @EntityListeners(AuditingEntityListener.class)
-public class CustomerVendorLink {
+public class CompanyLink {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "customer_vendor_link_id")
-    private Long customerVendorLinkId;
+    @Column(name = "company_link_id")
+    private Long CompanyLinkId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)

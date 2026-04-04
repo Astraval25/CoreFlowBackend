@@ -11,9 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.companylink.CompanyLink;
+import com.astraval.coreflow.modules.companylink.CompanyLinkRepository;
 import com.astraval.coreflow.modules.customer.CustomerRepository;
-import com.astraval.coreflow.modules.customer.CustomerVendorLink;
-import com.astraval.coreflow.modules.customer.CustomerVendorLinkRepository;
 import com.astraval.coreflow.modules.customer.Customers;
 import com.astraval.coreflow.modules.filestorage.FileStorage;
 import com.astraval.coreflow.modules.filestorage.FileStorageRepository;
@@ -64,7 +64,7 @@ public class ItemService {
     private ItemVendorPriceRepository itemVendorPriceRepository;
 
     @Autowired
-    private CustomerVendorLinkRepository customerVendorLinkRepository;
+    private CompanyLinkRepository customerVendorLinkRepository;
 
     @Autowired
     private CustomerRepository customerRepository;
@@ -244,7 +244,7 @@ public class ItemService {
         }
         else{
             Long customerCompanyId = customer.getCustomerCompany().getCompanyId();
-            CustomerVendorLink customerVendorLink = customerVendorLinkRepository
+            CompanyLink customerVendorLink = customerVendorLinkRepository
                     .findByCustomerCustomerIdAndVendorCompanyCompanyId(customerId, customerCompanyId)
                     .orElseThrow(() -> new RuntimeException(
                             "Customer Link not present in customer_vendor_link table: " + customerId));
@@ -317,7 +317,7 @@ public class ItemService {
         }
         else{
             Long vendorCompanyId = vendor.getVendorCompany().getCompanyId();
-            CustomerVendorLink customerVendorLink = customerVendorLinkRepository
+            CompanyLink customerVendorLink = customerVendorLinkRepository
                     .findByVendorVendorIdAndVendorCompanyCompanyId(vendorId, vendorCompanyId)
                     .orElseThrow(() -> new RuntimeException(
                             "Vendor Link not present in customer_vendor_link table: " + vendorId));
