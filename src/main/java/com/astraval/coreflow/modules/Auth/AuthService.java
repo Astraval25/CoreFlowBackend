@@ -173,10 +173,9 @@ public class AuthService {
         return response;
     }
     
-    public EmployeeLoginResponse employeeLogin(Long companyId, EmployeeLoginRequest request) {
-        EmployeePortalUser portalUser = portalUserRepository.findByUsernameAndCompanyCompanyId(
-                        request.getUsername(), companyId)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid username or company"));
+    public EmployeeLoginResponse employeeLogin(EmployeeLoginRequest request) {
+        EmployeePortalUser portalUser = portalUserRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid username"));
 
         if (!portalUser.getIsActive()) {
             throw new InvalidCredentialsException("Portal user account is deactivated");
@@ -195,6 +194,7 @@ public class AuthService {
         portalUser.setLastLoginDt(java.time.LocalDateTime.now());
         portalUserRepository.save(portalUser);
 
+        Long companyId = portalUser.getCompany().getCompanyId();
         String token = jwtUtil.generateEmployeeToken(
                 portalUser.getPortalUserId(),
                 portalUser.getEmployee().getEmployeeId(),
@@ -217,76 +217,101 @@ public class AuthService {
         );
     }
 
-    public EmployeeLoginResponse employeeRefreshToken(String refreshToken) {
+    /**
+     * Unified refresh-token handler. Reads the "type" claim to decide which flow to use.
+     * EMP tokens can NEVER produce a USER/admin token. USER tokens can NEVER produce an EMP token.
+     */
+    public Object refreshToken(String refreshToken) {
         try {
             io.jsonwebtoken.Claims claims = jwtUtil.getClaims(refreshToken);
             String type = claims.get("type", String.class);
-            if (!"EMP".equals(type)) {
-                throw new InvalidCredentialsException("Invalid employee refresh token");
+
+            if ("EMP".equals(type)) {
+                return refreshEmployeeToken(claims);
+            } else {
+                return refreshUserToken(claims);
             }
-
-            Long portalUserId = Long.parseLong(claims.getSubject());
-            EmployeePortalUser portalUser = portalUserRepository.findById(portalUserId)
-                    .orElseThrow(() -> new InvalidCredentialsException("Portal user not found"));
-
-            if (!portalUser.getIsActive() || !portalUser.getEmployee().getIsActive()) {
-                throw new InvalidCredentialsException("Employee or portal user is deactivated");
-            }
-
-            Long companyId = portalUser.getCompany().getCompanyId();
-            String token = jwtUtil.generateEmployeeToken(
-                    portalUser.getPortalUserId(),
-                    portalUser.getEmployee().getEmployeeId(),
-                    companyId,
-                    portalUser.getCompany().getCompanyName());
-
-            String newRefreshToken = jwtUtil.generateEmployeeRefreshToken(portalUser.getPortalUserId());
-
-            return new EmployeeLoginResponse(
-                    token, newRefreshToken,
-                    portalUser.getEmployee().getEmployeeId(),
-                    portalUser.getEmployee().getEmployeeName(),
-                    portalUser.getEmployee().getEmployeeCode(),
-                    companyId,
-                    portalUser.getCompany().getCompanyName(),
-                    portalUser.getEmployee().getDesignation()
-            );
         } catch (InvalidCredentialsException e) {
             throw e;
-        } catch (Exception e) {
-            log.error("Employee token refresh failed: {}", e.getMessage());
-            throw new InvalidCredentialsException("Invalid employee refresh token");
-        }
-    }
-
-    public LoginResponse refreshToken(String refreshToken) {
-        try {
-            Long userId = jwtUtil.getUserIdFromToken(refreshToken);
-            LogUtil.setUserId(userId.toString());
-            
-            Optional<User> userOpt = userRepository.findById(userId);
-            if (userOpt.isEmpty() || !userOpt.get().getIsActive()) {
-                log.warn("Token refresh failed - invalid user: {}", userId);
-                throw new InvalidCredentialsException("Invalid refresh token");
-            }
-            
-            User user = userOpt.get();
-            UserRoleMap userRole = getUserRoleMap(user);
-            List<Long> companyIds = getUserCompanyIds(user);
-            
-            String newToken = jwtUtil.generateToken(user.getUserId(), userRole.getRole().getRoleCode(), companyIds,
-                user.getDefaultCompany().getCompanyId(), user.getDefaultCompany().getCompanyName());
-            String newRefreshToken = jwtUtil.generateRefreshToken(user.getUserId());
-            
-            return new LoginResponse(
-                newToken, newRefreshToken, user.getUserId().intValue(), userRole.getRole().getRoleCode(),
-                userRole.getRole().getLandingUrl(), user.getDefaultCompany().getCompanyId(),
-                user.getDefaultCompany().getCompanyName(), companyIds
-            );
         } catch (Exception e) {
             log.error("Token refresh failed: {}", e.getMessage());
             throw new InvalidCredentialsException("Invalid refresh token");
         }
+    }
+
+    private LoginResponse refreshUserToken(io.jsonwebtoken.Claims claims) {
+        String type = claims.get("type", String.class);
+
+        // SECURITY: Block employee tokens from getting admin access
+        if ("EMP".equals(type)) {
+            log.warn("Token refresh rejected - employee token used on user refresh flow");
+            throw new InvalidCredentialsException("Invalid refresh token");
+        }
+
+        Long userId = Long.parseLong(claims.getSubject());
+        LogUtil.setUserId(userId.toString());
+
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty() || !userOpt.get().getIsActive()) {
+            log.warn("Token refresh failed - invalid user: {}", userId);
+            throw new InvalidCredentialsException("Invalid refresh token");
+        }
+
+        User user = userOpt.get();
+        UserRoleMap userRole = getUserRoleMap(user);
+        List<Long> companyIds = getUserCompanyIds(user);
+
+        String newToken = jwtUtil.generateToken(user.getUserId(), userRole.getRole().getRoleCode(), companyIds,
+                user.getDefaultCompany().getCompanyId(), user.getDefaultCompany().getCompanyName());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getUserId());
+
+        return new LoginResponse(
+                newToken, newRefreshToken, user.getUserId().intValue(), userRole.getRole().getRoleCode(),
+                userRole.getRole().getLandingUrl(), user.getDefaultCompany().getCompanyId(),
+                user.getDefaultCompany().getCompanyName(), companyIds
+        );
+    }
+
+    private EmployeeLoginResponse refreshEmployeeToken(io.jsonwebtoken.Claims claims) {
+        String type = claims.get("type", String.class);
+
+        // SECURITY: Only EMP-type refresh tokens can produce employee tokens
+        if (!"EMP".equals(type)) {
+            log.warn("Token refresh rejected - non-employee token used on employee refresh flow");
+            throw new InvalidCredentialsException("Invalid refresh token");
+        }
+
+        Long portalUserId = Long.parseLong(claims.getSubject());
+        EmployeePortalUser portalUser = portalUserRepository.findById(portalUserId)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid refresh token"));
+
+        if (!portalUser.getIsActive()) {
+            throw new InvalidCredentialsException("Portal user account is deactivated");
+        }
+        if (!portalUser.getEmployee().getIsActive()) {
+            throw new InvalidCredentialsException("Employee is deactivated");
+        }
+
+        Long companyId = portalUser.getCompany().getCompanyId();
+        String token = jwtUtil.generateEmployeeToken(
+                portalUser.getPortalUserId(),
+                portalUser.getEmployee().getEmployeeId(),
+                companyId,
+                portalUser.getCompany().getCompanyName());
+
+        String newRefreshToken = jwtUtil.generateEmployeeRefreshToken(portalUser.getPortalUserId());
+
+        log.info("Employee token refreshed for portalUserId: {}", portalUserId);
+
+        return new EmployeeLoginResponse(
+                token, newRefreshToken,
+                portalUser.getEmployee().getEmployeeId(),
+                portalUser.getEmployee().getEmployeeName(),
+                portalUser.getEmployee().getEmployeeCode(),
+                companyId,
+                portalUser.getCompany().getCompanyName(),
+                portalUser.getEmployee().getDesignation()
+        );
     }
 
 }

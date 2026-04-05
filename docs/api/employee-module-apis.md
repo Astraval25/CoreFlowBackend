@@ -1067,12 +1067,13 @@ GET /api/companies/1/modemp/salary/periods/901/slip
 ## Employee Auth APIs
 
 ### 35. Employee Login
-- API: `POST /api/auth/employee/company/{companyId}`
+- API: `POST /api/auth/employee/login`
 - Auth: **No JWT required** (public endpoint)
+- No `companyId` needed — username is globally unique, company is resolved automatically.
 - Request example:
 
 ```http
-POST /api/auth/employee/company/1
+POST /api/auth/employee/login
 Content-Type: application/json
 ```
 
@@ -1108,13 +1109,18 @@ Content-Type: application/json
   - Employee tokens can **only** access `/api/emp/**` endpoints (not admin/company APIs)
   - Employee and portal user must both be active
 
-### 36. Employee Refresh Token
-- API: `POST /api/auth/employee/refresh-token`
+### 36. Refresh Token (Unified — handles both admin and employee)
+- API: `POST /api/auth/refresh-token`
 - Auth: **No JWT required** (public endpoint)
+- **SECURITY**: A single endpoint handles both user and employee token refresh.
+  The `type` claim inside the refresh token determines which flow runs:
+  - `type: "USER"` (or missing) → returns `LoginResponse` (admin/user token)
+  - `type: "EMP"` → returns `EmployeeLoginResponse` (employee token)
+  - **An employee refresh token can NEVER produce an admin token**, and vice versa.
 - Request example:
 
 ```http
-POST /api/auth/employee/refresh-token
+POST /api/auth/refresh-token
 Content-Type: application/json
 ```
 
@@ -1124,10 +1130,8 @@ Content-Type: application/json
 }
 ```
 
-- Response example: same shape as API #35.
-- Notes:
-  - Only accepts employee-type refresh tokens (contains `type: "EMP"` claim)
-  - Admin refresh tokens are rejected and vice versa
+- Response for user token: `LoginResponse` (same as login API #login)
+- Response for employee token: `EmployeeLoginResponse` (same shape as API #35)
 
 ## Employee Portal APIs (Self-Service)
 
