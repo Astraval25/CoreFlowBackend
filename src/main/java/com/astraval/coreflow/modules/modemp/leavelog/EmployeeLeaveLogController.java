@@ -4,6 +4,7 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.modules.modemp.leavelog.dto.*;
 import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,10 @@ public class EmployeeLeaveLogController {
         try {
             Long id = leaveLogService.createLeaveLog(companyId, dto);
             return ApiResponseFactory.created(Map.of("leaveId", id), "Leave log created successfully");
+        } catch (DataIntegrityViolationException e) {
+            return ApiResponseFactory.error(
+                    "Leave record already exists for this employee on the selected date",
+                    409);
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

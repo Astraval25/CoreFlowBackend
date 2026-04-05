@@ -24,6 +24,9 @@ public interface EmployeeLeaveLogRepository extends JpaRepository<EmployeeLeaveL
 
     Optional<EmployeeLeaveLog> findByLeaveIdAndCompanyCompanyId(Long leaveId, Long companyId);
 
+    boolean existsByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDate(
+            Long employeeId, Long companyId, LocalDate leaveDate);
+
     @Query("SELECT l FROM EmployeeLeaveLog l " +
             "WHERE l.employee.employeeId = :employeeId " +
             "AND l.status = 'APPROVED' " +

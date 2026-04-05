@@ -39,11 +39,17 @@ public class EmployeeLeaveLogService {
         Employee employee = employeeRepository.findByEmployeeIdAndCompanyCompanyId(dto.getEmployeeId(), companyId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + dto.getEmployeeId()));
 
+        if (leaveLogRepository.existsByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDate(
+                employee.getEmployeeId(), companyId, dto.getLeaveDate())) {
+            throw new RuntimeException("Leave record already exists for employee "
+                    + employee.getEmployeeName() + " on " + dto.getLeaveDate());
+        }
+
         if (salaryPeriodRepository.existsSalaryPeriodForEmployeeOnDate(companyId, employee.getEmployeeId(),
                 dto.getLeaveDate())) {
             throw new RuntimeException("Cannot create leave log for " + dto.getLeaveDate()
                     + " because salary is already calculated for this date. "
-                    + "Please Contact the admin to adjustment  salary .");
+                    + "Please use the admin salary adjustment API with reason.");
         }
 
         EmployeeLeaveLog log = new EmployeeLeaveLog();
