@@ -102,7 +102,7 @@ public class PdfBuilder {
     // ── Info grid (key-value pairs in a 2-column layout) ──
 
     public PdfBuilder addInfoGrid(String[][] pairs) {
-        int cols = 4; // label, value, label, value
+        // int cols = 4; // label, value, label, value
         Table table = new Table(UnitValue.createPercentArray(new float[] { 25, 25, 25, 25 }))
                 .useAllAvailableWidth()
                 .setMarginBottom(10);
