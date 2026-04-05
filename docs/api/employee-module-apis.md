@@ -573,6 +573,22 @@ Content-Type: application/json
 }
 ```
 
+- Validation rules:
+  - Work log creation is blocked if salary is already calculated for that employee on `logDate`.
+  - This applies to both admin and employee initiated create requests.
+  - Use admin salary-adjustment API (with reason) to make post-salary corrections.
+
+- Locked-date error example:
+
+```json
+{
+  "responseStatus": false,
+  "responseCode": 406,
+  "responseMessage": "Cannot create work log for 2026-04-03 because salary is already calculated for this date. Please Contact the admin to adjustment  salary .",
+  "responseData": null
+}
+```
+
 ### 19. Get Work Logs by Company Date Range
 - API: `GET /api/companies/{companyId}/modemp/work-logs?from={YYYY-MM-DD}&to={YYYY-MM-DD}`
 - Request example:
@@ -688,6 +704,22 @@ Content-Type: application/json
   "responseData": {
     "leaveId": 801
   }
+}
+```
+
+- Validation rules:
+  - Leave log creation is blocked if salary is already calculated for that employee on `leaveDate`.
+  - This applies to both admin and employee initiated create requests.
+  - Use admin salary-adjustment API (with reason) to make post-salary corrections.
+
+- Locked-date error example:
+
+```json
+{
+  "responseStatus": false,
+  "responseCode": 406,
+  "responseMessage": "Cannot create leave log for 2026-04-07 because salary is already calculated for this date. Please Contact the admin to adjustment  salary .",
+  "responseData": null
 }
 ```
 

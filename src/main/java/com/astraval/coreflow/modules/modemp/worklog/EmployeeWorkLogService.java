@@ -5,6 +5,7 @@ import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.modemp.employee.Employee;
 import com.astraval.coreflow.modules.modemp.employee.EmployeeRepository;
 import com.astraval.coreflow.modules.modemp.enums.WorkLogStatus;
+import com.astraval.coreflow.modules.modemp.salary.EmployeeSalaryPeriodRepository;
 import com.astraval.coreflow.modules.modemp.workdef.WorkDefinition;
 import com.astraval.coreflow.modules.modemp.workdef.WorkDefinitionRepository;
 import com.astraval.coreflow.modules.modemp.worklog.dto.*;
@@ -32,6 +33,9 @@ public class EmployeeWorkLogService {
     @Autowired
     private CompanyRepository companyRepository;
 
+    @Autowired
+    private EmployeeSalaryPeriodRepository salaryPeriodRepository;
+
     @Transactional
     public Long createWorkLog(Long companyId, CreateWorkLogDto dto) {
         Companies company = companyRepository.findById(companyId)
@@ -39,6 +43,13 @@ public class EmployeeWorkLogService {
 
         Employee employee = employeeRepository.findByEmployeeIdAndCompanyCompanyId(dto.getEmployeeId(), companyId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + dto.getEmployeeId()));
+
+        if (salaryPeriodRepository.existsSalaryPeriodForEmployeeOnDate(companyId, employee.getEmployeeId(),
+                dto.getLogDate())) {
+            throw new RuntimeException("Cannot create work log for " + dto.getLogDate()
+                    + " because salary is already calculated for this date. "
+                    + "Please Contact the admin to adjustment  salary .");
+        }
 
         WorkDefinition workDef = workDefinitionRepository.findByWorkDefIdAndCompanyCompanyId(dto.getWorkDefId(), companyId)
                 .orElseThrow(() -> new RuntimeException("Work definition not found with ID: " + dto.getWorkDefId()));

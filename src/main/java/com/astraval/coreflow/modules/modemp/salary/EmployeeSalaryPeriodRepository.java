@@ -32,4 +32,14 @@ public interface EmployeeSalaryPeriodRepository extends JpaRepository<EmployeeSa
             @Param("employeeId") Long employeeId,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate);
+
+    @Query("SELECT CASE WHEN COUNT(sp) > 0 THEN true ELSE false END " +
+            "FROM EmployeeSalaryPeriod sp " +
+            "WHERE sp.company.companyId = :companyId " +
+            "AND sp.employee.employeeId = :employeeId " +
+            "AND :targetDate BETWEEN sp.fromDate AND sp.toDate")
+    boolean existsSalaryPeriodForEmployeeOnDate(
+            @Param("companyId") Long companyId,
+            @Param("employeeId") Long employeeId,
+            @Param("targetDate") LocalDate targetDate);
 }

@@ -5,6 +5,7 @@ import com.astraval.coreflow.modules.companies.CompanyRepository;
 import com.astraval.coreflow.modules.modemp.employee.Employee;
 import com.astraval.coreflow.modules.modemp.employee.EmployeeRepository;
 import com.astraval.coreflow.modules.modemp.enums.LeaveStatus;
+import com.astraval.coreflow.modules.modemp.salary.EmployeeSalaryPeriodRepository;
 import com.astraval.coreflow.modules.modemp.leavelog.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +28,9 @@ public class EmployeeLeaveLogService {
     @Autowired
     private CompanyRepository companyRepository;
 
+    @Autowired
+    private EmployeeSalaryPeriodRepository salaryPeriodRepository;
+
     @Transactional
     public Long createLeaveLog(Long companyId, CreateLeaveLogDto dto) {
         Companies company = companyRepository.findById(companyId)
@@ -34,6 +38,13 @@ public class EmployeeLeaveLogService {
 
         Employee employee = employeeRepository.findByEmployeeIdAndCompanyCompanyId(dto.getEmployeeId(), companyId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + dto.getEmployeeId()));
+
+        if (salaryPeriodRepository.existsSalaryPeriodForEmployeeOnDate(companyId, employee.getEmployeeId(),
+                dto.getLeaveDate())) {
+            throw new RuntimeException("Cannot create leave log for " + dto.getLeaveDate()
+                    + " because salary is already calculated for this date. "
+                    + "Please Contact the admin to adjustment  salary .");
+        }
 
         EmployeeLeaveLog log = new EmployeeLeaveLog();
         log.setEmployee(employee);
