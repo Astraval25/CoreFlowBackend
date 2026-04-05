@@ -5,6 +5,7 @@ import com.astraval.coreflow.modules.modemp.enums.SalaryType;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,6 +16,8 @@ public class SalaryPeriodDetailDto {
     private String employeeName;
     private String employeeCode;
     private String period;
+    private LocalDate fromDate;
+    private LocalDate toDate;
     private SalaryType salaryType;
     private Integer workingDaysInMonth;
     private BigDecimal daysPresent;

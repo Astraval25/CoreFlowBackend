@@ -2,11 +2,7 @@ package com.astraval.coreflow.modules.Auth;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
-import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
-import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
-import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
-import com.astraval.coreflow.modules.Auth.dto.RegisterResponse;
-import com.astraval.coreflow.modules.Auth.dto.RefreshTokenRequest;
+import com.astraval.coreflow.modules.Auth.dto.*;
 
 import jakarta.validation.Valid;
 
@@ -40,5 +36,13 @@ public class AuthController {
         LoginResponse response = authService.refreshToken(request.getRefreshToken());
         return ApiResponseFactory.accepted(response, "Token refreshed successfully");
     }
-    
+
+    @PostMapping("/employee/company/{companyId}")
+    public ApiResponse<EmployeeLoginResponse> employeeLogin(
+            @PathVariable Long companyId,
+            @Valid @RequestBody EmployeeLoginRequest request) {
+        EmployeeLoginResponse response = authService.employeeLogin(companyId, request);
+        return ApiResponseFactory.accepted(response, "Employee login successful");
+    }
+
 }

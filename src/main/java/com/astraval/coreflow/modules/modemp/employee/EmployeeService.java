@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.modules.modemp.enums.SalaryType;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -49,10 +51,14 @@ public class EmployeeService {
 
         // Create initial salary config
         if (dto.getSalaryType() != null) {
+            if (dto.getSalaryType() == SalaryType.MONTHLY && dto.getMonthlyAmount() == null) {
+                throw new RuntimeException("Monthly amount is required for MONTHLY salary type");
+            }
+
             EmployeeSalaryConfig config = new EmployeeSalaryConfig();
             config.setEmployee(saved);
             config.setSalaryType(dto.getSalaryType());
-            config.setMonthlyAmount(dto.getMonthlyAmount());
+            config.setMonthlyAmount(dto.getSalaryType() == SalaryType.MONTHLY ? dto.getMonthlyAmount() : null);
             config.setEffectiveFrom(dto.getJoinedDt() != null ? dto.getJoinedDt() : LocalDate.now());
             salaryConfigRepository.save(config);
         }

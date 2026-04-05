@@ -3,12 +3,11 @@ package com.astraval.coreflow.modules.Auth;
 import com.astraval.coreflow.common.exception.InvalidCredentialsException;
 import com.astraval.coreflow.common.util.JwtUtil;
 import com.astraval.coreflow.common.util.LogUtil;
-import com.astraval.coreflow.modules.Auth.dto.LoginRequest;
-import com.astraval.coreflow.modules.Auth.dto.LoginResponse;
-import com.astraval.coreflow.modules.Auth.dto.RegisterRequest;
-import com.astraval.coreflow.modules.Auth.dto.RegisterResponse;
+import com.astraval.coreflow.modules.Auth.dto.*;
 import com.astraval.coreflow.modules.companies.Companies;
 import com.astraval.coreflow.modules.companies.CompanyRepository;
+import com.astraval.coreflow.modules.modemp.portaluser.EmployeePortalUser;
+import com.astraval.coreflow.modules.modemp.portaluser.EmployeePortalUserRepository;
 import com.astraval.coreflow.modules.user.User;
 import com.astraval.coreflow.modules.user.UserRepository;
 import com.astraval.coreflow.modules.user.UserService;
@@ -43,11 +42,12 @@ public class AuthService {
     private final CompanyRepository companyRepository;
     private final UserCompanyMapRepository userCompanyMapRepository;
     private final OtpService otpService;
+    private final EmployeePortalUserRepository portalUserRepository;
 
     public AuthService(UserRepository userRepository, UserService userService, JwtUtil jwtUtil,
             PasswordEncoder passwordEncoder, UserRoleMapRepository userRoleMapRepository,
             CompanyRepository companyRepository, UserCompanyMapRepository userCompanyMapRepository,
-            OtpService otpService) {
+            OtpService otpService, EmployeePortalUserRepository portalUserRepository) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
@@ -56,6 +56,7 @@ public class AuthService {
         this.companyRepository = companyRepository;
         this.userCompanyMapRepository = userCompanyMapRepository;
         this.otpService = otpService;
+        this.portalUserRepository = portalUserRepository;
     }
 
 
@@ -172,6 +173,50 @@ public class AuthService {
         return response;
     }
     
+    public EmployeeLoginResponse employeeLogin(Long companyId, EmployeeLoginRequest request) {
+        EmployeePortalUser portalUser = portalUserRepository.findByUsernameAndCompanyCompanyId(
+                        request.getUsername(), companyId)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid username or company"));
+
+        if (!portalUser.getIsActive()) {
+            throw new InvalidCredentialsException("Portal user account is deactivated");
+        }
+
+        if (!portalUser.getEmployee().getIsActive()) {
+            throw new InvalidCredentialsException("Employee is deactivated");
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), portalUser.getPassword())) {
+            log.warn("Employee login failed - invalid password for username: {}", request.getUsername());
+            throw new InvalidCredentialsException("Invalid password");
+        }
+
+        // Update last login
+        portalUser.setLastLoginDt(java.time.LocalDateTime.now());
+        portalUserRepository.save(portalUser);
+
+        String token = jwtUtil.generateEmployeeToken(
+                portalUser.getPortalUserId(),
+                portalUser.getEmployee().getEmployeeId(),
+                companyId,
+                portalUser.getCompany().getCompanyName());
+
+        String refreshToken = jwtUtil.generateRefreshToken(portalUser.getPortalUserId());
+
+        log.info("Employee login successful for username: {} companyId: {}", request.getUsername(), companyId);
+
+        return new EmployeeLoginResponse(
+                token,
+                refreshToken,
+                portalUser.getEmployee().getEmployeeId(),
+                portalUser.getEmployee().getEmployeeName(),
+                portalUser.getEmployee().getEmployeeCode(),
+                companyId,
+                portalUser.getCompany().getCompanyName(),
+                portalUser.getEmployee().getDesignation()
+        );
+    }
+
     public LoginResponse refreshToken(String refreshToken) {
         try {
             Long userId = jwtUtil.getUserIdFromToken(refreshToken);

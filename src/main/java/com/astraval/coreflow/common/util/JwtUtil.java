@@ -37,6 +37,20 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String generateEmployeeToken(Long portalUserId, Long employeeId, Long companyId, String companyName) {
+        return Jwts.builder()
+                .setSubject(portalUserId.toString())
+                .claim("role", "EMP")
+                .claim("employeeId", employeeId)
+                .claim("companyId", companyId)
+                .claim("companyName", companyName)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration * 1000L))
+                .setId(UUID.randomUUID().toString())
+                .signWith(Keys.hmacShaKeyFor(getKeyBytes()))
+                .compact();
+    }
+
     public String generateRefreshToken(Long userId) {
         return Jwts.builder()
                 .setSubject(userId.toString())

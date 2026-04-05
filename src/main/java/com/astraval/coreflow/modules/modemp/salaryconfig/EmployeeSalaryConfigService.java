@@ -2,6 +2,7 @@ package com.astraval.coreflow.modules.modemp.salaryconfig;
 
 import com.astraval.coreflow.modules.modemp.employee.Employee;
 import com.astraval.coreflow.modules.modemp.employee.EmployeeRepository;
+import com.astraval.coreflow.modules.modemp.enums.SalaryType;
 import com.astraval.coreflow.modules.modemp.salaryconfig.dto.CreateSalaryConfigDto;
 import com.astraval.coreflow.modules.modemp.salaryconfig.dto.SalaryConfigDto;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,11 +34,16 @@ public class EmployeeSalaryConfigService {
             salaryConfigRepository.save(config);
         });
 
+        // Validate salary type
+        if (dto.getSalaryType() == SalaryType.MONTHLY && dto.getMonthlyAmount() == null) {
+            throw new RuntimeException("Monthly amount is required for MONTHLY salary type");
+        }
+
         // Create new config
         EmployeeSalaryConfig newConfig = new EmployeeSalaryConfig();
         newConfig.setEmployee(employee);
         newConfig.setSalaryType(dto.getSalaryType());
-        newConfig.setMonthlyAmount(dto.getMonthlyAmount());
+        newConfig.setMonthlyAmount(dto.getSalaryType() == SalaryType.MONTHLY ? dto.getMonthlyAmount() : null);
         newConfig.setEffectiveFrom(dto.getEffectiveFrom());
 
         EmployeeSalaryConfig saved = salaryConfigRepository.save(newConfig);

@@ -782,8 +782,8 @@ Content-Type: application/json
 
 ```json
 {
-  "period": "202604",
-  "workingDaysInMonth": 26,
+  "fromDate": "2026-04-01",
+  "toDate": "2026-04-15",
   "employeeId": 101
 }
 ```
@@ -798,6 +798,17 @@ Content-Type: application/json
   "responseData": {
     "salaryPeriodIds": [901]
   }
+}
+```
+
+- Conflict response example (salary already calculated for same employee and date range):
+
+```json
+{
+  "responseStatus": false,
+  "responseCode": 409,
+  "responseMessage": "Salary already calculated for employee ID 1 from 2026-04-01 to 2026-04-15",
+  "responseData": null
 }
 ```
 

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -17,6 +18,8 @@ public class SalaryPeriodSummaryDto {
     private String employeeName;
     private String employeeCode;
     private String period;
+    private LocalDate fromDate;
+    private LocalDate toDate;
     private SalaryType salaryType;
     private BigDecimal grossAmount;
     private BigDecimal netAmount;

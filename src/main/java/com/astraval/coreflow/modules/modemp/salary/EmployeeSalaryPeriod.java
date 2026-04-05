@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -19,7 +20,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "employee_salary_periods", schema = "modemp",
-                uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "period"}))
+                uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "from_date", "to_date"}))
 public class EmployeeSalaryPeriod {
 
     @Id
@@ -37,6 +38,12 @@ public class EmployeeSalaryPeriod {
 
     @Column(name = "period", length = 6, nullable = false)
     private String period;
+
+    @Column(name = "from_date", nullable = false)
+    private LocalDate fromDate;
+
+    @Column(name = "to_date", nullable = false)
+    private LocalDate toDate;
 
     @Column(name = "salary_type", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)

@@ -13,4 +13,6 @@ public interface EmployeePortalUserRepository extends JpaRepository<EmployeePort
     Optional<EmployeePortalUser> findByUsername(String username);
 
     boolean existsByUsername(String username);
+
+    Optional<EmployeePortalUser> findByUsernameAndCompanyCompanyId(String username, Long companyId);
 }

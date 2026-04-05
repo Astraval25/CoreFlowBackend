@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +58,14 @@ public class SalaryService {
         companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
 
-        String period = request.getPeriod();
-        YearMonth ym = YearMonth.parse(period, DateTimeFormatter.ofPattern("yyyyMM"));
-        LocalDate startDate = ym.atDay(1);
-        LocalDate endDate = ym.atEndOfMonth();
+        LocalDate fromDate = request.getFromDate();
+        LocalDate toDate = request.getToDate();
+
+        if (fromDate.isAfter(toDate)) {
+            throw new RuntimeException("From date must be before or equal to to date");
+        }
+
+        String period = fromDate.format(DateTimeFormatter.ofPattern("yyyyMM"));
 
         List<Employee> employees;
         if (request.getEmployeeId() != null) {
@@ -80,12 +85,13 @@ public class SalaryService {
 
             if (activeConfig == null) continue;
 
-            // Delete existing DRAFT period if recalculating
-            salaryPeriodRepository.findByEmployeeEmployeeIdAndPeriod(employee.getEmployeeId(), period)
+            // Delete existing DRAFT period if recalculating for the same date range
+            salaryPeriodRepository.findByEmployeeEmployeeIdAndFromDateAndToDate(
+                    employee.getEmployeeId(), fromDate, toDate)
                     .ifPresent(existing -> {
                         if (existing.getStatus() != SalaryPeriodStatus.DRAFT) {
                             throw new RuntimeException("Salary for employee " + employee.getEmployeeName()
-                                    + " period " + period + " is already " + existing.getStatus());
+                                    + " period " + fromDate + " to " + toDate + " is already " + existing.getStatus());
                         }
                         salaryLineRepository.deleteBySalaryPeriodSalaryPeriodId(existing.getSalaryPeriodId());
                         salaryPeriodRepository.delete(existing);
@@ -93,11 +99,9 @@ public class SalaryService {
 
             EmployeeSalaryPeriod salaryPeriod;
             if (activeConfig.getSalaryType() == SalaryType.MONTHLY) {
-                salaryPeriod = calculateMonthlySalary(employee, activeConfig, companyId,
-                        period, request.getWorkingDaysInMonth(), startDate, endDate);
+                salaryPeriod = calculateMonthlySalary(employee, activeConfig, period, fromDate, toDate);
             } else {
-                salaryPeriod = calculateWorkBasedSalary(employee, companyId,
-                        period, startDate, endDate);
+                salaryPeriod = calculateWorkBasedSalary(employee, period, fromDate, toDate);
             }
 
             if (salaryPeriod != null) {
@@ -109,13 +113,19 @@ public class SalaryService {
     }
 
     private EmployeeSalaryPeriod calculateMonthlySalary(Employee employee, EmployeeSalaryConfig config,
-                                                         Long companyId, String period,
-                                                         Integer workingDays, LocalDate startDate, LocalDate endDate) {
+                                                         String period, LocalDate fromDate, LocalDate toDate) {
         Companies company = employee.getCompany();
 
-        // Get approved leaves for the period
+        // Total calendar days in the full month
+        YearMonth ym = YearMonth.from(fromDate);
+        int totalDaysInMonth = ym.lengthOfMonth();
+
+        // Days in the requested range (inclusive)
+        long daysInRange = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+
+        // Get approved leaves within the date range
         List<EmployeeLeaveLog> leaves = leaveLogRepository.findApprovedLeavesByEmployeeAndPeriod(
-                employee.getEmployeeId(), startDate, endDate);
+                employee.getEmployeeId(), fromDate, toDate);
 
         BigDecimal totalLeaveDays = BigDecimal.ZERO;
         BigDecimal lopDays = BigDecimal.ZERO;
@@ -132,24 +142,36 @@ public class SalaryService {
             }
         }
 
-        BigDecimal workingDaysBd = new BigDecimal(workingDays);
-        BigDecimal daysPresent = workingDaysBd.subtract(totalLeaveDays);
+        BigDecimal totalDaysInMonthBd = new BigDecimal(totalDaysInMonth);
+        BigDecimal daysInRangeBd = new BigDecimal(daysInRange);
+        BigDecimal daysPresent = daysInRangeBd.subtract(totalLeaveDays);
         BigDecimal monthlyAmount = config.getMonthlyAmount();
-        BigDecimal perDay = monthlyAmount.divide(workingDaysBd, 2, RoundingMode.HALF_UP);
+
+        // Per-day rate based on full month
+        BigDecimal perDay = monthlyAmount.divide(totalDaysInMonthBd, 4, RoundingMode.HALF_UP);
+
+        // Gross = pro-rated amount for the date range
+        BigDecimal grossAmount = perDay.multiply(daysInRangeBd).setScale(2, RoundingMode.HALF_UP);
+
+        // LOP deduction
         BigDecimal lopDeduction = perDay.multiply(lopDays).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal netAmount = monthlyAmount.subtract(lopDeduction);
+
+        // Net = gross - LOP deduction
+        BigDecimal netAmount = grossAmount.subtract(lopDeduction);
 
         // Create salary period
         EmployeeSalaryPeriod sp = new EmployeeSalaryPeriod();
         sp.setEmployee(employee);
         sp.setCompany(company);
         sp.setPeriod(period);
+        sp.setFromDate(fromDate);
+        sp.setToDate(toDate);
         sp.setSalaryType(SalaryType.MONTHLY);
-        sp.setWorkingDaysInMonth(workingDays);
+        sp.setWorkingDaysInMonth((int) daysInRange);
         sp.setDaysPresent(daysPresent);
         sp.setDaysAbsent(totalLeaveDays);
         sp.setLopDays(lopDays);
-        sp.setGrossAmount(monthlyAmount);
+        sp.setGrossAmount(grossAmount);
         sp.setLopDeduction(lopDeduction);
         sp.setOtherDeductions(BigDecimal.ZERO);
         sp.setNetAmount(netAmount);
@@ -162,15 +184,19 @@ public class SalaryService {
         EmployeeSalaryLine fixedLine = new EmployeeSalaryLine();
         fixedLine.setSalaryPeriod(saved);
         fixedLine.setLineType(SalaryLineType.FIXED);
-        fixedLine.setDescription("Monthly salary");
-        fixedLine.setAmount(monthlyAmount);
+        fixedLine.setDescription("Monthly salary (" + daysInRange + "/" + totalDaysInMonth + " days)");
+        fixedLine.setTotalQty(daysInRangeBd);
+        fixedLine.setRateUsed(perDay);
+        fixedLine.setAmount(grossAmount);
         salaryLineRepository.save(fixedLine);
 
         if (lopDeduction.compareTo(BigDecimal.ZERO) > 0) {
             EmployeeSalaryLine deductionLine = new EmployeeSalaryLine();
             deductionLine.setSalaryPeriod(saved);
             deductionLine.setLineType(SalaryLineType.DEDUCTION);
-            deductionLine.setDescription("LOP (" + lopDays + " days)");
+            deductionLine.setDescription("LOP deduction (" + lopDays + " days)");
+            deductionLine.setTotalQty(lopDays);
+            deductionLine.setRateUsed(perDay);
             deductionLine.setAmount(lopDeduction.negate());
             salaryLineRepository.save(deductionLine);
         }
@@ -178,12 +204,12 @@ public class SalaryService {
         return saved;
     }
 
-    private EmployeeSalaryPeriod calculateWorkBasedSalary(Employee employee, Long companyId,
-                                                           String period, LocalDate startDate, LocalDate endDate) {
+    private EmployeeSalaryPeriod calculateWorkBasedSalary(Employee employee,
+                                                           String period, LocalDate fromDate, LocalDate toDate) {
         Companies company = employee.getCompany();
 
         List<EmployeeWorkLog> approvedLogs = workLogRepository.findApprovedLogsByEmployeeAndPeriod(
-                employee.getEmployeeId(), startDate, endDate);
+                employee.getEmployeeId(), fromDate, toDate);
 
         if (approvedLogs.isEmpty()) return null;
 
@@ -199,6 +225,8 @@ public class SalaryService {
         sp.setEmployee(employee);
         sp.setCompany(company);
         sp.setPeriod(period);
+        sp.setFromDate(fromDate);
+        sp.setToDate(toDate);
         sp.setSalaryType(SalaryType.WORK_BASED);
         sp.setGrossAmount(grossAmount);
         sp.setLopDeduction(BigDecimal.ZERO);
@@ -239,29 +267,39 @@ public class SalaryService {
 
     public List<SalaryPeriodSummaryDto> getSalaryPeriods(Long companyId, String period) {
         return salaryPeriodRepository.findByCompanyCompanyIdAndPeriodOrderByEmployeeEmployeeName(companyId, period)
-                .stream().map(sp -> new SalaryPeriodSummaryDto(
-                        sp.getSalaryPeriodId(),
-                        sp.getEmployee().getEmployeeId(),
-                        sp.getEmployee().getEmployeeName(),
-                        sp.getEmployee().getEmployeeCode(),
-                        sp.getPeriod(),
-                        sp.getSalaryType(),
-                        sp.getGrossAmount(),
-                        sp.getNetAmount(),
-                        sp.getStatus()
-                )).toList();
+                .stream().map(sp -> {
+                    SalaryPeriodSummaryDto dto = new SalaryPeriodSummaryDto();
+                    dto.setSalaryPeriodId(sp.getSalaryPeriodId());
+                    dto.setEmployeeId(sp.getEmployee().getEmployeeId());
+                    dto.setEmployeeName(sp.getEmployee().getEmployeeName());
+                    dto.setEmployeeCode(sp.getEmployee().getEmployeeCode());
+                    dto.setPeriod(sp.getPeriod());
+                    dto.setFromDate(sp.getFromDate());
+                    dto.setToDate(sp.getToDate());
+                    dto.setSalaryType(sp.getSalaryType());
+                    dto.setGrossAmount(sp.getGrossAmount());
+                    dto.setNetAmount(sp.getNetAmount());
+                    dto.setStatus(sp.getStatus());
+                    return dto;
+                }).toList();
     }
 
     public SalaryPeriodDetailDto getSalaryPeriodDetail(Long companyId, Long salaryPeriodId) {
         EmployeeSalaryPeriod sp = salaryPeriodRepository.findBySalaryPeriodIdAndCompanyCompanyId(salaryPeriodId, companyId)
                 .orElseThrow(() -> new RuntimeException("Salary period not found with ID: " + salaryPeriodId));
 
+        return toDetailDto(sp);
+    }
+
+    private SalaryPeriodDetailDto toDetailDto(EmployeeSalaryPeriod sp) {
         SalaryPeriodDetailDto dto = new SalaryPeriodDetailDto();
         dto.setSalaryPeriodId(sp.getSalaryPeriodId());
         dto.setEmployeeId(sp.getEmployee().getEmployeeId());
         dto.setEmployeeName(sp.getEmployee().getEmployeeName());
         dto.setEmployeeCode(sp.getEmployee().getEmployeeCode());
         dto.setPeriod(sp.getPeriod());
+        dto.setFromDate(sp.getFromDate());
+        dto.setToDate(sp.getToDate());
         dto.setSalaryType(sp.getSalaryType());
         dto.setWorkingDaysInMonth(sp.getWorkingDaysInMonth());
         dto.setDaysPresent(sp.getDaysPresent());
@@ -278,7 +316,7 @@ public class SalaryService {
         dto.setPaymentRef(sp.getPaymentRef());
         dto.setComputedDt(sp.getComputedDt());
 
-        List<EmployeeSalaryLine> lines = salaryLineRepository.findBySalaryPeriodSalaryPeriodId(salaryPeriodId);
+        List<EmployeeSalaryLine> lines = salaryLineRepository.findBySalaryPeriodSalaryPeriodId(sp.getSalaryPeriodId());
         dto.setLines(lines.stream().map(line -> new SalaryLineDto(
                 line.getLineId(),
                 line.getLineType(),
@@ -292,6 +330,39 @@ public class SalaryService {
         )).toList());
 
         return dto;
+    }
+
+    public SalaryReportDto getSalaryReport(Long companyId, LocalDate fromDate, LocalDate toDate) {
+        List<EmployeeSalaryPeriod> periods = salaryPeriodRepository
+                .findByCompanyCompanyIdAndFromDateGreaterThanEqualAndToDateLessThanEqualOrderByEmployeeEmployeeName(
+                        companyId, fromDate, toDate);
+
+        List<SalaryPeriodDetailDto> details = periods.stream()
+                .map(this::toDetailDto)
+                .toList();
+
+        BigDecimal totalGross = periods.stream()
+                .map(EmployeeSalaryPeriod::getGrossAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalDeductions = periods.stream()
+                .map(sp -> sp.getLopDeduction().add(sp.getOtherDeductions()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalNet = periods.stream()
+                .map(EmployeeSalaryPeriod::getNetAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        SalaryReportDto report = new SalaryReportDto();
+        report.setFromDate(fromDate);
+        report.setToDate(toDate);
+        report.setTotalEmployees(details.size());
+        report.setTotalGrossAmount(totalGross);
+        report.setTotalDeductions(totalDeductions);
+        report.setTotalNetAmount(totalNet);
+        report.setSalaryDetails(details);
+
+        return report;
     }
 
     @Transactional
