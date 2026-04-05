@@ -3,8 +3,6 @@ package com.astraval.coreflow.main_modules.vendor.dto;
 import java.util.List;
 
 import com.astraval.coreflow.common.util.PaginationInfo;
-import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderSummaryDto;
-import com.astraval.coreflow.main_modules.vendor.dto.VendorPaymentSummaryDto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.AllArgsConstructor;

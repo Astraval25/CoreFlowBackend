@@ -218,7 +218,7 @@ public class VendorItemService {
                 && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null);
         String source = isVendorItemSource ? "VENDOR_ITEM" : "ITEM_BASE";
         boolean itemActive = Boolean.TRUE.equals(item.getIsActive());
-        boolean mappingActive = !isVendorItemSource || Boolean.TRUE.equals(price.getIsActive());
+        boolean mappingActive = !isVendorItemSource || (price != null && Boolean.TRUE.equals(price.getIsActive()));
         Boolean isActive = itemActive && mappingActive;
         return new VendorItemSummaryDto(
                 item.getItemId(),

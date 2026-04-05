@@ -10,6 +10,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 @Repository
+@SuppressWarnings("unchecked")
 public class AnalyticsRepository {
 
     @PersistenceContext

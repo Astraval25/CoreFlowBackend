@@ -190,7 +190,7 @@ public class CustomerItemService {
                 && (price.getSalesPrice() != null || price.getSalesDescription() != null);
         String source = isCustomerItemSource ? "CUSTOMER_ITEM" : "ITEM_BASE";
         boolean itemActive = Boolean.TRUE.equals(item.getIsActive());
-        boolean mappingActive = !isCustomerItemSource || Boolean.TRUE.equals(price.getIsActive());
+        boolean mappingActive = !isCustomerItemSource || (price != null && Boolean.TRUE.equals(price.getIsActive()));
         Boolean isActive = itemActive && mappingActive;
         return new CustomerItemSummaryDto(
                 item.getItemId(),
