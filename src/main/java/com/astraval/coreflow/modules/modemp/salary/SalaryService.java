@@ -104,26 +104,9 @@ public class SalaryService {
 
             if (activeConfig == null) continue;
 
-            // Check for overlapping salary periods
-            List<EmployeeSalaryPeriod> overlapping = salaryPeriodRepository.findOverlappingPeriods(
-                    employee.getEmployeeId(), fromDate, toDate);
-
-            // Filter out exact match DRAFTs (which we will replace)
-            List<EmployeeSalaryPeriod> conflicts = overlapping.stream()
-                    .filter(sp -> !(sp.getFromDate().equals(fromDate) && sp.getToDate().equals(toDate)))
-                    .toList();
-
-            if (!conflicts.isEmpty()) {
-                EmployeeSalaryPeriod conflict = conflicts.getFirst();
-                throw new RuntimeException("Salary for employee " + employee.getEmployeeName()
-                        + " overlaps with existing period " + conflict.getFromDate()
-                        + " to " + conflict.getToDate() + " (status: " + conflict.getStatus() + ")");
-            }
-
-            // Delete existing DRAFT period if recalculating for the exact same date range
-            overlapping.stream()
-                    .filter(sp -> sp.getFromDate().equals(fromDate) && sp.getToDate().equals(toDate))
-                    .findFirst()
+            // Handle exact same range first (recalculate only if existing is DRAFT)
+            salaryPeriodRepository.findByEmployeeEmployeeIdAndFromDateAndToDate(
+                    employee.getEmployeeId(), fromDate, toDate)
                     .ifPresent(existing -> {
                         if (existing.getStatus() != SalaryPeriodStatus.DRAFT) {
                             throw new RuntimeException("Salary for employee " + employee.getEmployeeName()
@@ -131,7 +114,20 @@ public class SalaryService {
                         }
                         salaryLineRepository.deleteBySalaryPeriodSalaryPeriodId(existing.getSalaryPeriodId());
                         salaryPeriodRepository.delete(existing);
+                        // Ensure delete is executed before insert, avoiding unique-key violation on same key.
+                        salaryPeriodRepository.flush();
                     });
+
+            // Check for overlapping salary periods
+            List<EmployeeSalaryPeriod> overlapping = salaryPeriodRepository.findOverlappingPeriods(
+                    employee.getEmployeeId(), fromDate, toDate);
+
+            if (!overlapping.isEmpty()) {
+                EmployeeSalaryPeriod conflict = overlapping.getFirst();
+                throw new RuntimeException("Salary for employee " + employee.getEmployeeName()
+                        + " overlaps with existing period " + conflict.getFromDate()
+                        + " to " + conflict.getToDate() + " (status: " + conflict.getStatus() + ")");
+            }
 
             EmployeeSalaryPeriod salaryPeriod;
             if (activeConfig.getSalaryType() == SalaryType.MONTHLY) {
