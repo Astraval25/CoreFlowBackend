@@ -835,7 +835,6 @@ Content-Type: application/json
 
 - Validation rules:
   - `fromDate` must be <= `toDate`
-  - Date range cannot exceed 31 days
   - `fromDate` cannot be in the future
   - Date range must not overlap with any existing salary period for the same employee
   - If an exact same date range exists as DRAFT, it will be replaced (recalculated)

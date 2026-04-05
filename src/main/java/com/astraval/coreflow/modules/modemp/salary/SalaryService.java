@@ -66,12 +66,6 @@ public class SalaryService {
             throw new RuntimeException("From date must be before or equal to to date");
         }
 
-        // Validation: date range must not exceed 31 days
-        long daySpan = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
-        if (daySpan > 31) {
-            throw new RuntimeException("Salary calculation period cannot exceed 31 days");
-        }
-
         // Validation: future dates not allowed
         if (fromDate.isAfter(LocalDate.now())) {
             throw new RuntimeException("Cannot calculate salary for future dates");
