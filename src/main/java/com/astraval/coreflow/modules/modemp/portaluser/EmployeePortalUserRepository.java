@@ -1,0 +1,16 @@
+package com.astraval.coreflow.modules.modemp.portaluser;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface EmployeePortalUserRepository extends JpaRepository<EmployeePortalUser, Long> {
+
+    Optional<EmployeePortalUser> findByEmployeeEmployeeId(Long employeeId);
+
+    Optional<EmployeePortalUser> findByUsername(String username);
+
+    boolean existsByUsername(String username);
+}
