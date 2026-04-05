@@ -47,9 +47,9 @@ public class GlobalExceptionHandler {
     String rootCause = ex.getRootCause() != null ? ex.getRootCause().getMessage() : ex.getMessage();
     
     if (rootCause.contains("ItemType")) {
-      message = getEnumErrorMessage("itemType", com.astraval.coreflow.modules.items.ItemType.class);
+      message = getEnumErrorMessage("itemType", com.astraval.coreflow.main_modules.items.ItemType.class);
     } else if (rootCause.contains("UnitType")) {
-      message = getEnumErrorMessage("unit", com.astraval.coreflow.modules.items.UnitType.class);
+      message = getEnumErrorMessage("unit", com.astraval.coreflow.main_modules.items.UnitType.class);
     } else if (rootCause.contains("JSON")) {
       message = "Malformed JSON request";
     }

@@ -1,0 +1,25 @@
+package com.astraval.coreflow.main_modules.payments.dto;
+
+import java.time.LocalDateTime;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PayerPaymentSummaryDto {
+    private Long paymentId;
+    private LocalDateTime paymentDate;
+    private String orderIds;
+    private String paymentNumber;
+    private Double amount;
+    private String vendorName;
+    private String modeOfPayment;
+    private String paymentStatus;
+    private Boolean isActive;
+    private String referenceNumber;
+    private String platformRef;
+    private String localPaymentNumber;
+}
