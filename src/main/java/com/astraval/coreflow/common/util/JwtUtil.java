@@ -52,8 +52,17 @@ public class JwtUtil {
     }
 
     public String generateRefreshToken(Long userId) {
+        return generateRefreshToken(userId, "USER");
+    }
+
+    public String generateEmployeeRefreshToken(Long portalUserId) {
+        return generateRefreshToken(portalUserId, "EMP");
+    }
+
+    private String generateRefreshToken(Long subjectId, String tokenType) {
         return Jwts.builder()
-                .setSubject(userId.toString())
+                .setSubject(subjectId.toString())
+                .claim("type", tokenType)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration * 1000L))
                 .setId(UUID.randomUUID().toString())
@@ -62,12 +71,16 @@ public class JwtUtil {
     }
     
     public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
+        return getClaims(token).getSubject() != null
+                ? Long.parseLong(getClaims(token).getSubject()) : null;
+    }
+
+    public Claims getClaims(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(Keys.hmacShaKeyFor(getKeyBytes()))
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        return Long.parseLong(claims.getSubject());
     }
 
     private byte[] getKeyBytes() {

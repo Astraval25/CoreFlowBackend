@@ -1,6 +1,8 @@
 package com.astraval.coreflow.modules.modemp.salary;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -21,4 +23,13 @@ public interface EmployeeSalaryPeriodRepository extends JpaRepository<EmployeeSa
 
     List<EmployeeSalaryPeriod> findByCompanyCompanyIdAndFromDateGreaterThanEqualAndToDateLessThanEqualOrderByEmployeeEmployeeName(
             Long companyId, LocalDate fromDate, LocalDate toDate);
+
+    @Query("SELECT sp FROM EmployeeSalaryPeriod sp " +
+            "WHERE sp.employee.employeeId = :employeeId " +
+            "AND sp.fromDate <= :toDate " +
+            "AND sp.toDate >= :fromDate")
+    List<EmployeeSalaryPeriod> findOverlappingPeriods(
+            @Param("employeeId") Long employeeId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate);
 }

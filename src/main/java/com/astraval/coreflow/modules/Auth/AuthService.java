@@ -201,7 +201,7 @@ public class AuthService {
                 companyId,
                 portalUser.getCompany().getCompanyName());
 
-        String refreshToken = jwtUtil.generateRefreshToken(portalUser.getPortalUserId());
+        String refreshToken = jwtUtil.generateEmployeeRefreshToken(portalUser.getPortalUserId());
 
         log.info("Employee login successful for username: {} companyId: {}", request.getUsername(), companyId);
 
@@ -215,6 +215,48 @@ public class AuthService {
                 portalUser.getCompany().getCompanyName(),
                 portalUser.getEmployee().getDesignation()
         );
+    }
+
+    public EmployeeLoginResponse employeeRefreshToken(String refreshToken) {
+        try {
+            io.jsonwebtoken.Claims claims = jwtUtil.getClaims(refreshToken);
+            String type = claims.get("type", String.class);
+            if (!"EMP".equals(type)) {
+                throw new InvalidCredentialsException("Invalid employee refresh token");
+            }
+
+            Long portalUserId = Long.parseLong(claims.getSubject());
+            EmployeePortalUser portalUser = portalUserRepository.findById(portalUserId)
+                    .orElseThrow(() -> new InvalidCredentialsException("Portal user not found"));
+
+            if (!portalUser.getIsActive() || !portalUser.getEmployee().getIsActive()) {
+                throw new InvalidCredentialsException("Employee or portal user is deactivated");
+            }
+
+            Long companyId = portalUser.getCompany().getCompanyId();
+            String token = jwtUtil.generateEmployeeToken(
+                    portalUser.getPortalUserId(),
+                    portalUser.getEmployee().getEmployeeId(),
+                    companyId,
+                    portalUser.getCompany().getCompanyName());
+
+            String newRefreshToken = jwtUtil.generateEmployeeRefreshToken(portalUser.getPortalUserId());
+
+            return new EmployeeLoginResponse(
+                    token, newRefreshToken,
+                    portalUser.getEmployee().getEmployeeId(),
+                    portalUser.getEmployee().getEmployeeName(),
+                    portalUser.getEmployee().getEmployeeCode(),
+                    companyId,
+                    portalUser.getCompany().getCompanyName(),
+                    portalUser.getEmployee().getDesignation()
+            );
+        } catch (InvalidCredentialsException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Employee token refresh failed: {}", e.getMessage());
+            throw new InvalidCredentialsException("Invalid employee refresh token");
+        }
     }
 
     public LoginResponse refreshToken(String refreshToken) {

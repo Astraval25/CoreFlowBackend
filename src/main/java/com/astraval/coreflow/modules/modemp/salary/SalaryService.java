@@ -61,8 +61,20 @@ public class SalaryService {
         LocalDate fromDate = request.getFromDate();
         LocalDate toDate = request.getToDate();
 
+        // Validation: fromDate must be <= toDate
         if (fromDate.isAfter(toDate)) {
             throw new RuntimeException("From date must be before or equal to to date");
+        }
+
+        // Validation: date range must not exceed 31 days
+        long daySpan = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+        if (daySpan > 31) {
+            throw new RuntimeException("Salary calculation period cannot exceed 31 days");
+        }
+
+        // Validation: future dates not allowed
+        if (fromDate.isAfter(LocalDate.now())) {
+            throw new RuntimeException("Cannot calculate salary for future dates");
         }
 
         String period = fromDate.format(DateTimeFormatter.ofPattern("yyyyMM"));
@@ -71,9 +83,16 @@ public class SalaryService {
         if (request.getEmployeeId() != null) {
             Employee emp = employeeRepository.findByEmployeeIdAndCompanyCompanyId(request.getEmployeeId(), companyId)
                     .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + request.getEmployeeId()));
+            if (!emp.getIsActive()) {
+                throw new RuntimeException("Cannot calculate salary for deactivated employee: " + emp.getEmployeeName());
+            }
             employees = List.of(emp);
         } else {
             employees = employeeRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByEmployeeName(companyId);
+        }
+
+        if (employees.isEmpty()) {
+            throw new RuntimeException("No active employees found for this company");
         }
 
         List<Long> createdIds = new ArrayList<>();
@@ -85,9 +104,26 @@ public class SalaryService {
 
             if (activeConfig == null) continue;
 
-            // Delete existing DRAFT period if recalculating for the same date range
-            salaryPeriodRepository.findByEmployeeEmployeeIdAndFromDateAndToDate(
-                    employee.getEmployeeId(), fromDate, toDate)
+            // Check for overlapping salary periods
+            List<EmployeeSalaryPeriod> overlapping = salaryPeriodRepository.findOverlappingPeriods(
+                    employee.getEmployeeId(), fromDate, toDate);
+
+            // Filter out exact match DRAFTs (which we will replace)
+            List<EmployeeSalaryPeriod> conflicts = overlapping.stream()
+                    .filter(sp -> !(sp.getFromDate().equals(fromDate) && sp.getToDate().equals(toDate)))
+                    .toList();
+
+            if (!conflicts.isEmpty()) {
+                EmployeeSalaryPeriod conflict = conflicts.getFirst();
+                throw new RuntimeException("Salary for employee " + employee.getEmployeeName()
+                        + " overlaps with existing period " + conflict.getFromDate()
+                        + " to " + conflict.getToDate() + " (status: " + conflict.getStatus() + ")");
+            }
+
+            // Delete existing DRAFT period if recalculating for the exact same date range
+            overlapping.stream()
+                    .filter(sp -> sp.getFromDate().equals(fromDate) && sp.getToDate().equals(toDate))
+                    .findFirst()
                     .ifPresent(existing -> {
                         if (existing.getStatus() != SalaryPeriodStatus.DRAFT) {
                             throw new RuntimeException("Salary for employee " + employee.getEmployeeName()

@@ -7,6 +7,9 @@ import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -23,6 +26,9 @@ public class SalaryController {
 
     @Autowired
     private SalaryService salaryService;
+
+    @Autowired
+    private SalarySlipPdfService salarySlipPdfService;
 
     @PostMapping("/calculate")
     public ApiResponse<Map<String, List<Long>>> calculateSalary(
@@ -121,6 +127,22 @@ public class SalaryController {
             return ApiResponseFactory.updated(null, "Salary period marked as paid");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @GetMapping("/periods/{salaryPeriodId}/slip")
+    public ResponseEntity<byte[]> downloadSalarySlip(
+            @PathVariable Long companyId,
+            @PathVariable Long salaryPeriodId) {
+        try {
+            byte[] pdf = salarySlipPdfService.generateSalarySlip(companyId, salaryPeriodId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=salary-slip-" + salaryPeriodId + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

@@ -58,6 +58,9 @@ dependencies {
 	// logging
 	implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 
+	// PDF generation
+	implementation 'com.itextpdf:itext-core:9.1.0'
+
 	// document text extraction
 	implementation 'org.apache.tika:tika-core:2.9.1'
 	implementation 'org.apache.tika:tika-parsers-standard-package:2.9.1'

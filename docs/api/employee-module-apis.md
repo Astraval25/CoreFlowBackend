@@ -801,7 +801,26 @@ Content-Type: application/json
 }
 ```
 
-- Conflict response example (salary already calculated for same employee and date range):
+- Validation rules:
+  - `fromDate` must be <= `toDate`
+  - Date range cannot exceed 31 days
+  - `fromDate` cannot be in the future
+  - Date range must not overlap with any existing salary period for the same employee
+  - If an exact same date range exists as DRAFT, it will be replaced (recalculated)
+  - Employee must be active and have an active salary config
+
+- Overlap error example:
+
+```json
+{
+  "responseStatus": false,
+  "responseCode": 406,
+  "responseMessage": "Salary for employee Ravi Kumar overlaps with existing period 2026-04-01 to 2026-04-15 (status: DRAFT)",
+  "responseData": null
+}
+```
+
+- Conflict response example (DB-level duplicate):
 
 ```json
 {
@@ -834,9 +853,11 @@ GET /api/companies/1/modemp/salary/periods?period=202604
       "employeeName": "Ravi Kumar",
       "employeeCode": "EMP-001",
       "period": "202604",
+      "fromDate": "2026-04-01",
+      "toDate": "2026-04-15",
       "salaryType": "MONTHLY",
-      "grossAmount": 28000,
-      "netAmount": 26923.08,
+      "grossAmount": 14000,
+      "netAmount": 13066.67,
       "status": "DRAFT"
     }
   ]
@@ -864,15 +885,17 @@ GET /api/companies/1/modemp/salary/periods/901
     "employeeName": "Ravi Kumar",
     "employeeCode": "EMP-001",
     "period": "202604",
+    "fromDate": "2026-04-01",
+    "toDate": "2026-04-15",
     "salaryType": "MONTHLY",
-    "workingDaysInMonth": 26,
-    "daysPresent": 25,
+    "workingDaysInMonth": 15,
+    "daysPresent": 14,
     "daysAbsent": 1,
     "lopDays": 1,
-    "grossAmount": 28000,
-    "lopDeduction": 1076.92,
+    "grossAmount": 14000.00,
+    "lopDeduction": 933.33,
     "otherDeductions": 0,
-    "netAmount": 26923.08,
+    "netAmount": 13066.67,
     "status": "APPROVED",
     "approvedBy": 1,
     "approvedDt": "2026-04-30T19:00:00",
@@ -883,22 +906,22 @@ GET /api/companies/1/modemp/salary/periods/901
       {
         "lineId": 1001,
         "lineType": "FIXED",
-        "description": "Monthly salary",
-        "totalQty": null,
+        "description": "Monthly salary (15/30 days)",
+        "totalQty": 15,
         "unit": null,
-        "rateUsed": null,
-        "amount": 28000,
+        "rateUsed": 933.3333,
+        "amount": 14000.00,
         "workDefId": null,
         "workName": null
       },
       {
         "lineId": 1002,
         "lineType": "DEDUCTION",
-        "description": "LOP deduction",
+        "description": "LOP deduction (1 days)",
         "totalQty": 1,
-        "unit": "HOUR",
-        "rateUsed": 1076.92,
-        "amount": 1076.92,
+        "unit": null,
+        "rateUsed": 933.3333,
+        "amount": -933.33,
         "workDefId": null,
         "workName": null
       }
@@ -957,3 +980,214 @@ PATCH /api/companies/1/modemp/salary/periods/901/mark-paid
   "responseData": null
 }
 ```
+
+### 33. Get Salary Report
+- API: `GET /api/companies/{companyId}/modemp/salary/report?from={YYYY-MM-DD}&to={YYYY-MM-DD}`
+- Request example:
+
+```http
+GET /api/companies/1/modemp/salary/report?from=2026-04-01&to=2026-04-30
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 202,
+  "responseMessage": "Salary report retrieved successfully",
+  "responseData": {
+    "fromDate": "2026-04-01",
+    "toDate": "2026-04-30",
+    "totalEmployees": 2,
+    "totalGrossAmount": 42000.00,
+    "totalDeductions": 933.33,
+    "totalNetAmount": 41066.67,
+    "salaryDetails": [
+      {
+        "salaryPeriodId": 901,
+        "employeeId": 101,
+        "employeeName": "Ravi Kumar",
+        "employeeCode": "EMP-001",
+        "period": "202604",
+        "fromDate": "2026-04-01",
+        "toDate": "2026-04-30",
+        "salaryType": "MONTHLY",
+        "grossAmount": 28000.00,
+        "netAmount": 27066.67,
+        "status": "DRAFT",
+        "lines": [ "..." ]
+      }
+    ]
+  }
+}
+```
+
+### 34. Download Salary Slip (PDF)
+- API: `GET /api/companies/{companyId}/modemp/salary/periods/{salaryPeriodId}/slip`
+- Request example:
+
+```http
+GET /api/companies/1/modemp/salary/periods/901/slip
+```
+
+- Response: Binary PDF file (`application/pdf`) with `Content-Disposition: attachment; filename=salary-slip-901.pdf`
+
+## Employee Auth APIs
+
+### 35. Employee Login
+- API: `POST /api/auth/employee/company/{companyId}`
+- Auth: **No JWT required** (public endpoint)
+- Request example:
+
+```http
+POST /api/auth/employee/company/1
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "ravi.emp",
+  "password": "Ravi@123"
+}
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 202,
+  "responseMessage": "Employee login successful",
+  "responseData": {
+    "token": "eyJhbGciOi...",
+    "refreshToken": "eyJhbGciOi...",
+    "employeeId": 101,
+    "employeeName": "Ravi Kumar",
+    "employeeCode": "EMP-001",
+    "companyId": 1,
+    "companyName": "Acme Corp",
+    "designation": "Machine Operator"
+  }
+}
+```
+
+- Notes:
+  - The returned JWT contains `role: "EMP"`, `employeeId`, `companyId` claims
+  - Employee tokens can **only** access `/api/emp/**` endpoints (not admin/company APIs)
+  - Employee and portal user must both be active
+
+### 36. Employee Refresh Token
+- API: `POST /api/auth/employee/refresh-token`
+- Auth: **No JWT required** (public endpoint)
+- Request example:
+
+```http
+POST /api/auth/employee/refresh-token
+Content-Type: application/json
+```
+
+```json
+{
+  "refreshToken": "eyJhbGciOi..."
+}
+```
+
+- Response example: same shape as API #35.
+- Notes:
+  - Only accepts employee-type refresh tokens (contains `type: "EMP"` claim)
+  - Admin refresh tokens are rejected and vice versa
+
+## Employee Portal APIs (Self-Service)
+
+Base prefix: `/api/emp`
+Auth: **Requires ROLE_EMP JWT** (from employee login)
+All endpoints automatically scope to the logged-in employee — no `companyId` or `employeeId` in the URL.
+
+### 37. Get My Profile
+- API: `GET /api/emp/me`
+- Request example:
+
+```http
+GET /api/emp/me
+Authorization: Bearer <employee-jwt>
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 202,
+  "responseMessage": "Profile retrieved successfully",
+  "responseData": {
+    "employeeId": 101,
+    "employeeCode": "EMP-001",
+    "employeeName": "Ravi Kumar",
+    "phone": "9876543210",
+    "email": "ravi@company.com",
+    "designation": "Machine Operator",
+    "joinedDt": "2026-01-10",
+    "isActive": true,
+    "currentSalaryType": "MONTHLY",
+    "currentMonthlyAmount": 28000,
+    "salaryConfigHistory": [ "..." ]
+  }
+}
+```
+
+### 38. Get My Salary Periods
+- API: `GET /api/emp/salary/periods?period={YYYYMM}`
+- Request example:
+
+```http
+GET /api/emp/salary/periods?period=202604
+Authorization: Bearer <employee-jwt>
+```
+
+- Response example: same shape as API #29, filtered to the logged-in employee only.
+
+### 39. Get My Salary Detail
+- API: `GET /api/emp/salary/periods/{salaryPeriodId}`
+- Request example:
+
+```http
+GET /api/emp/salary/periods/901
+Authorization: Bearer <employee-jwt>
+```
+
+- Response example: same shape as API #30.
+- Returns `403` if the salary period does not belong to the logged-in employee.
+
+### 40. Download My Salary Slip (PDF)
+- API: `GET /api/emp/salary/periods/{salaryPeriodId}/slip`
+- Request example:
+
+```http
+GET /api/emp/salary/periods/901/slip
+Authorization: Bearer <employee-jwt>
+```
+
+- Response: Binary PDF file. Returns `403` if the salary period does not belong to the logged-in employee.
+
+### 41. Get My Work Logs
+- API: `GET /api/emp/work-logs?from={YYYY-MM-DD}&to={YYYY-MM-DD}`
+- Request example:
+
+```http
+GET /api/emp/work-logs?from=2026-04-01&to=2026-04-30
+Authorization: Bearer <employee-jwt>
+```
+
+- Response example: same `WorkLogDto[]` shape as API #19, filtered to the logged-in employee.
+
+### 42. Get My Leave Logs
+- API: `GET /api/emp/leave-logs?from={YYYY-MM-DD}&to={YYYY-MM-DD}`
+- Request example:
+
+```http
+GET /api/emp/leave-logs?from=2026-04-01&to=2026-04-30
+Authorization: Bearer <employee-jwt>
+```
+
+- Response example: same `LeaveLogDto[]` shape as API #24, filtered to the logged-in employee.

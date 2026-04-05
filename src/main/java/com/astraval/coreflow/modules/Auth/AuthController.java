@@ -45,4 +45,11 @@ public class AuthController {
         return ApiResponseFactory.accepted(response, "Employee login successful");
     }
 
+    @PostMapping("/employee/refresh-token")
+    public ApiResponse<EmployeeLoginResponse> employeeRefreshToken(
+            @Valid @RequestBody RefreshTokenRequest request) {
+        EmployeeLoginResponse response = authService.employeeRefreshToken(request.getRefreshToken());
+        return ApiResponseFactory.accepted(response, "Employee token refreshed successfully");
+    }
+
 }
