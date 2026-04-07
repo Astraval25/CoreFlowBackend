@@ -194,6 +194,25 @@ PATCH /api/companies/1/modemp/employees/101/deactivate
 }
 ```
 
+### 5a. Activate Employee
+- API: `PATCH /api/companies/{companyId}/modemp/employees/{employeeId}/activate`
+- Request example:
+
+```http
+PATCH /api/companies/1/modemp/employees/101/activate
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 203,
+  "responseMessage": "Employee activated successfully",
+  "responseData": null
+}
+```
+
 ## Salary Config APIs
 
 ### 6. Create Salary Config
@@ -367,6 +386,44 @@ Content-Type: application/json
 }
 ```
 
+### 11a. Deactivate Portal Access
+- API: `POST /api/companies/{companyId}/modemp/employees/{employeeId}/portal-user/deactivate`
+- Request example:
+
+```http
+POST /api/companies/1/modemp/employees/101/portal-user/deactivate
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 203,
+  "responseMessage": "Portal access deactivated successfully",
+  "responseData": null
+}
+```
+
+### 11b. Activate Portal Access
+- API: `POST /api/companies/{companyId}/modemp/employees/{employeeId}/portal-user/activate`
+- Request example:
+
+```http
+POST /api/companies/1/modemp/employees/101/portal-user/activate
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 203,
+  "responseMessage": "Portal access activated successfully",
+  "responseData": null
+}
+```
+
 ## Work Definition APIs
 
 ### 12. Create Work Definition
@@ -501,6 +558,25 @@ PATCH /api/companies/1/modemp/work-definitions/201/deactivate
   "responseStatus": true,
   "responseCode": 203,
   "responseMessage": "Work definition deactivated successfully",
+  "responseData": null
+}
+```
+
+### 16a. Activate Work Definition
+- API: `PATCH /api/companies/{companyId}/modemp/work-definitions/{workDefId}/activate`
+- Request example:
+
+```http
+PATCH /api/companies/1/modemp/work-definitions/201/activate
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 203,
+  "responseMessage": "Work definition activated successfully",
   "responseData": null
 }
 ```
@@ -673,6 +749,52 @@ Content-Type: application/json
 }
 ```
 
+### 22a. Update Work Log (employee self-service)
+- API: `PUT /api/companies/{companyId}/modemp/work-logs/employee`
+- Auth: **Requires ROLE_EMP JWT**
+- Allowed only when the existing work log status is **not** `APPROVED`.
+- Identifies the row by `(employeeId, workDefId, logDate)`.
+- The `employeeId` in the body must match the logged-in employee.
+- Request example:
+
+```http
+PUT /api/companies/1/modemp/work-logs/employee
+Authorization: Bearer <employee-jwt>
+Content-Type: application/json
+```
+
+```json
+{
+  "employeeId": 3,
+  "workDefId": 1,
+  "logDate": "2026-04-14",
+  "quantity": 60.0,
+  "employeeRemarks": "Completed morning shift"
+}
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 203,
+  "responseMessage": "Work log updated successfully",
+  "responseData": null
+}
+```
+
+- Rejection example (already approved):
+
+```json
+{
+  "responseStatus": false,
+  "responseCode": 406,
+  "responseMessage": "Cannot update an APPROVED work log",
+  "responseData": null
+}
+```
+
 ## Leave Log APIs
 
 ### 23. Create Leave Log
@@ -797,6 +919,52 @@ Content-Type: application/json
   "responseStatus": true,
   "responseCode": 203,
   "responseMessage": "Leave log reviewed successfully",
+  "responseData": null
+}
+```
+
+### 27a. Update Leave Log (employee self-service)
+- API: `PUT /api/companies/{companyId}/modemp/leave-logs/employee`
+- Auth: **Requires ROLE_EMP JWT**
+- Allowed only when the existing leave log status is **not** `APPROVED`.
+- Identifies the row by `(employeeId, leaveDate)`.
+- The `employeeId` in the body must match the logged-in employee.
+- Request example:
+
+```http
+PUT /api/companies/1/modemp/leave-logs/employee
+Authorization: Bearer <employee-jwt>
+Content-Type: application/json
+```
+
+```json
+{
+  "employeeId": 3,
+  "leaveDate": "2026-04-21",
+  "leaveType": "FULL_DAY",
+  "leaveCategory": "SICK",
+  "reason": "Fever"
+}
+```
+
+- Response example:
+
+```json
+{
+  "responseStatus": true,
+  "responseCode": 203,
+  "responseMessage": "Leave log updated successfully",
+  "responseData": null
+}
+```
+
+- Rejection example (already approved):
+
+```json
+{
+  "responseStatus": false,
+  "responseCode": 406,
+  "responseMessage": "Cannot update an APPROVED leave log",
   "responseData": null
 }
 ```
@@ -1172,11 +1340,12 @@ Authorization: Bearer <employee-jwt>
 ```
 
 ### 38. Get My Salary Periods
-- API: `GET /api/emp/salary/periods?period={YYYYMM}`
+- API: `GET /api/emp/salary/periods?from={YYYY-MM-DD}&to={YYYY-MM-DD}`
+- Either `from`/`to` (preferred) or legacy `period={YYYYMM}` is accepted.
 - Request example:
 
 ```http
-GET /api/emp/salary/periods?period=202604
+GET /api/emp/salary/periods?from=2026-04-01&to=2026-04-30
 Authorization: Bearer <employee-jwt>
 ```
 

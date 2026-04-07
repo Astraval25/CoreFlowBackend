@@ -25,6 +25,9 @@ public interface EmployeeWorkLogRepository extends JpaRepository<EmployeeWorkLog
 
     Optional<EmployeeWorkLog> findByLogIdAndCompanyCompanyId(Long logId, Long companyId);
 
+    List<EmployeeWorkLog> findByEmployeeEmployeeIdAndCompanyCompanyIdAndWorkDefinitionWorkDefIdAndLogDate(
+            Long employeeId, Long companyId, Long workDefId, LocalDate logDate);
+
     @Query("SELECT w FROM EmployeeWorkLog w " +
             "WHERE w.employee.employeeId = :employeeId " +
             "AND w.status = 'APPROVED' " +

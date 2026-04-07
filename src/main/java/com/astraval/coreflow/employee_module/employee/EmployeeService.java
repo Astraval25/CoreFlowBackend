@@ -135,6 +135,14 @@ public class EmployeeService {
         employeeRepository.save(employee);
     }
 
+    @Transactional
+    public void activateEmployee(Long companyId, Long employeeId) {
+        Employee employee = employeeRepository.findByEmployeeIdAndCompanyCompanyId(employeeId, companyId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+        employee.setIsActive(true);
+        employeeRepository.save(employee);
+    }
+
     private EmployeeSummaryDto toSummaryDto(Employee emp) {
         EmployeeSummaryDto dto = new EmployeeSummaryDto();
         dto.setEmployeeId(emp.getEmployeeId());

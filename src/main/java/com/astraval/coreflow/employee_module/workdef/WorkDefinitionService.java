@@ -98,6 +98,14 @@ public class WorkDefinitionService {
         workDefinitionRepository.save(wd);
     }
 
+    @Transactional
+    public void activateWorkDefinition(Long companyId, Long workDefId) {
+        WorkDefinition wd = workDefinitionRepository.findByWorkDefIdAndCompanyCompanyId(workDefId, companyId)
+                .orElseThrow(() -> new RuntimeException("Work definition not found with ID: " + workDefId));
+        wd.setIsActive(true);
+        workDefinitionRepository.save(wd);
+    }
+
     public List<RateHistoryDto> getRateHistory(Long companyId, Long workDefId) {
         workDefinitionRepository.findByWorkDefIdAndCompanyCompanyId(workDefId, companyId)
                 .orElseThrow(() -> new RuntimeException("Work definition not found with ID: " + workDefId));

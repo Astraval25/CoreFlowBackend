@@ -66,13 +66,23 @@ public class EmployeePortalController {
 
     @GetMapping("/salary/periods")
     public ApiResponse<List<SalaryPeriodSummaryDto>> getMySalaryPeriods(
-            @RequestParam String period) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String period) {
         try {
             Long[] ids = extractEmployeeAndCompanyId();
-            List<SalaryPeriodSummaryDto> all = salaryService.getSalaryPeriods(ids[1], period);
-            List<SalaryPeriodSummaryDto> mine = all.stream()
-                    .filter(sp -> sp.getEmployeeId().equals(ids[0]))
-                    .toList();
+            List<SalaryPeriodSummaryDto> mine;
+            if (from != null || to != null) {
+                if (from == null || to == null) {
+                    throw new RuntimeException("Both from and to are required when filtering by date range");
+                }
+                mine = salaryService.getSalaryPeriods(ids[1], ids[0], from, to);
+            } else {
+                if (period == null || period.isBlank()) {
+                    throw new RuntimeException("Either from/to or period is required");
+                }
+                mine = salaryService.getSalaryPeriods(ids[1], ids[0], period);
+            }
             return ApiResponseFactory.accepted(mine, "Salary periods retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);

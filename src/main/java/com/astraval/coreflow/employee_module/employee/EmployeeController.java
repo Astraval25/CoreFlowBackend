@@ -95,6 +95,18 @@ public class EmployeeController {
         }
     }
 
+    @PatchMapping("/{employeeId}/activate")
+    public ApiResponse<Void> activateEmployee(
+            @PathVariable Long companyId,
+            @PathVariable Long employeeId) {
+        try {
+            employeeService.activateEmployee(companyId, employeeId);
+            return ApiResponseFactory.updated(null, "Employee activated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
     // ── Salary Config ──
 
     @PostMapping("/{employeeId}/salary-config")
@@ -173,6 +185,30 @@ public class EmployeeController {
             }
             portalUserService.resetPassword(companyId, employeeId, newPassword);
             return ApiResponseFactory.updated(null, "Password reset successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{employeeId}/portal-user/deactivate")
+    public ApiResponse<Void> deactivatePortalUser(
+            @PathVariable Long companyId,
+            @PathVariable Long employeeId) {
+        try {
+            portalUserService.deactivatePortalUser(companyId, employeeId);
+            return ApiResponseFactory.updated(null, "Portal access deactivated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{employeeId}/portal-user/activate")
+    public ApiResponse<Void> activatePortalUser(
+            @PathVariable Long companyId,
+            @PathVariable Long employeeId) {
+        try {
+            portalUserService.activatePortalUser(companyId, employeeId);
+            return ApiResponseFactory.updated(null, "Portal access activated successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

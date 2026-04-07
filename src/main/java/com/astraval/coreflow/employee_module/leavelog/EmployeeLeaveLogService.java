@@ -101,6 +101,29 @@ public class EmployeeLeaveLogService {
         leaveLogRepository.save(log);
     }
 
+    @Transactional
+    public void updateLeaveLog(Long companyId, CreateLeaveLogDto dto) {
+        employeeRepository.findByEmployeeIdAndCompanyCompanyId(dto.getEmployeeId(), companyId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + dto.getEmployeeId()));
+
+        EmployeeLeaveLog log = leaveLogRepository
+                .findByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDate(dto.getEmployeeId(), companyId, dto.getLeaveDate())
+                .orElseThrow(() -> new RuntimeException("Leave log not found for the given employee and leave date"));
+
+        if (log.getStatus() == LeaveStatus.APPROVED) {
+            throw new RuntimeException("Cannot update an APPROVED leave log");
+        }
+
+        log.setLeaveType(dto.getLeaveType());
+        log.setLeaveCategory(dto.getLeaveCategory());
+        log.setReason(dto.getReason());
+        log.setStatus(LeaveStatus.PENDING);
+        log.setApprovedBy(null);
+        log.setApprovedDt(null);
+
+        leaveLogRepository.save(log);
+    }
+
     private LeaveLogDto toDto(EmployeeLeaveLog log) {
         LeaveLogDto dto = new LeaveLogDto();
         dto.setLeaveId(log.getLeaveId());

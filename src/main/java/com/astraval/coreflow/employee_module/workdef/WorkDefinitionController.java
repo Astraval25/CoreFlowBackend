@@ -81,6 +81,18 @@ public class WorkDefinitionController {
         }
     }
 
+    @PatchMapping("/{workDefId}/activate")
+    public ApiResponse<Void> activateWorkDefinition(
+            @PathVariable Long companyId,
+            @PathVariable Long workDefId) {
+        try {
+            workDefinitionService.activateWorkDefinition(companyId, workDefId);
+            return ApiResponseFactory.updated(null, "Work definition activated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
     @GetMapping("/{workDefId}/rate-history")
     public ApiResponse<List<RateHistoryDto>> getRateHistory(
             @PathVariable Long companyId,

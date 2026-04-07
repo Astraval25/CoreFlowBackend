@@ -25,6 +25,9 @@ public interface EmployeeLeaveLogRepository extends JpaRepository<EmployeeLeaveL
 
     Optional<EmployeeLeaveLog> findByLeaveIdAndCompanyCompanyId(Long leaveId, Long companyId);
 
+    Optional<EmployeeLeaveLog> findByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDate(
+            Long employeeId, Long companyId, LocalDate leaveDate);
+
     boolean existsByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDate(
             Long employeeId, Long companyId, LocalDate leaveDate);
 

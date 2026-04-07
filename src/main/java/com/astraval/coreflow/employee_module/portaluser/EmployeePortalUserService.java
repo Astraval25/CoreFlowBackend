@@ -76,4 +76,28 @@ public class EmployeePortalUserService {
         portalUser.setPassword(passwordEncoder.encode(newPassword));
         portalUserRepository.save(portalUser);
     }
+
+    @Transactional
+    public void deactivatePortalUser(Long companyId, Long employeeId) {
+        employeeRepository.findByEmployeeIdAndCompanyCompanyId(employeeId, companyId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+
+        EmployeePortalUser portalUser = portalUserRepository.findByEmployeeEmployeeId(employeeId)
+                .orElseThrow(() -> new RuntimeException("Portal user not found for employee ID: " + employeeId));
+
+        portalUser.setIsActive(false);
+        portalUserRepository.save(portalUser);
+    }
+
+    @Transactional
+    public void activatePortalUser(Long companyId, Long employeeId) {
+        employeeRepository.findByEmployeeIdAndCompanyCompanyId(employeeId, companyId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+
+        EmployeePortalUser portalUser = portalUserRepository.findByEmployeeEmployeeId(employeeId)
+                .orElseThrow(() -> new RuntimeException("Portal user not found for employee ID: " + employeeId));
+
+        portalUser.setIsActive(true);
+        portalUserRepository.save(portalUser);
+    }
 }

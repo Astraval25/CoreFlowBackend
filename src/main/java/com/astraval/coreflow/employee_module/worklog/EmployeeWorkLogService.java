@@ -111,6 +111,38 @@ public class EmployeeWorkLogService {
         workLogRepository.save(log);
     }
 
+    @Transactional
+    public void updateWorkLog(Long companyId, CreateWorkLogDto dto) {
+        employeeRepository.findByEmployeeIdAndCompanyCompanyId(dto.getEmployeeId(), companyId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + dto.getEmployeeId()));
+
+        List<EmployeeWorkLog> logs = workLogRepository
+                .findByEmployeeEmployeeIdAndCompanyCompanyIdAndWorkDefinitionWorkDefIdAndLogDate(
+                        dto.getEmployeeId(), companyId, dto.getWorkDefId(), dto.getLogDate());
+
+        if (logs.isEmpty()) {
+            throw new RuntimeException("Work log not found for the given employee, work definition, and log date");
+        }
+        if (logs.size() > 1) {
+            throw new RuntimeException("Multiple work logs found for the given employee, work definition, and log date");
+        }
+
+        EmployeeWorkLog log = logs.getFirst();
+        if (log.getStatus() == WorkLogStatus.APPROVED) {
+            throw new RuntimeException("Cannot update an APPROVED work log");
+        }
+
+        log.setQuantity(dto.getQuantity());
+        log.setAmountEarned(dto.getQuantity().multiply(log.getRateSnapshot()));
+        log.setEmployeeRemarks(dto.getEmployeeRemarks());
+        log.setStatus(WorkLogStatus.PENDING);
+        log.setReviewedBy(null);
+        log.setReviewedDt(null);
+        log.setAdminRemarks(null);
+
+        workLogRepository.save(log);
+    }
+
     private WorkLogDto toDto(EmployeeWorkLog log) {
         WorkLogDto dto = new WorkLogDto();
         dto.setLogId(log.getLogId());

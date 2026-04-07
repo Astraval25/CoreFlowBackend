@@ -294,21 +294,28 @@ public class SalaryService {
 
     public List<SalaryPeriodSummaryDto> getSalaryPeriods(Long companyId, String period) {
         return salaryPeriodRepository.findByCompanyCompanyIdAndPeriodOrderByEmployeeEmployeeName(companyId, period)
-                .stream().map(sp -> {
-                    SalaryPeriodSummaryDto dto = new SalaryPeriodSummaryDto();
-                    dto.setSalaryPeriodId(sp.getSalaryPeriodId());
-                    dto.setEmployeeId(sp.getEmployee().getEmployeeId());
-                    dto.setEmployeeName(sp.getEmployee().getEmployeeName());
-                    dto.setEmployeeCode(sp.getEmployee().getEmployeeCode());
-                    dto.setPeriod(sp.getPeriod());
-                    dto.setFromDate(sp.getFromDate());
-                    dto.setToDate(sp.getToDate());
-                    dto.setSalaryType(sp.getSalaryType());
-                    dto.setGrossAmount(sp.getGrossAmount());
-                    dto.setNetAmount(sp.getNetAmount());
-                    dto.setStatus(sp.getStatus());
-                    return dto;
-                }).toList();
+                .stream().map(this::toSummaryDto).toList();
+    }
+
+    public List<SalaryPeriodSummaryDto> getSalaryPeriods(Long companyId, Long employeeId, String period) {
+        return salaryPeriodRepository
+                .findByCompanyCompanyIdAndEmployeeEmployeeIdAndPeriodOrderByFromDateDesc(companyId, employeeId, period)
+                .stream()
+                .map(this::toSummaryDto)
+                .toList();
+    }
+
+    public List<SalaryPeriodSummaryDto> getSalaryPeriods(Long companyId, Long employeeId, LocalDate fromDate, LocalDate toDate) {
+        if (fromDate.isAfter(toDate)) {
+            throw new RuntimeException("From date must be before or equal to to date");
+        }
+
+        return salaryPeriodRepository
+                .findByCompanyCompanyIdAndEmployeeEmployeeIdAndFromDateGreaterThanEqualAndToDateLessThanEqualOrderByFromDateDesc(
+                        companyId, employeeId, fromDate, toDate)
+                .stream()
+                .map(this::toSummaryDto)
+                .toList();
     }
 
     public SalaryPeriodDetailDto getSalaryPeriodDetail(Long companyId, Long salaryPeriodId) {
@@ -356,6 +363,22 @@ public class SalaryService {
                 line.getWorkDefinition() != null ? line.getWorkDefinition().getWorkName() : null
         )).toList());
 
+        return dto;
+    }
+
+    private SalaryPeriodSummaryDto toSummaryDto(EmployeeSalaryPeriod sp) {
+        SalaryPeriodSummaryDto dto = new SalaryPeriodSummaryDto();
+        dto.setSalaryPeriodId(sp.getSalaryPeriodId());
+        dto.setEmployeeId(sp.getEmployee().getEmployeeId());
+        dto.setEmployeeName(sp.getEmployee().getEmployeeName());
+        dto.setEmployeeCode(sp.getEmployee().getEmployeeCode());
+        dto.setPeriod(sp.getPeriod());
+        dto.setFromDate(sp.getFromDate());
+        dto.setToDate(sp.getToDate());
+        dto.setSalaryType(sp.getSalaryType());
+        dto.setGrossAmount(sp.getGrossAmount());
+        dto.setNetAmount(sp.getNetAmount());
+        dto.setStatus(sp.getStatus());
         return dto;
     }
 

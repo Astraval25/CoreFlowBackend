@@ -4,9 +4,12 @@ import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.employee_module.worklog.dto.*;
 
+import io.jsonwebtoken.Claims;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -81,5 +84,37 @@ public class EmployeeWorkLogController {
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
+    }
+
+    @PreAuthorize("hasRole('EMP')")
+    @PutMapping("/employee")
+    public ApiResponse<Void> updateMyWorkLog(
+            @PathVariable Long companyId,
+            @Valid @RequestBody CreateWorkLogDto dto) {
+        try {
+            Long currentEmployeeId = extractCurrentEmployeeId();
+            if (!currentEmployeeId.equals(dto.getEmployeeId())) {
+                return ApiResponseFactory.error("Access denied: you can only update your own work logs", 403);
+            }
+
+            workLogService.updateWorkLog(companyId, dto);
+            return ApiResponseFactory.updated(null, "Work log updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    private Long extractCurrentEmployeeId() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getDetails() instanceof Claims claims)) {
+            throw new RuntimeException("Authentication required");
+        }
+
+        Long employeeId = claims.get("employeeId", Long.class);
+        if (employeeId == null) {
+            throw new RuntimeException("Invalid employee token");
+        }
+
+        return employeeId;
     }
 }

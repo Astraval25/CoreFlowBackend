@@ -15,6 +15,9 @@ public interface EmployeeSalaryPeriodRepository extends JpaRepository<EmployeeSa
     List<EmployeeSalaryPeriod> findByCompanyCompanyIdAndPeriodOrderByEmployeeEmployeeName(
             Long companyId, String period);
 
+    List<EmployeeSalaryPeriod> findByCompanyCompanyIdAndEmployeeEmployeeIdAndPeriodOrderByFromDateDesc(
+            Long companyId, Long employeeId, String period);
+
     Optional<EmployeeSalaryPeriod> findByEmployeeEmployeeIdAndFromDateAndToDate(
             Long employeeId, LocalDate fromDate, LocalDate toDate);
 
@@ -23,6 +26,9 @@ public interface EmployeeSalaryPeriodRepository extends JpaRepository<EmployeeSa
 
     List<EmployeeSalaryPeriod> findByCompanyCompanyIdAndFromDateGreaterThanEqualAndToDateLessThanEqualOrderByEmployeeEmployeeName(
             Long companyId, LocalDate fromDate, LocalDate toDate);
+
+    List<EmployeeSalaryPeriod> findByCompanyCompanyIdAndEmployeeEmployeeIdAndFromDateGreaterThanEqualAndToDateLessThanEqualOrderByFromDateDesc(
+            Long companyId, Long employeeId, LocalDate fromDate, LocalDate toDate);
 
     @Query("SELECT sp FROM EmployeeSalaryPeriod sp " +
             "WHERE sp.employee.employeeId = :employeeId " +
