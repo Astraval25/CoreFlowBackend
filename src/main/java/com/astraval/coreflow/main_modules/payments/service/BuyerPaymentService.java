@@ -98,7 +98,7 @@ public class BuyerPaymentService {
             Long expectedCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
 
             CompanyLink customerVendorLink = customerVendorLinkRepository
-                    .findByVendorVendorIdAndCustomerCompanyCompanyId(vendor.getVendorId(), expectedCustomerCompanyId)
+                    .findByVendorVendorIdAndVendorCompanyCompanyId(vendor.getVendorId(), expectedCustomerCompanyId)
                     .orElseThrow(() -> new RuntimeException(
                             "Customer-vendor link not found for payments-made. " +
                                     "vendorId=" + vendor.getVendorId() +
