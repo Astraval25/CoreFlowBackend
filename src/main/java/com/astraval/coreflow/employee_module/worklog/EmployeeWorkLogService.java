@@ -14,6 +14,7 @@ import com.astraval.coreflow.employee_module.workdef.WorkDefinitionRepository;
 import com.astraval.coreflow.employee_module.worklog.dto.*;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +37,9 @@ public class EmployeeWorkLogService {
 
     @Autowired
     private EmployeeSalaryPeriodRepository salaryPeriodRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
     public Long createWorkLog(Long companyId, CreateWorkLogDto dto) {
@@ -72,6 +76,17 @@ public class EmployeeWorkLogService {
         log.setStatus(WorkLogStatus.PENDING);
 
         EmployeeWorkLog saved = workLogRepository.save(log);
+
+        // Send notification to the company admin
+        notificationService.createCompanyNotification(
+                companyId, companyId,
+                "New Work Log",
+                employee.getEmployeeName() + " submitted a work log for " + workDef.getWorkName()
+                        + " on " + dto.getLogDate(),
+                "WORK_LOG_CREATED",
+                "View Work Logs",
+                "/cf/company/" + companyId + "/work-logs");
+
         return saved.getLogId();
     }
 

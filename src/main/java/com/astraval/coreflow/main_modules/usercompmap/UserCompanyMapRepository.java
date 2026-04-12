@@ -1,5 +1,6 @@
 package com.astraval.coreflow.main_modules.usercompmap;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -7,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserCompanyMapRepository extends JpaRepository<UserCompanyMap, Integer> {
-    
+
     Optional<UserCompanyMap> findByUserUserIdAndCompanyCompanyId(Long userId, Long companyId);
+
+    List<UserCompanyMap> findByCompanyCompanyIdAndIsActiveTrue(Long companyId);
 }
