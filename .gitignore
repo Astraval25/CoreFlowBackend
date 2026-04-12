@@ -40,3 +40,6 @@ uploads/
 src/main/resources/application-dev.yml
 .env
 .secrets/
+
+### 
+firebase-service-account-adminsdk-coreflow.json
