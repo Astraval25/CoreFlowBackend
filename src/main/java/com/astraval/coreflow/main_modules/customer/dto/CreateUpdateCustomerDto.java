@@ -1,0 +1,38 @@
+package com.astraval.coreflow.main_modules.customer.dto;
+
+
+import com.astraval.coreflow.main_modules.address.dto.CreateUpdateAddressDto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class CreateUpdateCustomerDto {
+
+  @NotBlank(message = "Customer name is required")
+  private String customerName;
+  
+  @NotBlank(message = "Display name is required")
+  private String displayName;
+
+  @Email(message = "Invalid email format")
+  private String email;
+
+  private String phone;
+
+  private String lang;
+
+  // @ValidPAN(message = "Invalid PAN format")
+  private String pan;
+
+  private String gst;
+
+  private Double dueAmount;
+  
+  private boolean sameAsBillingAddress;
+  
+  private CreateUpdateAddressDto shippingAddress;
+  
+  private CreateUpdateAddressDto billingAddress;
+}

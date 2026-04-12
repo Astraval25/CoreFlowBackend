@@ -1,0 +1,41 @@
+package com.astraval.coreflow.main_modules.orderdetails.mapper;
+
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import com.astraval.coreflow.main_modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.main_modules.orderdetails.dto.CreatePurchaseOrder;
+import com.astraval.coreflow.main_modules.orderdetails.dto.CreateSalesOrder;
+import com.astraval.coreflow.main_modules.orderdetails.dto.SalesOrderResponse;
+
+@Mapper(componentModel = "spring")
+public interface OrderDetailsMapper {
+
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "orderId", ignore = true)
+    @Mapping(target = "orderNumber", ignore = true)
+    @Mapping(target = "orderDate", source = "orderDate")
+    @Mapping(target = "isActive", constant = "true")
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "createdDt", ignore = true)
+    @Mapping(target = "lastModifiedBy", ignore = true)
+    @Mapping(target = "lastModifiedDt", ignore = true)
+    OrderDetails toOrderDetails(CreateSalesOrder createOrder);
+
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "orderId", ignore = true)
+    @Mapping(target = "orderNumber", ignore = true)
+    @Mapping(target = "orderDate", source = "orderDate")
+    @Mapping(target = "isActive", constant = "true")
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "createdDt", ignore = true)
+    @Mapping(target = "lastModifiedBy", ignore = true)
+    @Mapping(target = "lastModifiedDt", ignore = true)
+    OrderDetails toPurchaseOrderDetails(CreatePurchaseOrder createOrder);
+
+    @Mapping(source = "sellerCompany.companyName", target = "sellerCompanyName")
+    @Mapping(source = "buyerCompany.companyName", target = "buyerCompanyName")
+    @Mapping(target = "orderItems", ignore = true)
+    SalesOrderResponse toOrderResponse(OrderDetails orderDetails);
+}

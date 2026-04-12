@@ -1,0 +1,238 @@
+package com.astraval.coreflow.main_modules.orderdetails.service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companyref.CompanyRefService;
+import com.astraval.coreflow.main_modules.config.CompanyNumberSequenceRepository;
+import com.astraval.coreflow.main_modules.customer.CustomerService;
+import com.astraval.coreflow.main_modules.customer.Customers;
+import com.astraval.coreflow.main_modules.items.model.Items;
+import com.astraval.coreflow.main_modules.items.repo.ItemRepository;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
+import com.astraval.coreflow.main_modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.main_modules.orderdetails.dto.CreatePurchaseOrder;
+import com.astraval.coreflow.main_modules.orderdetails.dto.PurchaseOrderSummaryDto;
+import com.astraval.coreflow.main_modules.orderdetails.dto.UpdatePurchaseOrder;
+import com.astraval.coreflow.main_modules.orderdetails.mapper.OrderDetailsMapper;
+import com.astraval.coreflow.main_modules.orderdetails.repo.OrderDetailsRepository;
+import com.astraval.coreflow.main_modules.orderdetails.repo.PurchaseOrderDetailsRepository;
+import com.astraval.coreflow.main_modules.orderitemdetails.OrderItemDetails;
+import com.astraval.coreflow.main_modules.orderitemdetails.OrderItemDetailsService;
+import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
+import com.astraval.coreflow.main_modules.vendor.VendorRepository;
+import com.astraval.coreflow.main_modules.vendor.Vendors;
+
+@Service
+public class PurchaseOrderDetailsService {
+    @Autowired
+    private PurchaseOrderDetailsRepository purchaseOrderDetailsRepository;
+
+    @Autowired
+    private OrderDetailsService orderDetailsService;
+
+    @Autowired
+    private CompanyRepository companyRepository;
+
+    @Autowired
+    private ItemRepository itemRepository;
+
+    @Autowired
+    private OrderDetailsMapper orderDetailsMapper;
+
+    @Autowired
+    private OrderItemDetailsService orderItemDetailsService;
+
+    @Autowired
+    private VendorRepository vendorRepository;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
+    
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private CompanyRefService companyRefService;
+
+    @Autowired
+    private CompanyNumberSequenceRepository companyNumberSequenceRepository;
+
+    @Autowired
+    private OrderDetailsRepository orderDetailsRepository;
+    
+
+    @Transactional
+    public Long createPurchaseOrder(Long companyId, CreatePurchaseOrder createOrder) {
+
+        // Access Validation
+        companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        Vendors myVendor = vendorRepository.findById(createOrder.getVendorId())
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+
+
+        OrderDetails orderDetails = orderDetailsMapper.toPurchaseOrderDetails(createOrder);
+        // Main id setting...
+        orderDetails.setVendors(myVendor);
+
+        if (myVendor.getVendorCompany() != null) {
+            // Find buyer company's customer id by order company id
+            Long vendorsCustomerCompanyId = myVendor.getVendorCompany().getCompanyId();
+            Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
+            orderDetails.setCustomers(sellerCustomer);
+
+            notificationService.createCompanyNotification(
+                    companyId,
+                    vendorsCustomerCompanyId,
+                    "New Purchase Order",
+                    "A new purchase order is created by " + myVendor.getCompany().getCompanyName(),
+                    "PURCHASE_ORDER_CREATED",
+                    "View Orders",
+                    "/companies/" + vendorsCustomerCompanyId + "/purchase/orders");
+        }
+        
+        
+        LocalDateTime orderDate = createOrder.getOrderDate() != null
+                ? createOrder.getOrderDate()
+                : LocalDateTime.now();
+        orderDetails.setOrderDate(orderDate);
+        orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
+        orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
+        orderDetails.setTaxAmount(createOrder.getTaxAmount());
+        orderDetails.setHasBill(createOrder.isHasBill());
+        orderDetails.setOrderStatus(OrderStatus.getOrder()); // Set the order status to "Order".
+
+        String orderNumber = orderDetailsService.getNextSequenceNumber(companyId);
+        orderDetails.setOrderNumber(orderNumber);
+
+        OrderDetails savedOrder = purchaseOrderDetailsRepository.save(orderDetails);
+        AtomicReference<Double> orderTotalAmount = new AtomicReference<>(0.0);
+
+        createOrder.getOrderItems().forEach(newOrderItem -> {
+            OrderItemDetails orderItem = new OrderItemDetails();
+            Items item = itemRepository.findById(newOrderItem.getItemId())
+                    .orElseThrow(() -> new RuntimeException("Item not found"));
+
+            orderItem.setOrderId(savedOrder.getOrderId());
+            orderItem.setItemId(item);
+            orderItem.setQuantity(newOrderItem.getQuantity());
+            orderItem.setBasePrice(item.getBasePurchasePrice() != null ? item.getBasePurchasePrice() : item.getBaseSalesPrice());
+            orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
+            orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());
+            orderItem.setReadyStatus(0.0);
+            orderItem.setStatus(null);
+            orderTotalAmount.updateAndGet(current -> current + orderItem.getItemTotal());
+            orderItemDetailsService.createOrderItem(orderItem);
+        });
+
+        Double orderAmount = orderTotalAmount.get() + createOrder.getDeliveryCharge();
+        Double totalAmount = orderAmount - createOrder.getDiscountAmount() + createOrder.getTaxAmount();
+        savedOrder.setOrderAmount(orderAmount);
+        savedOrder.setTotalAmount(totalAmount);
+
+        // Platform reference number
+        savedOrder.setPlatformRef(orderDetailsRepository.generatePlatformOrderRef());
+        purchaseOrderDetailsRepository.save(savedOrder);
+
+        // Company overlay for buyer
+        String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(companyId, "PURCHASE_ORDER");
+        companyRefService.createOrderRef(companyId, savedOrder, buyerLocalNumber);
+
+        // Company overlay for seller (if linked)
+        if (myVendor.getVendorCompany() != null) {
+            Long sellerCompanyId = myVendor.getVendorCompany().getCompanyId();
+            String sellerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(sellerCompanyId, "SALES_ORDER");
+            companyRefService.createOrderRef(sellerCompanyId, savedOrder, sellerLocalNumber);
+        }
+
+        partnerBalanceService.refreshDueAmountsForOrder(savedOrder);
+
+        return savedOrder.getOrderId();
+    }
+
+    public List<PurchaseOrderSummaryDto> getOrderSummaryByCompanyId(Long companyId) {
+        return purchaseOrderDetailsRepository.findPurchaseOrdersByCompanyId(companyId);
+    }
+
+    @Transactional
+    public void updatePurchaseOrder(Long companyId, Long orderId, UpdatePurchaseOrder updateOrder) {
+        // Validation
+        companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        OrderDetails existingOrder = purchaseOrderDetailsRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        Long previousCustomerId = existingOrder.getCustomers() != null
+                ? existingOrder.getCustomers().getCustomerId()
+                : null;
+        Long previousVendorId = existingOrder.getVendors() != null
+                ? existingOrder.getVendors().getVendorId()
+                : null;
+                
+        Vendors vendor = vendorRepository.findById(updateOrder.getVendorId())
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+
+        // Update order details
+        existingOrder.setVendors(vendor);
+        if (vendor.getVendorCompany() != null) {
+            Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
+            Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
+            existingOrder.setCustomers(sellerCustomer);
+        } else {
+            existingOrder.setCustomers(null);
+        }
+        existingOrder.setDeliveryCharge(updateOrder.getDeliveryCharge());
+        existingOrder.setDiscountAmount(updateOrder.getDiscountAmount());
+        existingOrder.setTaxAmount(updateOrder.getTaxAmount());
+        existingOrder.setHasBill(updateOrder.isHasBill());
+        if (updateOrder.getOrderDate() != null) {
+            existingOrder.setOrderDate(updateOrder.getOrderDate());
+        }
+
+        // Delete existing order items
+        orderItemDetailsService.deleteOrderItemsByOrderId(orderId);
+
+        // Create new order items
+        AtomicReference<Double> orderTotalAmount = new AtomicReference<>(0.0);
+        updateOrder.getOrderItems().forEach(newOrderItem -> {
+            OrderItemDetails orderItem = new OrderItemDetails();
+            Items item = itemRepository.findById(newOrderItem.getItemId())
+                    .orElseThrow(() -> new RuntimeException("Item not found"));
+
+            orderItem.setOrderId(existingOrder.getOrderId());
+            orderItem.setItemId(item);
+            orderItem.setQuantity(newOrderItem.getQuantity());
+            orderItem.setBasePrice(item.getBasePurchasePrice() != null ? item.getBasePurchasePrice() : item.getBaseSalesPrice());
+            orderItem.setUpdatedPrice(newOrderItem.getUpdatedPrice());
+            orderItem.setItemTotal(newOrderItem.getQuantity() * newOrderItem.getUpdatedPrice());
+            orderItem.setReadyStatus(0.0);
+            orderItem.setStatus(null);
+            orderTotalAmount.updateAndGet(current -> current + orderItem.getItemTotal());
+            orderItemDetailsService.createOrderItem(orderItem);
+        });
+
+        // Update totals
+        Double orderAmount = orderTotalAmount.get() + updateOrder.getDeliveryCharge();
+        Double totalAmount = orderAmount - updateOrder.getDiscountAmount() + updateOrder.getTaxAmount();
+
+        existingOrder.setOrderAmount(orderAmount);
+        existingOrder.setTotalAmount(totalAmount);
+        purchaseOrderDetailsRepository.save(existingOrder);
+        partnerBalanceService.refreshDueAmounts(previousCustomerId, previousVendorId);
+        partnerBalanceService.refreshDueAmountsForOrder(existingOrder);
+    }
+
+}

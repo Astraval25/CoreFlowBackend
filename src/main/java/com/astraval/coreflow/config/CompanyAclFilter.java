@@ -42,23 +42,31 @@ public class CompanyAclFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Check for single companyId (employee/admin token)
+        Object singleCompanyId = claims.get("companyId");
+        if (singleCompanyId != null) {
+            Long userCompanyId = toLong(singleCompanyId);
+            if (userCompanyId != null && userCompanyId.equals(requestedCompanyId)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+
+        // Check for companyIds list (user token)
         Object companyIdsObj = claims.get("companyIds");
-        if (!(companyIdsObj instanceof List<?> companyIds)) {
-            writeForbidden(response, "Unauthorized company access");
-            return;
+        if (companyIdsObj instanceof List<?> companyIds) {
+            Set<Long> allowedCompanyIds = companyIds.stream()
+                    .map(this::toLong)
+                    .filter(id -> id != null)
+                    .collect(Collectors.toSet());
+
+            if (allowedCompanyIds.contains(requestedCompanyId)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
 
-        Set<Long> allowedCompanyIds = companyIds.stream()
-                .map(this::toLong)
-                .filter(id -> id != null)
-                .collect(Collectors.toSet());
-
-        if (!allowedCompanyIds.contains(requestedCompanyId)) {
-            writeForbidden(response, "Unauthorized company access for company ID: " + requestedCompanyId);
-            return;
-        }
-
-        filterChain.doFilter(request, response);
+        writeForbidden(response, "Unauthorized company access for company ID: " + requestedCompanyId);
     }
 
     private Long extractCompanyId(String requestUri) {

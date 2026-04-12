@@ -37,9 +37,32 @@ public class JwtUtil {
                 .compact();
     }
 
-    public String generateRefreshToken(Long userId) {
+    public String generateEmployeeToken(Long portalUserId, Long employeeId, Long companyId, String companyName) {
         return Jwts.builder()
-                .setSubject(userId.toString())
+                .setSubject(portalUserId.toString())
+                .claim("role", "EMP")
+                .claim("employeeId", employeeId)
+                .claim("companyId", companyId)
+                .claim("companyName", companyName)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration * 1000L))
+                .setId(UUID.randomUUID().toString())
+                .signWith(Keys.hmacShaKeyFor(getKeyBytes()))
+                .compact();
+    }
+
+    public String generateRefreshToken(Long userId) {
+        return generateRefreshToken(userId, "USER");
+    }
+
+    public String generateEmployeeRefreshToken(Long portalUserId) {
+        return generateRefreshToken(portalUserId, "EMP");
+    }
+
+    private String generateRefreshToken(Long subjectId, String tokenType) {
+        return Jwts.builder()
+                .setSubject(subjectId.toString())
+                .claim("type", tokenType)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration * 1000L))
                 .setId(UUID.randomUUID().toString())
@@ -48,12 +71,16 @@ public class JwtUtil {
     }
     
     public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
+        return getClaims(token).getSubject() != null
+                ? Long.parseLong(getClaims(token).getSubject()) : null;
+    }
+
+    public Claims getClaims(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(Keys.hmacShaKeyFor(getKeyBytes()))
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        return Long.parseLong(claims.getSubject());
     }
 
     private byte[] getKeyBytes() {

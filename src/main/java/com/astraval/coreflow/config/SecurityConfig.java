@@ -3,6 +3,7 @@ package com.astraval.coreflow.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -17,39 +18,47 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 import jakarta.servlet.http.HttpServletResponse;
 
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    
+
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
-    
+
     @Autowired
     private CorsConfig corsConfig;
-    
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/test/**", "/error", "/ads").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADM")
-                .anyRequest().authenticated()
-            )
-            .exceptionHandling(ex -> ex
-                .accessDeniedHandler(customAccessDeniedHandler()) 
-                .authenticationEntryPoint(customAuthEntryPoint()) 
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-            // .addFilterAfter(companyAclFilter, JwtAuthenticationFilter.class); // user Company Check
-        
+                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**", "/api/test/**", "/error", "/ads").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADM")
+                        .requestMatchers("/api/emp/**").hasRole("EMP")
+                        .requestMatchers(HttpMethod.GET, "/api/companies/*/modemp/work-definitions")
+                        .hasAnyRole("ADM", "EMP")
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/companies/*/modemp/leave-logs",
+                                "/api/companies/*/modemp/work-logs")
+                        .hasAnyRole("ADM", "EMP")
+                        .requestMatchers(HttpMethod.PUT,
+                                "/api/companies/*/modemp/leave-logs/employee",
+                                "/api/companies/*/modemp/work-logs/employee")
+                        .hasAnyRole("ADM", "EMP")
+                        .requestMatchers("/api/companies/**").hasAnyRole("ADM", "USR")
+                        .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler(customAccessDeniedHandler())
+                        .authenticationEntryPoint(customAuthEntryPoint()))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        // .addFilterAfter(companyAclFilter, JwtAuthenticationFilter.class); // user
+        // Company Check
+
         return http.build();
     }
-    
-
 
     @Bean
     public AuthenticationEntryPoint customAuthEntryPoint() {
@@ -57,14 +66,13 @@ public class SecurityConfig {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("""
-                {
-                    "error": "unauthorized",
-                    "message": "Authentication required. Please login first."
-                }
-                """);
+                    {
+                        "error": "unauthorized",
+                        "message": "Authentication required. Please login first."
+                    }
+                    """);
         };
     }
-
 
     @Bean
     public AccessDeniedHandler customAccessDeniedHandler() {
@@ -72,14 +80,14 @@ public class SecurityConfig {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json");
             response.getWriter().write("""
-                {
-                    "error": "access_denied",
-                    "message": "Insufficient permissions. Requires Admin role."
-                }
-                """);
+                    {
+                        "error": "access_denied",
+                        "message": "Insufficient permissions. Requires Admin role."
+                    }
+                    """);
         };
     }
-    
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -88,7 +96,7 @@ public class SecurityConfig {
     @Bean
     public FilterRegistrationBean<CompanyAclFilter> companyAclFilterRegistration(CompanyAclFilter filter) {
         FilterRegistrationBean<CompanyAclFilter> registration = new FilterRegistrationBean<>(filter);
-        registration.setEnabled(true);  // On/Off Company ACK Filter
+        registration.setEnabled(true); // On/Off Company ACK Filter
         return registration;
     }
 }

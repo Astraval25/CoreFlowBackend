@@ -1,0 +1,274 @@
+package com.astraval.coreflow.main_modules.items.service;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.astraval.coreflow.main_modules.companylink.CompanyLink;
+import com.astraval.coreflow.main_modules.companylink.CompanyLinkRepository;
+import com.astraval.coreflow.main_modules.items.dto.CreateVendorItemDto;
+import com.astraval.coreflow.main_modules.items.dto.UpdateVendorItemDto;
+import com.astraval.coreflow.main_modules.items.dto.VendorItemDetailDto;
+import com.astraval.coreflow.main_modules.items.dto.VendorItemSummaryDto;
+import com.astraval.coreflow.main_modules.items.model.ItemCustomerPrice;
+import com.astraval.coreflow.main_modules.items.model.ItemVendorPrice;
+import com.astraval.coreflow.main_modules.items.model.Items;
+import com.astraval.coreflow.main_modules.items.repo.ItemCustomerPriceRepository;
+import com.astraval.coreflow.main_modules.items.repo.ItemRepository;
+import com.astraval.coreflow.main_modules.items.repo.ItemVendorPriceRepository;
+import com.astraval.coreflow.main_modules.vendor.VendorRepository;
+import com.astraval.coreflow.main_modules.vendor.Vendors;
+
+@Service
+public class VendorItemService {
+
+    @Autowired
+    private ItemRepository itemRepository;
+
+    @Autowired
+    private ItemVendorPriceRepository itemVendorPriceRepository;
+
+    @Autowired
+    private VendorRepository vendorRepository;
+
+    @Autowired
+    private ItemCustomerPriceRepository itemCustomerPriceRepository;
+
+    @Autowired
+    private CompanyLinkRepository customerVendorLinkRepository;
+
+    @Transactional
+    public Long createVendorItem(Long companyId, Long vendorId, CreateVendorItemDto request) {
+        Vendors vendor = getVendorOrThrow(companyId, vendorId);
+        Items item = getItemOrThrow(companyId, request.getItemId());
+
+        ItemVendorPrice existing = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(item.getItemId(), vendorId)
+                .orElse(null);
+
+        if (existing != null) {
+            if (Boolean.TRUE.equals(existing.getIsActive())) {
+                throw new RuntimeException("Vendor item price already exists for item ID: " + item.getItemId());
+            }
+            existing.setPurchasePrice(request.getPurchasePrice());
+            existing.setPurchaseDescription(request.getPurchaseDescription());
+            existing.setIsActive(true);
+            return itemVendorPriceRepository.save(existing).getItemVendorPriceId();
+        }
+
+        ItemVendorPrice price = new ItemVendorPrice();
+        price.setItem(item);
+        price.setVendor(vendor);
+        price.setPurchasePrice(request.getPurchasePrice());
+        price.setPurchaseDescription(request.getPurchaseDescription());
+        return itemVendorPriceRepository.save(price).getItemVendorPriceId();
+    }
+
+    @Transactional
+    public void updateVendorItem(Long companyId, Long vendorId, Long itemId, UpdateVendorItemDto request) {
+        getVendorOrThrow(companyId, vendorId);
+        getItemOrThrow(companyId, itemId);
+
+        if (request.getPurchasePrice() == null && request.getPurchaseDescription() == null) {
+            throw new RuntimeException("At least one of purchase price or purchase description is required");
+        }
+
+        ItemVendorPrice price = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(itemId, vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor item price not found for item ID: " + itemId));
+
+        if (request.getPurchasePrice() != null) {
+            price.setPurchasePrice(request.getPurchasePrice());
+        }
+        if (request.getPurchaseDescription() != null) {
+            price.setPurchaseDescription(request.getPurchaseDescription());
+        }
+
+        itemVendorPriceRepository.save(price);
+    }
+
+    @Transactional
+    public void deactivateVendorItem(Long companyId, Long vendorId, Long itemId) {
+        getVendorOrThrow(companyId, vendorId);
+        getItemOrThrow(companyId, itemId);
+
+        ItemVendorPrice price = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(itemId, vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor item price not found for item ID: " + itemId));
+
+        price.setIsActive(false);
+        itemVendorPriceRepository.save(price);
+    }
+
+    @Transactional
+    public void activateVendorItem(Long companyId, Long vendorId, Long itemId) {
+        getVendorOrThrow(companyId, vendorId);
+        getItemOrThrow(companyId, itemId);
+
+        ItemVendorPrice price = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorId(itemId, vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor item price not found for item ID: " + itemId));
+
+        price.setIsActive(true);
+        itemVendorPriceRepository.save(price);
+    }
+
+    public List<VendorItemSummaryDto> getItemsByVendor(Long companyId, Long vendorId) {
+        validateVendor(companyId, vendorId);
+        List<Items> items = itemRepository.findByCompanyCompanyIdOrderByItemName(companyId);
+        Map<Long, ItemVendorPrice> priceByItemId = loadVendorPriceMap(vendorId);
+        return items.stream()
+                .map(item -> toSummaryDto(item, priceByItemId.get(item.getItemId())))
+                .toList();
+    }
+
+    public List<VendorItemSummaryDto> getActiveItemsByVendor(Long companyId, Long vendorId) {
+        validateVendor(companyId, vendorId);
+        List<Items> items = itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId);
+        Map<Long, ItemVendorPrice> priceByItemId = loadVendorPriceMap(vendorId);
+        return items.stream()
+                .map(item -> toSummaryDto(item, priceByItemId.get(item.getItemId())))
+                .toList();
+    }
+
+    public List<VendorItemSummaryDto> getMappedItemsByVendor(Long companyId, Long vendorId) {
+        Vendors vendor = getVendorOrThrow(companyId, vendorId);
+
+        if (vendor.getVendorCompany() != null) {
+            // Linked vendor: show items from the linked company's customer
+            // (ItemCustomerPrice)
+            CompanyLink link = customerVendorLinkRepository
+                    .findByVendorVendorIdAndCustomerCompanyCompanyId(vendorId, companyId)
+                    .orElse(null);
+            if (link == null) {
+                return List.of();
+            }
+            Long customerId = link.getCustomer().getCustomerId();
+            List<ItemCustomerPrice> customerPrices = itemCustomerPriceRepository
+                    .findByCustomerCustomerIdAndIsActiveTrue(customerId);
+            return customerPrices.stream()
+                    .map(this::toSummaryDtoFromCustomerPrice)
+                    .toList();
+        }
+
+        // Not linked: show items added directly to this vendor (ItemVendorPrice)
+        List<ItemVendorPrice> prices = itemVendorPriceRepository.findByVendorVendorId(vendorId);
+        return prices.stream()
+                .map(price -> toSummaryDto(price.getItem(), price))
+                .toList();
+    }
+
+    public VendorItemDetailDto getItemDetail(Long companyId, Long vendorId, Long itemId) {
+        validateVendor(companyId, vendorId);
+        Items item = itemRepository.findByItemIdAndCompanyCompanyId(itemId, companyId)
+                .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
+
+        ItemVendorPrice price = itemVendorPriceRepository
+                .findByItemItemIdAndVendorVendorIdAndIsActiveTrue(itemId, vendorId)
+                .orElse(null);
+
+        VendorItemDetailDto dto = new VendorItemDetailDto();
+        dto.setItemId(item.getItemId());
+        dto.setItemName(item.getItemName());
+        dto.setItemType(item.getItemType());
+        dto.setUnit(item.getUnit());
+        dto.setPurchasePrice(resolvePurchasePrice(item, price));
+        dto.setPurchaseDescription(resolvePurchaseDescription(item, price));
+        dto.setHsnCode(item.getHsnCode());
+        dto.setTaxRate(item.getTaxRate());
+        dto.setIsActive(item.getIsActive());
+        dto.setCreatedBy(item.getCreatedBy());
+        dto.setCreatedDt(item.getCreatedDt());
+        dto.setLastModifiedBy(item.getLastModifiedBy());
+        dto.setLastModifiedDt(item.getLastModifiedDt());
+        dto.setItemImage(item.getFsId());
+        dto.setFsId(item.getFsId());
+        return dto;
+    }
+
+    private void validateVendor(Long companyId, Long vendorId) {
+        vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+    }
+
+    private Vendors getVendorOrThrow(Long companyId, Long vendorId) {
+        return vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+    }
+
+    private Items getItemOrThrow(Long companyId, Long itemId) {
+        return itemRepository.findByItemIdAndCompanyCompanyId(itemId, companyId)
+                .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
+    }
+
+    private Map<Long, ItemVendorPrice> loadVendorPriceMap(Long vendorId) {
+        List<ItemVendorPrice> prices = itemVendorPriceRepository
+                .findByVendorVendorIdAndIsActiveTrue(vendorId);
+        return prices.stream()
+                .collect(Collectors.toMap(p -> p.getItem().getItemId(), p -> p, (a, b) -> a));
+    }
+
+    private VendorItemSummaryDto toSummaryDto(Items item, ItemVendorPrice price) {
+        boolean isVendorItemSource = price != null
+                && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null);
+        String source = isVendorItemSource ? "VENDOR_ITEM" : "ITEM_BASE";
+        boolean itemActive = Boolean.TRUE.equals(item.getIsActive());
+        boolean mappingActive = !isVendorItemSource || (price != null && Boolean.TRUE.equals(price.getIsActive()));
+        Boolean isActive = itemActive && mappingActive;
+        return new VendorItemSummaryDto(
+                item.getItemId(),
+                item.getItemName(),
+                item.getItemType(),
+                item.getUnit(),
+                resolvePurchasePrice(item, price),
+                resolvePurchaseDescription(item, price),
+                item.getHsnCode(),
+                item.getTaxRate(),
+                isActive,
+                source,
+                item.getFsId(),
+                true);
+    }
+
+    private VendorItemSummaryDto toSummaryDtoFromCustomerPrice(ItemCustomerPrice customerPrice) {
+        Items item = customerPrice.getItem();
+        BigDecimal purchasePrice = customerPrice.getSalesPrice() != null
+                ? customerPrice.getSalesPrice()
+                : item.getBaseSalesPrice();
+        String purchaseDescription = customerPrice.getSalesDescription() != null
+                ? customerPrice.getSalesDescription()
+                : item.getSalesDescription();
+        return new VendorItemSummaryDto(
+                item.getItemId(),
+                item.getItemName(),
+                item.getItemType(),
+                item.getUnit(),
+                purchasePrice,
+                purchaseDescription,
+                item.getHsnCode(),
+                item.getTaxRate(),
+                Boolean.TRUE.equals(item.getIsActive()),
+                "CUSTOMER_ITEM",
+                item.getFsId(),
+                false);
+    }
+
+    private BigDecimal resolvePurchasePrice(Items item, ItemVendorPrice price) {
+        if (price != null && price.getPurchasePrice() != null) {
+            return price.getPurchasePrice();
+        }
+        return item.getBasePurchasePrice();
+    }
+
+    private String resolvePurchaseDescription(Items item, ItemVendorPrice price) {
+        if (price != null && price.getPurchaseDescription() != null) {
+            return price.getPurchaseDescription();
+        }
+        return item.getPurchaseDescription();
+    }
+}

@@ -1,3 +1,8 @@
+-- =============================
+-- Manufacturing schema
+-- =============================
+CREATE SCHEMA IF NOT EXISTS modemp;
+
 -- Table: Roles insert query
 INSERT INTO public.roles_master (role_code,landing_url,role_name) VALUES
 	 ('ADM','/admin/dashboard','ADMIN user');
