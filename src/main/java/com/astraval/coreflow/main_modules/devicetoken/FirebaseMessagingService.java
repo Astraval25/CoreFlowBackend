@@ -9,9 +9,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import com.astraval.coreflow.main_modules.usercompmap.UserCompanyMap;
 import com.astraval.coreflow.main_modules.usercompmap.UserCompanyMapRepository;
 import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
+import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
@@ -34,11 +37,7 @@ public class FirebaseMessagingService {
     @Async
     public void sendToCompanyUsers(Long companyId, String title, String body, Map<String, String> data) {
         try {
-            List<Long> userIds = userCompanyMapRepository
-                    .findByCompanyCompanyIdAndIsActiveTrue(companyId)
-                    .stream()
-                    .map(ucm -> ucm.getUser().getUserId())
-                    .toList();
+            List<Long> userIds = userCompanyMapRepository.findUserIdsByCompanyId(companyId);
 
             if (userIds.isEmpty()) {
                 return;
@@ -54,17 +53,35 @@ public class FirebaseMessagingService {
         List<String> tokens = deviceTokenService.getActiveTokensForUsers(userIds);
 
         if (tokens.isEmpty()) {
+            log.warn("No active FCM tokens found for users: {}", userIds);
             return;
         }
 
         try {
+            Map<String, String> safeData = data == null ? Map.of()
+                    : data.entrySet().stream()
+                            .filter(entry -> entry.getKey() != null && entry.getValue() != null)
+                            .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
             MulticastMessage message = MulticastMessage.builder()
                     .addAllTokens(tokens)
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
                             .build())
-                    .putAllData(data)
+                    .setAndroidConfig(AndroidConfig.builder()
+                            .setPriority(AndroidConfig.Priority.HIGH)
+                            .setNotification(AndroidNotification.builder()
+                                    .setChannelId("coreflow_notifications_v2")
+                                    .setSound("default")
+                                    .build())
+                            .build())
+                    .setApnsConfig(ApnsConfig.builder()
+                            .setAps(Aps.builder()
+                                    .setSound("default")
+                                    .build())
+                            .build())
+                    .putAllData(safeData)
                     .build();
 
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
@@ -76,7 +93,8 @@ public class FirebaseMessagingService {
             log.info("FCM sent: {} success, {} failed",
                     response.getSuccessCount(), response.getFailureCount());
         } catch (Exception e) {
-            log.error("FCM send failed: {}", e.getMessage());
+            log.error("FCM send failed (title='{}', users={}, tokens={}): {}", title, userIds.size(), tokens.size(),
+                    e.getMessage(), e);
         }
     }
 
