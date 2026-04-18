@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +17,7 @@ import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.main_modules.orderdetails.dto.OrderDetailsFullResponse;
 import com.astraval.coreflow.main_modules.orderdetails.dto.UnpaidOrderDto;
+import com.astraval.coreflow.main_modules.orderdetails.service.OrderBillPdfService;
 import com.astraval.coreflow.main_modules.orderdetails.service.OrderDetailsService;
 import com.astraval.coreflow.main_modules.payments.dto.PayerPaymentSummaryDto;
 
@@ -23,9 +27,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RestController
 @RequestMapping("/api/companies")
 public class OrderDetailsController {
-  
+
     @Autowired
     private OrderDetailsService orderDetailsService;
+
+    @Autowired
+    private OrderBillPdfService orderBillPdfService;
     
     @GetMapping("/{companyId}/orders/{orderId}") // View Order details by Order id
     private ApiResponse<OrderDetailsFullResponse> viewOrderDetailsByOrderId(@PathVariable Long companyId,
@@ -214,6 +221,20 @@ public class OrderDetailsController {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
-    
-    
+
+    @GetMapping("/{companyId}/orders/{orderId}/bill")
+    public ResponseEntity<byte[]> downloadOrderBill(@PathVariable Long companyId, @PathVariable Long orderId) {
+        try {
+            byte[] pdf = orderBillPdfService.generateOrderBill(companyId, orderId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=order-bill-" + orderId + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage().getBytes());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }

@@ -12,6 +12,7 @@ import com.astraval.coreflow.employee_module.leavelog.dto.*;
 import com.astraval.coreflow.employee_module.salary.EmployeeSalaryPeriodRepository;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +32,9 @@ public class EmployeeLeaveLogService {
 
     @Autowired
     private EmployeeSalaryPeriodRepository salaryPeriodRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
     public Long createLeaveLog(Long companyId, CreateLeaveLogDto dto) {
@@ -63,6 +67,17 @@ public class EmployeeLeaveLogService {
         log.setStatus(LeaveStatus.PENDING);
 
         EmployeeLeaveLog saved = leaveLogRepository.save(log);
+
+        // Send notification to the company admin
+        notificationService.createCompanyNotification(
+                companyId, companyId,
+                "New Leave Request",
+                employee.getEmployeeName() + " requested " + dto.getLeaveType()
+                        + " leave (" + dto.getLeaveCategory() + ") on " + dto.getLeaveDate(),
+                "LEAVE_LOG_CREATED",
+                "View Leave Logs",
+                "/cf/company/" + companyId + "/leave-logs");
+
         return saved.getLeaveId();
     }
 

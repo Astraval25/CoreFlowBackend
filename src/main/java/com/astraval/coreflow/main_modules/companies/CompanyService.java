@@ -1,14 +1,20 @@
 package com.astraval.coreflow.main_modules.companies;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.astraval.coreflow.common.util.SecurityUtil;
+import com.astraval.coreflow.main_modules.companies.dto.CompanyDetailDto;
 import com.astraval.coreflow.main_modules.companies.dto.CompanySummaryDto;
 import com.astraval.coreflow.main_modules.companies.dto.CreateUpdateCompanyDto;
+import com.astraval.coreflow.main_modules.filestorage.FileStorage;
+import com.astraval.coreflow.main_modules.filestorage.FileStorageRepository;
+import com.astraval.coreflow.main_modules.filestorage.FileStorageService;
 import com.astraval.coreflow.main_modules.user.User;
 import com.astraval.coreflow.main_modules.user.UserRepository;
 import com.astraval.coreflow.main_modules.usercompmap.UserCompanyMap;
@@ -29,6 +35,12 @@ public class CompanyService {
     @Autowired
     private SecurityUtil securityUtil;
 
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private FileStorageRepository fileStorageRepository;
+
     public List<Companies> getAllCompanies() {
         return companyRepository.findAll();
     }
@@ -43,6 +55,21 @@ public class CompanyService {
         String currentUserId = securityUtil.getCurrentSub();
         Long userId = Long.parseLong(currentUserId);
         return companyRepository.findActiveCompaniesByUserId(userId);
+    }
+
+    public CompanyDetailDto getCompanyById(Long companyId) {
+        Companies company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
+        return new CompanyDetailDto(
+                company.getCompanyId(),
+                company.getCompanyName(),
+                company.getIndustry(),
+                company.getPan(),
+                company.getGstNo(),
+                company.getHsnCode(),
+                company.getShortName(),
+                company.getFsId(),
+                company.getIsActive());
     }
 
     @Transactional
@@ -85,6 +112,25 @@ public class CompanyService {
         company.setShortName(request.getShortName());
 
         companyRepository.save(company);
+    }
+
+    @Transactional
+    public String uploadCompanyLogo(Long companyId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Logo file is required");
+        }
+        Companies company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
+
+        try {
+            FileStorage fileStorage = fileStorageService.saveFile(file, "COMPANY_LOGO", companyId.toString());
+            FileStorage savedFile = fileStorageRepository.save(fileStorage);
+            company.setFsId(savedFile.getFsId());
+            companyRepository.save(company);
+            return savedFile.getFsId();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload company logo: " + e.getMessage(), e);
+        }
     }
 
     @Transactional

@@ -1,7 +1,9 @@
 package com.astraval.coreflow.main_modules.notification;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.devicetoken.FirebaseMessagingService;
 import com.astraval.coreflow.main_modules.notification.dto.CreateNotificationRequest;
 import com.astraval.coreflow.main_modules.notification.dto.NotificationOpenResponse;
 import com.astraval.coreflow.main_modules.notification.dto.NotificationPageDto;
@@ -30,6 +33,9 @@ public class NotificationService {
 
     @Autowired
     private CompanyRepository companyRepository;
+
+    @Autowired
+    private FirebaseMessagingService firebaseMessagingService;
 
     @Transactional
     public Long createNotification(CreateNotificationRequest request) {
@@ -57,7 +63,22 @@ public class NotificationService {
         notification.setActionUrl(request.getActionUrl());
         notification.setIsRead(false);
 
-        return notificationRepository.save(notification).getNotificationId();
+        Notification saved = notificationRepository.save(notification);
+
+        // Send FCM push notification
+        Map<String, String> data = new HashMap<>();
+        data.put("notificationId", String.valueOf(saved.getNotificationId()));
+        data.put("type", request.getType());
+        if (request.getActionUrl() != null) {
+            data.put("actionUrl", request.getActionUrl());
+        }
+        if (request.getToCompanyId() != null) {
+            data.put("toCompanyId", String.valueOf(request.getToCompanyId()));
+        }
+        firebaseMessagingService.sendToCompanyUsers(
+                request.getToCompanyId(), request.getTitle(), request.getMessage(), data);
+
+        return saved.getNotificationId();
     }
 
     @Transactional

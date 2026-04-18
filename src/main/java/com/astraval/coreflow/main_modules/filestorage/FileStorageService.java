@@ -25,6 +25,9 @@ public class FileStorageService {
     @Value("${app.file.upload.payment-proofs:uploads/payment_proof}")
     private String paymentProofPath;
 
+    @Value("${app.file.upload.company-logos:uploads/company_logo}")
+    private String companyLogoPath;
+
     private final FileStorageRepository repo;
 
     public FileStorageService(FileStorageRepository repo) {
@@ -75,6 +78,9 @@ public class FileStorageService {
     private Path resolveUploadPath(String ownerType) {
         if (ownerType != null && ownerType.equalsIgnoreCase("PAYMENT_PROOF")) {
             return Paths.get(paymentProofPath);
+        }
+        if (ownerType != null && ownerType.equalsIgnoreCase("COMPANY_LOGO")) {
+            return Paths.get(companyLogoPath);
         }
         return Paths.get(itemImagePath);
     }

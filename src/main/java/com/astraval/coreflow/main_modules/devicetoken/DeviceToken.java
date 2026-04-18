@@ -1,5 +1,4 @@
-package com.astraval.coreflow.main_modules.companies;
-
+package com.astraval.coreflow.main_modules.devicetoken;
 
 import java.time.LocalDateTime;
 
@@ -9,53 +8,57 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.astraval.coreflow.main_modules.user.User;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(
+    name = "device_tokens",
+    indexes = {
+        @Index(name = "idx_device_tokens_user_active", columnList = "user_id,is_active"),
+        @Index(name = "idx_device_tokens_token", columnList = "token", unique = true)
+    }
+)
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "companies")
-public class Companies {
+public class DeviceToken {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "company_id", nullable = false)
-    private Long companyId;
+    @Column(name = "device_token_id")
+    private Long deviceTokenId;
 
-    @Column(name = "company_name" , length = 500, nullable = false)
-    private String companyName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "industry" , length = 250, nullable = false)
-    private String industry;
+    @Column(name = "token", nullable = false, length = 500, unique = true)
+    private String token;
 
-    @Column(name = "pan" , length = 50, nullable = true)
-    private String pan;
+    @Column(name = "device_type", nullable = false, length = 20)
+    private String deviceType;
 
-    @Column(name = "gst_no" , length = 50, nullable = true)
-    private String gstNo;
-
-    @Column(name = "hsn_code" , length = 50, nullable = true)
-    private String hsnCode;
-
-    @Column(name = "short_name" , length = 200)
-    private String shortName;
-
-    @Column(name = "fs_id", length = 100)
-    private String fsId;
-
-
-    // default fields...
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
-    
+
     @CreatedBy
     @Column(name = "created_by", nullable = false)
     private Long createdBy;
@@ -71,6 +74,4 @@ public class Companies {
     @LastModifiedDate
     @Column(name = "modified_dt")
     private LocalDateTime lastModifiedDt;
-
-    
 }

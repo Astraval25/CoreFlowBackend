@@ -1,10 +1,13 @@
 package com.astraval.coreflow.main_modules.companies.dto;
 
-public record CompanySummaryDto(
+public record CompanyDetailDto(
     Long companyId,
     String companyName,
     String industry,
+    String pan,
+    String gstNo,
+    String hsnCode,
     String shortName,
-    Boolean isActive,
-    String fsId) {
+    String fsId,
+    Boolean isActive) {
 }
