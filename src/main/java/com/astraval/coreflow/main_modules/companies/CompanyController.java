@@ -12,10 +12,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
+import com.astraval.coreflow.main_modules.companies.dto.CompanyDetailDto;
 import com.astraval.coreflow.main_modules.companies.dto.CompanySummaryDto;
 import com.astraval.coreflow.main_modules.companies.dto.CreateUpdateCompanyDto;
 
@@ -61,6 +64,17 @@ public class CompanyController {
         }
     }
 
+    // Get company detail by id
+    @GetMapping("/{companyId}")
+    public ApiResponse<CompanyDetailDto> getCompanyById(@PathVariable Long companyId) {
+        try {
+            CompanyDetailDto company = companyService.getCompanyById(companyId);
+            return ApiResponseFactory.accepted(company, "Company retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
     // Create new company
     @PostMapping
     public ApiResponse<Map<String, Long>> createCompany(@Valid @RequestBody CreateUpdateCompanyDto request) {
@@ -82,6 +96,21 @@ public class CompanyController {
         try {
             companyService.updateCompany(companyId, request);
             return ApiResponseFactory.updated(null, "Company updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    // Upload / replace company logo
+    @PostMapping(value = "/{companyId}/logo", consumes = {"multipart/form-data"})
+    public ApiResponse<Map<String, String>> uploadCompanyLogo(
+            @PathVariable Long companyId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            String fsId = companyService.uploadCompanyLogo(companyId, file);
+            return ApiResponseFactory.updated(
+                    Map.of("fsId", fsId),
+                    "Company logo uploaded successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

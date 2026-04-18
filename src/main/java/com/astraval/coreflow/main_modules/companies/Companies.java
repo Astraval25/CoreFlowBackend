@@ -48,7 +48,10 @@ public class Companies {
     @Column(name = "short_name" , length = 200)
     private String shortName;
 
-    
+    @Column(name = "fs_id", length = 100)
+    private String fsId;
+
+
     // default fields...
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

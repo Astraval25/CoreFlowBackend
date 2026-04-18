@@ -41,5 +41,6 @@ app:
     upload:
       item-images: uploads/item_img
       payment-proofs: uploads/payment_proof
+      company-logos: uploads/company_logo
   firebase:
     service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:firebase-service-account-adminsdk-coreflow.json}
