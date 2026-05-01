@@ -158,7 +158,8 @@ RETURNS DOUBLE PRECISION AS $$
           'QUOTATION',
           'QUOTATION_VIEWED',
           'QUOTATION_ACCEPTED',
-          'QUOTATION_DECLINED'
+          'QUOTATION_DECLINED',
+          'ORDER_CANCELLED'
         )
     ), 0.0)
     -
@@ -167,7 +168,7 @@ RETURNS DOUBLE PRECISION AS $$
       FROM payments p
       WHERE p.customer = p_customer_id
         AND COALESCE(p.is_active, TRUE) = TRUE
-        AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
+        AND COALESCE(p.payment_status, '') <> 'PAYMENT_REFUND'
     ), 0.0);
 $$ LANGUAGE SQL STABLE;
 
@@ -184,7 +185,8 @@ RETURNS DOUBLE PRECISION AS $$
           'QUOTATION',
           'QUOTATION_VIEWED',
           'QUOTATION_ACCEPTED',
-          'QUOTATION_DECLINED'
+          'QUOTATION_DECLINED',
+          'ORDER_CANCELLED'
         )
     ), 0.0)
     -
@@ -193,7 +195,7 @@ RETURNS DOUBLE PRECISION AS $$
       FROM payments p
       WHERE p.vendor = p_vendor_id
         AND COALESCE(p.is_active, TRUE) = TRUE
-        AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
+        AND COALESCE(p.payment_status, '') <> 'PAYMENT_REFUND'
     ), 0.0);
 $$ LANGUAGE SQL STABLE;
 

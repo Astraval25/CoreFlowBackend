@@ -82,7 +82,8 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
                    'QUOTATION',
                    'QUOTATION_VIEWED',
                    'QUOTATION_ACCEPTED',
-                   'QUOTATION_DECLINED'
+                   'QUOTATION_DECLINED',
+                   'ORDER_CANCELLED'
                  )
              ), 0.0)
              -
@@ -91,7 +92,7 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
                FROM payments p
                WHERE p.vendor = :vendorId
                  AND COALESCE(p.is_active, TRUE) = TRUE
-                 AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
+                 AND COALESCE(p.payment_status, '') <> 'PAYMENT_REFUND'
              ), 0.0)
            """, nativeQuery = true)
     Double calculateDueAmountFallback(@Param("vendorId") Long vendorId);

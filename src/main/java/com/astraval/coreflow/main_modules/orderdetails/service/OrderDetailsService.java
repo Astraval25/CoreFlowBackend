@@ -20,6 +20,7 @@ import com.astraval.coreflow.main_modules.orderitemsnapshot.OrderItemSnapshotSer
 import com.astraval.coreflow.main_modules.ordersnapshot.OrderSnapshot;
 import com.astraval.coreflow.main_modules.ordersnapshot.repo.OrderSnapshotRepository;
 import com.astraval.coreflow.main_modules.payments.dto.PayerPaymentSummaryDto;
+import com.astraval.coreflow.main_modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
 import com.astraval.coreflow.main_modules.payments.service.PaymentService;
 
@@ -46,6 +47,9 @@ public class OrderDetailsService {
     
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private PaymentOrderAllocationRepository paymentOrderAllocationRepository;
     
     public OrderDetails getOrderDetailsByOrderId(Long companyId, Long orderId){
         return orderDetailsRepository
@@ -180,6 +184,7 @@ public class OrderDetailsService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         
         order.setOrderStatus(newStatus);
+        deactivateOrderArtifactsIfCancelled(order, newStatus);
         orderDetailsRepository.save(order);
         partnerBalanceService.refreshDueAmountsForOrder(order);
     }
@@ -192,10 +197,18 @@ public class OrderDetailsService {
         
         // Create snapshot before updating status
         createOrderSnapshot(order);
-        
+        deactivateOrderArtifactsIfCancelled(order, newStatus);
         order.setOrderStatus(newStatus);
         orderDetailsRepository.save(order);
         partnerBalanceService.refreshDueAmountsForOrder(order);
+    }
+
+    private void deactivateOrderArtifactsIfCancelled(OrderDetails order, String newStatus) {
+        if (OrderStatus.getOrderCancelled().equals(newStatus)) {
+            order.setIsActive(false);
+            orderItemDetailsRepository.updateIsActiveByOrderId(order.getOrderId(), false);
+            paymentOrderAllocationRepository.updateIsActiveByOrderId(order.getOrderId(), false);
+        }
     }
     
     @Transactional

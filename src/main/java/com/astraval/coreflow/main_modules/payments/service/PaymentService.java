@@ -8,11 +8,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.main_modules.companyref.CompanyPaymentRefRepository;
+import com.astraval.coreflow.main_modules.orderdetails.OrderDetails;
+import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.main_modules.orderdetails.repo.OrderDetailsRepository;
 import com.astraval.coreflow.main_modules.payments.PaymentStatus;
 import com.astraval.coreflow.main_modules.payments.dto.PayerPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.payments.dto.PaymentOrderAllocationDto;
 import com.astraval.coreflow.main_modules.payments.dto.PaymentViewDto;
+import com.astraval.coreflow.main_modules.payments.model.PaymentOrderAllocations;
 import com.astraval.coreflow.main_modules.payments.model.Payments;
+import com.astraval.coreflow.main_modules.payments.repo.PaymentOrderAllocationRepository;
 import com.astraval.coreflow.main_modules.payments.repo.PaymentRepository;
 
 @Service
@@ -23,6 +28,15 @@ public class PaymentService {
 
     @Autowired
     private CompanyPaymentRefRepository companyPaymentRefRepository;
+
+    @Autowired
+    private PaymentOrderAllocationRepository paymentOrderAllocationRepository;
+
+    @Autowired
+    private OrderDetailsRepository orderDetailsRepository;
+
+    @Autowired
+    private PartnerBalanceService partnerBalanceService;
 
     public PaymentViewDto getPaymentViewById(Long companyId, Long paymentId) {
         Payments payment = paymentRepository.findPaymentWithDetailsById(paymentId)
@@ -124,8 +138,23 @@ public class PaymentService {
             }
         }
 
+        if (PaymentStatus.getPaymentRefund().equals(newStatus)) {
+            payment.setIsActive(false);
+            paymentOrderAllocationRepository.updateIsActiveByPaymentId(payment.getPaymentId(), false);
+        }
+
         payment.setPaymentStatus(newStatus);
         paymentRepository.save(payment);
+
+        if (PaymentStatus.getPaymentRefund().equals(newStatus)) {
+            paymentOrderAllocationRepository.findByPayments(payment).stream()
+                    .map(PaymentOrderAllocations::getOrderDetails)
+                    .filter(order -> order != null && Boolean.TRUE.equals(order.getIsActive()))
+                    .distinct()
+                    .forEach(this::recalculateOrderPaymentState);
+        }
+
+        partnerBalanceService.refreshDueAmountsForPayment(payment);
     }
     
     public List<PayerPaymentSummaryDto>  getPaymentDetailsForOrder(Long orderId) {
@@ -134,6 +163,22 @@ public class PaymentService {
 
     public List<PayerPaymentSummaryDto> getPaymentDetailsForOrder(Long companyId, Long orderId) {
         return paymentRepository.findPaymentDetailsForOrder(companyId, orderId);
+    }
+
+    private void recalculateOrderPaymentState(OrderDetails order) {
+        Double totalPaid = paymentOrderAllocationRepository.getTotalPaidAmountForOrder(order.getOrderId());
+        if (totalPaid == null) {
+            totalPaid = 0.0;
+        }
+        order.setPaidAmount(totalPaid);
+
+        if (Math.abs(order.getTotalAmount() - totalPaid) < 0.0001) {
+            order.setOrderStatus(OrderStatus.getOrderPayed());
+        } else {
+            order.setOrderStatus(OrderStatus.getOrderInvoiced());
+        }
+
+        orderDetailsRepository.save(order);
     }
 
 }

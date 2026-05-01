@@ -27,7 +27,7 @@ public class AnalyticsRepository {
                 JOIN customers c ON od.customer = c.customer_id
                 WHERE c.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ORDER BY month
@@ -46,7 +46,7 @@ public class AnalyticsRepository {
                 JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE v.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ORDER BY month
@@ -69,7 +69,7 @@ public class AnalyticsRepository {
                 JOIN customers c ON p.customer = c.customer_id
                 WHERE c.comp_id = :companyId
                   AND p.is_active = true
-                  AND p.payment_status != 'PAYMENT_DECLINED'
+                  AND p.payment_status != 'PAYMENT_REFUND'
                   AND p.payment_date BETWEEN :startDate AND :endDate
                 GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ORDER BY month
@@ -88,7 +88,7 @@ public class AnalyticsRepository {
                 JOIN vendors v ON p.vendor = v.vendor_id
                 WHERE v.comp_id = :companyId
                   AND p.is_active = true
-                  AND p.payment_status != 'PAYMENT_DECLINED'
+                  AND p.payment_status != 'PAYMENT_REFUND'
                   AND p.payment_date BETWEEN :startDate AND :endDate
                 GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ORDER BY month
@@ -113,7 +113,7 @@ public class AnalyticsRepository {
                 JOIN customers c ON od.customer = c.customer_id
                 WHERE c.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY i.item_id, i.item_name
                 ORDER BY total_quantity DESC
@@ -134,7 +134,7 @@ public class AnalyticsRepository {
                 JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE v.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY i.item_id, i.item_name
                 ORDER BY total_quantity DESC
@@ -159,7 +159,7 @@ public class AnalyticsRepository {
                     JOIN customers c ON od.customer = c.customer_id
                     WHERE c.comp_id = :companyId
                       AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) sub
@@ -181,7 +181,7 @@ public class AnalyticsRepository {
                     JOIN vendors v ON od.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId
                       AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) sub
@@ -207,7 +207,7 @@ public class AnalyticsRepository {
                     JOIN customers c ON p.customer = c.customer_id
                     WHERE c.comp_id = :companyId
                       AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ) sub
@@ -229,7 +229,7 @@ public class AnalyticsRepository {
                     JOIN vendors v ON p.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId
                       AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ) sub
@@ -257,7 +257,7 @@ public class AnalyticsRepository {
                 JOIN customers c ON od.customer = c.customer_id
                 WHERE c.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY c.customer_id, c.display_name
                 ORDER BY total_amount DESC
@@ -280,7 +280,7 @@ public class AnalyticsRepository {
                 JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE v.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY v.vendor_id, v.display_name
                 ORDER BY total_amount DESC
@@ -306,7 +306,7 @@ public class AnalyticsRepository {
                 JOIN customers c ON od.customer = c.customer_id
                 WHERE c.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY i.item_id, i.item_name
                 ORDER BY total_amount DESC
@@ -328,7 +328,7 @@ public class AnalyticsRepository {
                 JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE v.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY i.item_id, i.item_name
                 ORDER BY total_amount DESC
@@ -355,7 +355,7 @@ public class AnalyticsRepository {
                 JOIN customers c ON od.customer = c.customer_id
                 WHERE c.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 """;
         Query q = em.createNativeQuery(sql);
@@ -376,7 +376,7 @@ public class AnalyticsRepository {
                 JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE v.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 """;
         Query q = em.createNativeQuery(sql);
@@ -409,7 +409,7 @@ public class AnalyticsRepository {
                 LEFT JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE (c.comp_id = :companyId OR v.comp_id = :companyId)
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY i.item_id, i.item_name
                 ORDER BY profit DESC
@@ -432,12 +432,12 @@ public class AnalyticsRepository {
                         COALESCE((SELECT SUM(p.amount) FROM payments p
                             JOIN customers c ON p.customer = c.customer_id
                             WHERE c.comp_id = :companyId AND p.is_active = true
-                              AND p.payment_status != 'PAYMENT_DECLINED'
+                              AND p.payment_status != 'PAYMENT_REFUND'
                               AND p.payment_date < :startDate), 0)
                         - COALESCE((SELECT SUM(p.amount) FROM payments p
                             JOIN vendors v ON p.vendor = v.vendor_id
                             WHERE v.comp_id = :companyId AND p.is_active = true
-                              AND p.payment_status != 'PAYMENT_DECLINED'
+                              AND p.payment_status != 'PAYMENT_REFUND'
                               AND p.payment_date < :startDate), 0) AS opening
                 ),
                 monthly_incoming AS (
@@ -445,7 +445,7 @@ public class AnalyticsRepository {
                     FROM payments p
                     JOIN customers c ON p.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ),
@@ -454,7 +454,7 @@ public class AnalyticsRepository {
                     FROM payments p
                     JOIN vendors v ON p.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ),
@@ -511,7 +511,7 @@ public class AnalyticsRepository {
                     FROM order_details od
                     JOIN customers c ON od.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) sales ON months.month = sales.s_month
@@ -520,7 +520,7 @@ public class AnalyticsRepository {
                     FROM order_details od
                     JOIN vendors v ON od.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) purchases ON months.month = purchases.p_month
@@ -547,7 +547,7 @@ public class AnalyticsRepository {
                 JOIN customers c ON od.customer = c.customer_id
                 WHERE c.comp_id = :companyId
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY i.item_id, i.item_name
                 ORDER BY total_quantity DESC
@@ -577,7 +577,7 @@ public class AnalyticsRepository {
                 LEFT JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE (c.comp_id = :companyId OR v.comp_id = :companyId)
                   AND od.is_active = true
-                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                  AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                   AND od.order_date BETWEEN :startDate AND :endDate
                 GROUP BY i.item_id, i.item_name
                 ORDER BY (COALESCE(SUM(CASE WHEN c.comp_id = :companyId THEN oid.item_total END), 0)
@@ -603,14 +603,14 @@ public class AnalyticsRepository {
                     FROM payments p
                     JOIN customers c ON p.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     UNION ALL
                     SELECT p.mode_of_payment, p.amount
                     FROM payments p
                     JOIN vendors v ON p.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                 ),
                 totals AS (
@@ -657,7 +657,7 @@ public class AnalyticsRepository {
                     FROM order_details od
                     JOIN customers c ON od.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) s ON m.month = s.s_month
@@ -683,7 +683,7 @@ public class AnalyticsRepository {
                     FROM order_details od
                     JOIN customers c ON od.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                 ),
                 purchases AS (
@@ -693,7 +693,7 @@ public class AnalyticsRepository {
                     FROM order_details od
                     JOIN vendors v ON od.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                 ),
                 payments_received AS (
@@ -701,7 +701,7 @@ public class AnalyticsRepository {
                     FROM payments p
                     JOIN customers c ON p.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                 ),
                 payments_made AS (
@@ -709,7 +709,7 @@ public class AnalyticsRepository {
                     FROM payments p
                     JOIN vendors v ON p.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                 )
                 SELECT
@@ -755,7 +755,7 @@ public class AnalyticsRepository {
                     FROM order_details od
                     JOIN customers c ON od.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) sales ON months.month = sales.month
@@ -764,7 +764,7 @@ public class AnalyticsRepository {
                     FROM order_details od
                     JOIN vendors v ON od.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND od.is_active = true
-                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED')
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) purchases ON months.month = purchases.month
@@ -773,7 +773,7 @@ public class AnalyticsRepository {
                     FROM payments p
                     JOIN customers c ON p.customer = c.customer_id
                     WHERE c.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ) pr ON months.month = pr.month
@@ -782,7 +782,7 @@ public class AnalyticsRepository {
                     FROM payments p
                     JOIN vendors v ON p.vendor = v.vendor_id
                     WHERE v.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_DECLINED'
+                      AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ) pm ON months.month = pm.month

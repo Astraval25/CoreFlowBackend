@@ -15,6 +15,11 @@ public interface OrderItemDetailsRepository extends JpaRepository<OrderItemDetai
     List<OrderItemDetails> findByOrderId(Long orderId);
     
     List<OrderItemDetails> findByOrderIdAndIsActive(Long orderId, Boolean isActive);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE OrderItemDetails o SET o.isActive = :isActive WHERE o.orderId = :orderId")
+    int updateIsActiveByOrderId(@Param("orderId") Long orderId, @Param("isActive") Boolean isActive);
     
     @Modifying
     @Transactional
