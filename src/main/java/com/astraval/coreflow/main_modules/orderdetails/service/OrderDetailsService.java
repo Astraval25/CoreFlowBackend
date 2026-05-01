@@ -266,12 +266,23 @@ public class OrderDetailsService {
     }
 
     public List<UnpaidOrderDto> getUnpaidOrdersByBuyerCompanyIdAndVendorId(Long buyerCompanyId, Long vendorId) {
-        String orderStatus = OrderStatus.getOrderInvoiced();
-        return orderDetailsRepository.findUnpaidOrdersByBuyerCompanyIdAndVendorId(buyerCompanyId, vendorId, orderStatus);
+        return orderDetailsRepository.findUnpaidOrdersByBuyerCompanyIdAndVendorId(
+                buyerCompanyId,
+                vendorId,
+                getAllocatableOrderStatuses());
     }
 
     public List<UnpaidOrderDto> getUnpaidOrdersBySellerCompanyIdAndCustomerId(Long sellerCompanyId, Long customerId) {
-        String orderStatus = OrderStatus.getOrderInvoiced();
-        return orderDetailsRepository.findUnpaidOrdersBySellerCompanyIdAndCustomerId(sellerCompanyId, customerId, orderStatus);
+        return orderDetailsRepository.findUnpaidOrdersBySellerCompanyIdAndCustomerId(
+                sellerCompanyId,
+                customerId,
+                getAllocatableOrderStatuses());
+    }
+
+    private List<String> getAllocatableOrderStatuses() {
+        return List.of(
+                OrderStatus.getOrderInvoiced(),
+                OrderStatus.getOrder(),
+                OrderStatus.getOrderViewed());
     }
 }

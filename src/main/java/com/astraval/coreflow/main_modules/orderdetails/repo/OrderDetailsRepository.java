@@ -51,11 +51,11 @@ public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long
            "LEFT JOIN v.company bc " +
            "WHERE bc.companyId = :buyerCompanyId " +
            "AND v.vendorId = :vendorId " +
-           "AND o.orderStatus = :orderStatus")
+           "AND o.orderStatus IN :orderStatuses")
     List<UnpaidOrderDto> findUnpaidOrdersByBuyerCompanyIdAndVendorId(
             @Param("buyerCompanyId") Long buyerCompanyId,
             @Param("vendorId") Long vendorId,
-            @Param("orderStatus") String orderStatus);
+            @Param("orderStatuses") List<String> orderStatuses);
 
     @Query("SELECT new com.astraval.coreflow.main_modules.orderdetails.dto.UnpaidOrderDto(" +
            "o.orderId, o.orderNumber, o.orderDate, o.orderStatus, " +
@@ -68,9 +68,9 @@ public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long
            "LEFT JOIN v.company bc " +
            "WHERE sc.companyId = :sellerCompanyId " +
            "AND c.customerId = :customerId " +
-           "AND o.orderStatus = :orderStatus")
+           "AND o.orderStatus IN :orderStatuses")
     List<UnpaidOrderDto> findUnpaidOrdersBySellerCompanyIdAndCustomerId(
             @Param("sellerCompanyId") Long sellerCompanyId,
             @Param("customerId") Long customerId,
-            @Param("orderStatus") String orderStatus);
+            @Param("orderStatuses") List<String> orderStatuses);
 }
