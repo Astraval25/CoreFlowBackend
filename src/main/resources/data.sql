@@ -212,6 +212,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Optional analytics/reporting object.
+DROP MATERIALIZED VIEW IF EXISTS mv_party_due_summary;
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_party_due_summary AS
 SELECT
   'CUSTOMER'::TEXT AS party_type,

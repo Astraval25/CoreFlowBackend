@@ -3,6 +3,8 @@ package com.astraval.coreflow.main_modules.analytics.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.sql.Timestamp;
+import java.util.Arrays;
 
 import java.util.List;
 
@@ -14,6 +16,8 @@ import com.astraval.coreflow.main_modules.analytics.dto.CashFlowDto;
 import com.astraval.coreflow.main_modules.analytics.dto.DashboardKpiDto;
 import com.astraval.coreflow.main_modules.analytics.dto.ItemFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.MonthlyTrendDto;
+import com.astraval.coreflow.main_modules.analytics.dto.OrderHistoryDto;
+import com.astraval.coreflow.main_modules.analytics.dto.PaymentHistoryDto;
 import com.astraval.coreflow.main_modules.analytics.dto.OrderFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentModeDistributionDto;
@@ -362,8 +366,97 @@ public class AnalyticsService {
         )).toList();
     }
 
+    public List<OrderHistoryDto> getOrderHistory(
+            Long companyId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String orderType,
+            String paidState,
+            String statusesCsv) {
+        List<String> statuses = parseStatuses(statusesCsv);
+        List<Object[]> rows = analyticsRepository.orderHistory(
+                companyId,
+                toStartOfDay(startDate),
+                toEndOfDay(endDate),
+                normalizeOrderType(orderType),
+                normalizePaidState(paidState),
+                statuses);
+        return rows.stream().map(r -> new OrderHistoryDto(
+                ((Number) r[0]).longValue(),
+                (String) r[1],
+                toLocalDateTime(r[2]),
+                (String) r[3],
+                (String) r[4],
+                toDouble(r[5]),
+                toDouble(r[6]),
+                ((Number) r[7]).intValue()
+        )).toList();
+    }
+
+    public List<PaymentHistoryDto> getPaymentHistory(
+            Long companyId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String paymentType,
+            String statusesCsv) {
+        List<String> statuses = parseStatuses(statusesCsv);
+        List<Object[]> rows = analyticsRepository.paymentHistory(
+                companyId,
+                toStartOfDay(startDate),
+                toEndOfDay(endDate),
+                normalizePaymentType(paymentType),
+                statuses);
+        return rows.stream().map(r -> new PaymentHistoryDto(
+                ((Number) r[0]).longValue(),
+                (String) r[1],
+                toLocalDateTime(r[2]),
+                (String) r[3],
+                (String) r[4],
+                (String) r[5],
+                toDouble(r[6])
+        )).toList();
+    }
+
     private Double toDouble(Object val) {
         if (val == null) return 0.0;
         return ((Number) val).doubleValue();
+    }
+
+    private LocalDateTime toLocalDateTime(Object val) {
+        if (val instanceof LocalDateTime dateTime) return dateTime;
+        if (val instanceof Timestamp timestamp) return timestamp.toLocalDateTime();
+        return LocalDateTime.MIN;
+    }
+
+    private List<String> parseStatuses(String statusesCsv) {
+        if (statusesCsv == null || statusesCsv.isBlank()) return List.of();
+        return Arrays.stream(statusesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList();
+    }
+
+    private String normalizeOrderType(String orderType) {
+        String value = orderType == null ? "ALL" : orderType.trim().toUpperCase();
+        return switch (value) {
+            case "SALES", "PURCHASE", "ALL" -> value;
+            default -> "ALL";
+        };
+    }
+
+    private String normalizePaidState(String paidState) {
+        String value = paidState == null ? "ALL" : paidState.trim().toUpperCase();
+        return switch (value) {
+            case "UNPAID", "PARTIAL", "PAID", "ALL" -> value;
+            default -> "ALL";
+        };
+    }
+
+    private String normalizePaymentType(String paymentType) {
+        String value = paymentType == null ? "ALL" : paymentType.trim().toUpperCase();
+        return switch (value) {
+            case "RECEIVED", "MADE", "ALL" -> value;
+            default -> "ALL";
+        };
     }
 }
