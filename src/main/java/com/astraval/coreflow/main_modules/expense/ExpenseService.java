@@ -43,8 +43,7 @@ public class ExpenseService {
 
     @Transactional
     public Long createExpense(Long companyId, CreateUpdateExpenseDto request) {
-        Companies company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
+        Companies company = getCompanyOrThrow(companyId);
 
         Expense expense = new Expense();
         expense.setCompany(company);
@@ -57,6 +56,7 @@ public class ExpenseService {
     }
 
     public List<ExpenseDto> getExpenses(Long companyId) {
+        getCompanyOrThrow(companyId);
         return expenseRepository.findByCompanyIdWithDetails(companyId)
                 .stream()
                 .map(this::toDto)
@@ -64,6 +64,7 @@ public class ExpenseService {
     }
 
     public List<ExpenseDto> getActiveExpenses(Long companyId) {
+        getCompanyOrThrow(companyId);
         return expenseRepository.findActiveByCompanyIdWithDetails(companyId)
                 .stream()
                 .map(this::toDto)
@@ -134,6 +135,7 @@ public class ExpenseService {
     }
 
     private Expense getExpenseEntity(Long companyId, Long expenseId) {
+        getCompanyOrThrow(companyId);
         return expenseRepository.findByExpenseIdAndCompanyIdWithDetails(expenseId, companyId)
                 .orElseThrow(() -> new RuntimeException("Expense not found with ID: " + expenseId));
     }
@@ -194,6 +196,11 @@ public class ExpenseService {
         }
 
         return salaryPeriod;
+    }
+
+    private Companies getCompanyOrThrow(Long companyId) {
+        return companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
     }
 
     private void syncSalaryPeriodPaymentStatus(EmployeeSalaryPeriod salaryPeriod) {
