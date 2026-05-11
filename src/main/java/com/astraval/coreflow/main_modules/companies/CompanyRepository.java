@@ -30,13 +30,9 @@ public interface CompanyRepository extends JpaRepository<Companies, Long> {
     List<CompanySummaryDto> findActiveCompaniesByUserId(@Param("userId") Long userId);
 
     @Query("""
-           SELECT DISTINCT c
+           SELECT c
            FROM Companies c
-           JOIN Items i ON i.company.companyId = c.companyId
            WHERE c.isActive = true
-             AND i.isActive = true
-             AND i.isSellable = true
-             AND i.baseSalesPrice IS NOT NULL
            ORDER BY c.companyName
            """)
     List<Companies> findMarketplaceCompanies();

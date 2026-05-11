@@ -32,7 +32,8 @@ This document captures the newly added and updated APIs for mobile app integrati
 ## Security / Access
 
 - `/api/companies/**` -> `ROLE_ADM` or `ROLE_USR`
-- `/api/marketplace/**` -> `ROLE_ADM` or `ROLE_USR`
+- `GET /api/marketplace/**` -> `permitAll` (public, no auth required)
+- Non-GET marketplace operations are not exposed currently
 
 All APIs use bearer token auth unless explicitly public in auth module.
 
@@ -248,10 +249,7 @@ Common error messages:
 Base: `/api/marketplace`
 
 ### Behavior
-- Company list includes only:
-  - active companies
-  - with at least one active sellable item
-  - and non-null item `salesPrice`
+- Company list includes active companies.
 - Item list includes only sellable product-facing data (sales side), not purchase-side pricing.
 
 ### 1) List Marketplace Companies
