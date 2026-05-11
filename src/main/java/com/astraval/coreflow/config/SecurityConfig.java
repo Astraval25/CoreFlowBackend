@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/test/**", "/error", "/ads").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/file").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADM")
                         .requestMatchers("/api/emp/**").hasRole("EMP")
                         .requestMatchers(HttpMethod.GET, "/api/companies/*/modemp/work-definitions")
@@ -48,6 +49,7 @@ public class SecurityConfig {
                                 "/api/companies/*/modemp/leave-logs/employee",
                                 "/api/companies/*/modemp/work-logs/employee")
                         .hasAnyRole("ADM", "EMP")
+                        .requestMatchers(HttpMethod.GET, "/api/marketplace/**").permitAll()
                         .requestMatchers("/api/companies/**").hasAnyRole("ADM", "USR")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import com.astraval.coreflow.main_modules.items.dto.ItemSummaryDto;
 import com.astraval.coreflow.main_modules.items.dto.PurchasableItemDto;
 import com.astraval.coreflow.main_modules.items.dto.SellableItemDto;
+import com.astraval.coreflow.main_modules.marketplace.dto.MarketplaceItemDto;
 import com.astraval.coreflow.main_modules.items.model.Items;
 
 @Repository
@@ -62,5 +63,16 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
            "AND i.basePurchasePrice IS NOT NULL " +
            "ORDER BY i.itemName")
     List<PurchasableItemDto> findPurchasableItemsByCompanyId(@Param("companyId") Long companyId);
+
+    @Query("SELECT new com.astraval.coreflow.main_modules.marketplace.dto.MarketplaceItemDto(" +
+           "i.itemId, i.itemName, i.itemType, i.unit, i.salesDescription, i.baseSalesPrice, " +
+           "i.taxRate, i.hsnCode, i.fsId) " +
+           "FROM Items i " +
+           "WHERE i.company.companyId = :companyId " +
+           "AND i.isActive = true " +
+           "AND i.isSellable = true " +
+           "AND i.baseSalesPrice IS NOT NULL " +
+           "ORDER BY i.itemName")
+    List<MarketplaceItemDto> findMarketplaceSellableItemsByCompanyId(@Param("companyId") Long companyId);
     
 }

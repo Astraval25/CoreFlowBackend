@@ -51,6 +51,39 @@ public class Companies {
     @Column(name = "fs_id", length = 100)
     private String fsId;
 
+    @Column(name = "contact_person", length = 250)
+    private String contactPerson;
+
+    @Column(name = "contact_email", length = 250)
+    private String contactEmail;
+
+    @Column(name = "contact_phone", length = 50)
+    private String contactPhone;
+
+    @Column(name = "website", length = 500)
+    private String website;
+
+    @Column(name = "address_line1", length = 500)
+    private String addressLine1;
+
+    @Column(name = "address_line2", length = 500)
+    private String addressLine2;
+
+    @Column(name = "city", length = 150)
+    private String city;
+
+    @Column(name = "state", length = 150)
+    private String state;
+
+    @Column(name = "country", length = 150)
+    private String country;
+
+    @Column(name = "postal_code", length = 40)
+    private String postalCode;
+
+    @Column(name = "public_description", length = 2000)
+    private String publicDescription;
+
 
     // default fields...
     @Column(name = "is_active", nullable = false)

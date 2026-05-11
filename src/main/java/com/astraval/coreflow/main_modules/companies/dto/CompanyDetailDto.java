@@ -9,5 +9,16 @@ public record CompanyDetailDto(
     String hsnCode,
     String shortName,
     String fsId,
+    String contactPerson,
+    String contactEmail,
+    String contactPhone,
+    String website,
+    String addressLine1,
+    String addressLine2,
+    String city,
+    String state,
+    String country,
+    String postalCode,
+    String publicDescription,
     Boolean isActive) {
 }
