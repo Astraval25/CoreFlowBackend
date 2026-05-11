@@ -1,5 +1,6 @@
 package com.astraval.coreflow.main_modules.expense;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,4 +44,14 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     Optional<Expense> findByExpenseIdAndCompanyIdWithDetails(
             @Param("expenseId") Long expenseId,
             @Param("companyId") Long companyId);
+
+    @Query("""
+            SELECT COALESCE(SUM(e.amount), 0)
+            FROM Expense e
+            WHERE e.salaryPeriod.salaryPeriodId = :salaryPeriodId
+              AND e.isActive = true
+            """)
+    BigDecimal sumActiveAmountBySalaryPeriodId(@Param("salaryPeriodId") Long salaryPeriodId);
+
+    List<Expense> findBySalaryPeriodSalaryPeriodIdAndIsActiveTrueOrderByExpenseDateAscExpenseIdAsc(Long salaryPeriodId);
 }

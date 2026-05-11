@@ -1,11 +1,16 @@
 package com.astraval.coreflow.main_modules.expense;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.astraval.coreflow.employee_module.enums.SalaryPeriodStatus;
+import com.astraval.coreflow.employee_module.salary.EmployeeSalaryPeriod;
+import com.astraval.coreflow.employee_module.salary.EmployeeSalaryPeriodRepository;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
 import com.astraval.coreflow.main_modules.customer.CustomerRepository;
@@ -33,6 +38,9 @@ public class ExpenseService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private EmployeeSalaryPeriodRepository salaryPeriodRepository;
+
     @Transactional
     public Long createExpense(Long companyId, CreateUpdateExpenseDto request) {
         Companies company = companyRepository.findById(companyId)
@@ -43,7 +51,9 @@ public class ExpenseService {
         applyExpenseDetails(companyId, expense, request);
         expense.setIsActive(true);
 
-        return expenseRepository.save(expense).getExpenseId();
+        Expense saved = expenseRepository.save(expense);
+        syncSalaryPeriodPaymentStatus(saved.getSalaryPeriod());
+        return saved.getExpenseId();
     }
 
     public List<ExpenseDto> getExpenses(Long companyId) {
@@ -67,8 +77,11 @@ public class ExpenseService {
     @Transactional
     public void updateExpense(Long companyId, Long expenseId, CreateUpdateExpenseDto request) {
         Expense expense = getExpenseEntity(companyId, expenseId);
+        EmployeeSalaryPeriod previousSalaryPeriod = expense.getSalaryPeriod();
         applyExpenseDetails(companyId, expense, request);
-        expenseRepository.save(expense);
+        Expense saved = expenseRepository.save(expense);
+        syncSalaryPeriodPaymentStatus(previousSalaryPeriod);
+        syncSalaryPeriodPaymentStatus(saved.getSalaryPeriod());
     }
 
     @Transactional
@@ -76,6 +89,7 @@ public class ExpenseService {
         Expense expense = getExpenseEntity(companyId, expenseId);
         expense.setIsActive(false);
         expenseRepository.save(expense);
+        syncSalaryPeriodPaymentStatus(expense.getSalaryPeriod());
     }
 
     @Transactional
@@ -83,6 +97,7 @@ public class ExpenseService {
         Expense expense = getExpenseEntity(companyId, expenseId);
         expense.setIsActive(true);
         expenseRepository.save(expense);
+        syncSalaryPeriodPaymentStatus(expense.getSalaryPeriod());
     }
 
     private void applyExpenseDetails(Long companyId, Expense expense, CreateUpdateExpenseDto request) {
@@ -115,6 +130,7 @@ public class ExpenseService {
         expense.setVendor(vendor);
         expense.setCustomer(customer);
         expense.setRemark(normalizeOptional(request.getRemark()));
+        expense.setSalaryPeriod(resolveSalaryPeriod(companyId, request.getSalaryPeriodId(), request.getAmount()));
     }
 
     private Expense getExpenseEntity(Long companyId, Long expenseId) {
@@ -154,8 +170,61 @@ public class ExpenseService {
                 customer != null ? customer.getCustomerId() : null,
                 customer != null ? customer.getDisplayName() : null,
                 expense.getRemark(),
+                expense.getSalaryPeriod() != null ? expense.getSalaryPeriod().getSalaryPeriodId() : null,
                 expense.getIsActive(),
                 expense.getCreatedDt(),
                 expense.getLastModifiedDt());
+    }
+
+    private EmployeeSalaryPeriod resolveSalaryPeriod(Long companyId, Long salaryPeriodId, BigDecimal amount) {
+        if (salaryPeriodId == null) {
+            return null;
+        }
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Salary payment amount must be greater than zero");
+        }
+
+        EmployeeSalaryPeriod salaryPeriod = salaryPeriodRepository
+                .findBySalaryPeriodIdAndCompanyCompanyId(salaryPeriodId, companyId)
+                .orElseThrow(() -> new RuntimeException("Salary period not found with ID: " + salaryPeriodId));
+
+        if (salaryPeriod.getStatus() == SalaryPeriodStatus.DRAFT) {
+            throw new RuntimeException("Salary period must be approved before recording payment");
+        }
+
+        return salaryPeriod;
+    }
+
+    private void syncSalaryPeriodPaymentStatus(EmployeeSalaryPeriod salaryPeriod) {
+        if (salaryPeriod == null) {
+            return;
+        }
+
+        EmployeeSalaryPeriod managed = salaryPeriodRepository
+                .findById(salaryPeriod.getSalaryPeriodId())
+                .orElse(null);
+
+        if (managed == null || managed.getStatus() == SalaryPeriodStatus.DRAFT) {
+            return;
+        }
+
+        BigDecimal paidAmount = expenseRepository.sumActiveAmountBySalaryPeriodId(managed.getSalaryPeriodId());
+        if (managed.getExpense() != null && Boolean.TRUE.equals(managed.getExpense().getIsActive())) {
+            paidAmount = paidAmount.add(managed.getExpense().getAmount());
+        }
+        BigDecimal netAmount = managed.getNetAmount() == null ? BigDecimal.ZERO : managed.getNetAmount();
+
+        if (paidAmount.compareTo(netAmount) >= 0 && netAmount.compareTo(BigDecimal.ZERO) > 0) {
+            managed.setStatus(SalaryPeriodStatus.PAID);
+            if (managed.getPaidDt() == null) {
+                managed.setPaidDt(LocalDateTime.now());
+            }
+        } else {
+            managed.setStatus(SalaryPeriodStatus.APPROVED);
+            managed.setPaidDt(null);
+        }
+
+        salaryPeriodRepository.save(managed);
     }
 }

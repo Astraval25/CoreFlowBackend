@@ -15,6 +15,8 @@ public interface ExpenseAccountRepository extends JpaRepository<ExpenseAccount, 
 
     Optional<ExpenseAccount> findByExpenseAccountIdAndCompanyCompanyId(Long expenseAccountId, Long companyId);
 
+    Optional<ExpenseAccount> findByCompanyCompanyIdAndAccountNameIgnoreCase(Long companyId, String accountName);
+
     boolean existsByCompanyCompanyIdAndAccountNameIgnoreCase(Long companyId, String accountName);
 
     boolean existsByCompanyCompanyIdAndAccountNameIgnoreCaseAndExpenseAccountIdNot(

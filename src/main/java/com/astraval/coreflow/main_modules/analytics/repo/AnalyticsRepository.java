@@ -438,7 +438,10 @@ public class AnalyticsRepository {
                             JOIN vendors v ON p.vendor = v.vendor_id
                             WHERE v.comp_id = :companyId AND p.is_active = true
                               AND p.payment_status != 'PAYMENT_REFUND'
-                              AND p.payment_date < :startDate), 0) AS opening
+                              AND p.payment_date < :startDate), 0)
+                        - COALESCE((SELECT SUM(e.amount) FROM expenses e
+                            WHERE e.comp_id = :companyId AND e.is_active = true
+                              AND e.expense_date < CAST(:startDate AS date)), 0) AS opening
                 ),
                 monthly_incoming AS (
                     SELECT TO_CHAR(p.payment_date, 'YYYY-MM') AS m, COALESCE(SUM(p.amount), 0) AS total
@@ -450,13 +453,23 @@ public class AnalyticsRepository {
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ),
                 monthly_outgoing AS (
-                    SELECT TO_CHAR(p.payment_date, 'YYYY-MM') AS m, COALESCE(SUM(p.amount), 0) AS total
-                    FROM payments p
-                    JOIN vendors v ON p.vendor = v.vendor_id
-                    WHERE v.comp_id = :companyId AND p.is_active = true
-                      AND p.payment_status != 'PAYMENT_REFUND'
-                      AND p.payment_date BETWEEN :startDate AND :endDate
-                    GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
+                    SELECT m, COALESCE(SUM(total), 0) AS total
+                    FROM (
+                        SELECT TO_CHAR(p.payment_date, 'YYYY-MM') AS m, COALESCE(SUM(p.amount), 0) AS total
+                        FROM payments p
+                        JOIN vendors v ON p.vendor = v.vendor_id
+                        WHERE v.comp_id = :companyId AND p.is_active = true
+                          AND p.payment_status != 'PAYMENT_REFUND'
+                          AND p.payment_date BETWEEN :startDate AND :endDate
+                        GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
+                        UNION ALL
+                        SELECT TO_CHAR(e.expense_date, 'YYYY-MM') AS m, COALESCE(SUM(e.amount), 0) AS total
+                        FROM expenses e
+                        WHERE e.comp_id = :companyId AND e.is_active = true
+                          AND e.expense_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                        GROUP BY TO_CHAR(e.expense_date, 'YYYY-MM')
+                    ) outgoing
+                    GROUP BY m
                 ),
                 monthly AS (
                     SELECT g.month,
@@ -496,11 +509,11 @@ public class AnalyticsRepository {
         String sql = """
                 SELECT months.month,
                     COALESCE(sales.revenue, 0) AS revenue,
-                    COALESCE(purchases.expense, 0) AS expense,
-                    COALESCE(sales.revenue, 0) - COALESCE(purchases.expense, 0) AS net_profit,
+                    COALESCE(purchases.expense, 0) + COALESCE(expense_entries.expense, 0) AS expense,
+                    COALESCE(sales.revenue, 0) - (COALESCE(purchases.expense, 0) + COALESCE(expense_entries.expense, 0)) AS net_profit,
                     SUM(COALESCE(sales.revenue, 0)) OVER (ORDER BY months.month) AS running_revenue,
-                    SUM(COALESCE(purchases.expense, 0)) OVER (ORDER BY months.month) AS running_expense,
-                    SUM(COALESCE(sales.revenue, 0) - COALESCE(purchases.expense, 0)) OVER (ORDER BY months.month) AS running_net_profit
+                    SUM(COALESCE(purchases.expense, 0) + COALESCE(expense_entries.expense, 0)) OVER (ORDER BY months.month) AS running_expense,
+                    SUM(COALESCE(sales.revenue, 0) - (COALESCE(purchases.expense, 0) + COALESCE(expense_entries.expense, 0))) OVER (ORDER BY months.month) AS running_net_profit
                 FROM (
                     SELECT TO_CHAR(gs.month, 'YYYY-MM') AS month
                     FROM generate_series(DATE_TRUNC('month', CAST(:startDate AS timestamp)),
@@ -524,6 +537,14 @@ public class AnalyticsRepository {
                       AND od.order_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(od.order_date, 'YYYY-MM')
                 ) purchases ON months.month = purchases.p_month
+                LEFT JOIN (
+                    SELECT TO_CHAR(e.expense_date, 'YYYY-MM') AS e_month, SUM(e.amount) AS expense
+                    FROM expenses e
+                    WHERE e.comp_id = :companyId
+                      AND e.is_active = true
+                      AND e.expense_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                    GROUP BY TO_CHAR(e.expense_date, 'YYYY-MM')
+                ) expense_entries ON months.month = expense_entries.e_month
                 ORDER BY months.month
                 """;
         Query q = em.createNativeQuery(sql);
@@ -612,6 +633,11 @@ public class AnalyticsRepository {
                     WHERE v.comp_id = :companyId AND p.is_active = true
                       AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
+                    UNION ALL
+                    SELECT e.payment_mode AS mode_of_payment, e.amount
+                    FROM expenses e
+                    WHERE e.comp_id = :companyId AND e.is_active = true
+                      AND e.expense_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
                 ),
                 totals AS (
                     SELECT COALESCE(SUM(amount), 0) AS grand_total FROM all_payments
@@ -711,15 +737,22 @@ public class AnalyticsRepository {
                     WHERE v.comp_id = :companyId AND p.is_active = true
                       AND p.payment_status != 'PAYMENT_REFUND'
                       AND p.payment_date BETWEEN :startDate AND :endDate
+                ),
+                expense_entries AS (
+                    SELECT COUNT(*) AS cnt, COALESCE(SUM(e.amount), 0) AS total
+                    FROM expenses e
+                    WHERE e.comp_id = :companyId
+                      AND e.is_active = true
+                      AND e.expense_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
                 )
                 SELECT
                     (SELECT total_amount FROM sales) AS total_revenue,
-                    (SELECT total_amount FROM purchases) AS total_expense,
-                    (SELECT total_amount FROM sales) - (SELECT total_amount FROM purchases) AS net_profit,
+                    (SELECT total_amount FROM purchases) + (SELECT total FROM expense_entries) AS total_expense,
+                    (SELECT total_amount FROM sales) - ((SELECT total_amount FROM purchases) + (SELECT total FROM expense_entries)) AS net_profit,
                     (SELECT total_orders FROM sales) AS total_sales_orders,
                     (SELECT total_orders FROM purchases) AS total_purchase_orders,
                     (SELECT cnt FROM payments_received) AS total_payments_received,
-                    (SELECT cnt FROM payments_made) AS total_payments_made,
+                    (SELECT cnt FROM payments_made) + (SELECT cnt FROM expense_entries) AS total_payments_made,
                     CASE WHEN (SELECT total_orders FROM sales) + (SELECT total_orders FROM purchases) > 0
                         THEN ((SELECT total_amount FROM sales) + (SELECT total_amount FROM purchases))
                              / ((SELECT total_orders FROM sales) + (SELECT total_orders FROM purchases))
@@ -742,9 +775,9 @@ public class AnalyticsRepository {
         String sql = """
                 SELECT months.month,
                     COALESCE(sales.amount, 0) AS sales_amount,
-                    COALESCE(purchases.amount, 0) AS purchase_amount,
+                    COALESCE(purchases.amount, 0) + COALESCE(expense_entries.amount, 0) AS purchase_amount,
                     COALESCE(pr.amount, 0) AS payment_received,
-                    COALESCE(pm.amount, 0) AS payment_made
+                    COALESCE(pm.amount, 0) + COALESCE(expense_entries.amount, 0) AS payment_made
                 FROM (
                     SELECT TO_CHAR(gs.month, 'YYYY-MM') AS month
                     FROM generate_series(DATE_TRUNC('month', CAST(:startDate AS timestamp)),
@@ -786,6 +819,13 @@ public class AnalyticsRepository {
                       AND p.payment_date BETWEEN :startDate AND :endDate
                     GROUP BY TO_CHAR(p.payment_date, 'YYYY-MM')
                 ) pm ON months.month = pm.month
+                LEFT JOIN (
+                    SELECT TO_CHAR(e.expense_date, 'YYYY-MM') AS month, SUM(e.amount) AS amount
+                    FROM expenses e
+                    WHERE e.comp_id = :companyId AND e.is_active = true
+                      AND e.expense_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                    GROUP BY TO_CHAR(e.expense_date, 'YYYY-MM')
+                ) expense_entries ON months.month = expense_entries.month
                 ORDER BY months.month
                 """;
         Query q = em.createNativeQuery(sql);

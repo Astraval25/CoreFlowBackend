@@ -29,4 +29,6 @@ public class CreateUpdateExpenseDto {
     private Long customerId;
 
     private String remark;
+
+    private Long salaryPeriodId;
 }

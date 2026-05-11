@@ -158,6 +158,72 @@ public class EmployeeWorkLogService {
         workLogRepository.save(log);
     }
 
+    @Transactional
+    public void updateWorkLogByAdmin(Long companyId, Long logId, CreateWorkLogDto dto) {
+        EmployeeWorkLog log = workLogRepository.findByLogIdAndCompanyCompanyId(logId, companyId)
+                .orElseThrow(() -> new RuntimeException("Work log not found with ID: " + logId));
+
+        Employee employee = employeeRepository.findByEmployeeIdAndCompanyCompanyId(dto.getEmployeeId(), companyId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + dto.getEmployeeId()));
+
+        if (isSalaryCalculatedForLog(companyId, log.getEmployee().getEmployeeId(), log.getLogDate())) {
+            throw new RuntimeException("Cannot update this work log because salary is already calculated for "
+                    + log.getLogDate());
+        }
+
+        if (!log.getEmployee().getEmployeeId().equals(employee.getEmployeeId())
+                || !log.getLogDate().equals(dto.getLogDate())) {
+            if (isSalaryCalculatedForLog(companyId, employee.getEmployeeId(), dto.getLogDate())) {
+                throw new RuntimeException("Cannot move this work log to " + dto.getLogDate()
+                        + " because salary is already calculated for that employee and date");
+            }
+        }
+
+        WorkDefinition workDefinition = workDefinitionRepository
+                .findByWorkDefIdAndCompanyCompanyId(dto.getWorkDefId(), companyId)
+                .orElseThrow(() -> new RuntimeException("Work definition not found with ID: " + dto.getWorkDefId()));
+
+        if (!workDefinition.getIsActive()) {
+            throw new RuntimeException("Work definition '" + workDefinition.getWorkName() + "' is inactive");
+        }
+
+        List<EmployeeWorkLog> duplicates = workLogRepository
+                .findByEmployeeEmployeeIdAndCompanyCompanyIdAndWorkDefinitionWorkDefIdAndLogDate(
+                        dto.getEmployeeId(), companyId, dto.getWorkDefId(), dto.getLogDate());
+        boolean hasDuplicate = duplicates.stream().anyMatch(existing -> !existing.getLogId().equals(logId));
+        if (hasDuplicate) {
+            throw new RuntimeException("Another work log already exists for the same employee, work type, and date");
+        }
+
+        log.setEmployee(employee);
+        log.setWorkDefinition(workDefinition);
+        log.setLogDate(dto.getLogDate());
+        log.setQuantity(dto.getQuantity());
+        log.setUnit(workDefinition.getUnit());
+        log.setRateSnapshot(workDefinition.getRatePerUnit());
+        log.setAmountEarned(dto.getQuantity().multiply(workDefinition.getRatePerUnit()));
+        log.setEmployeeRemarks(dto.getEmployeeRemarks());
+        log.setStatus(WorkLogStatus.PENDING);
+        log.setReviewedBy(null);
+        log.setReviewedDt(null);
+        log.setAdminRemarks(null);
+
+        workLogRepository.save(log);
+    }
+
+    @Transactional
+    public void deleteWorkLog(Long companyId, Long logId) {
+        EmployeeWorkLog log = workLogRepository.findByLogIdAndCompanyCompanyId(logId, companyId)
+                .orElseThrow(() -> new RuntimeException("Work log not found with ID: " + logId));
+
+        if (isSalaryCalculatedForLog(companyId, log.getEmployee().getEmployeeId(), log.getLogDate())) {
+            throw new RuntimeException("Cannot delete this work log because salary is already calculated for "
+                    + log.getLogDate());
+        }
+
+        workLogRepository.delete(log);
+    }
+
     private WorkLogDto toDto(EmployeeWorkLog log) {
         WorkLogDto dto = new WorkLogDto();
         dto.setLogId(log.getLogId());
@@ -184,5 +250,9 @@ public class EmployeeWorkLogService {
         } catch (Exception e) {
             return 0L;
         }
+    }
+
+    private boolean isSalaryCalculatedForLog(Long companyId, Long employeeId, LocalDate logDate) {
+        return salaryPeriodRepository.existsSalaryPeriodForEmployeeOnDate(companyId, employeeId, logDate);
     }
 }

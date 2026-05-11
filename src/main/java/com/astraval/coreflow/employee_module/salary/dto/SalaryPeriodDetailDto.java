@@ -34,5 +34,9 @@ public class SalaryPeriodDetailDto {
     private LocalDateTime paidDt;
     private String paymentRef;
     private LocalDateTime computedDt;
+    private BigDecimal paidAmount;
+    private BigDecimal balanceAmount;
+    private Integer paymentCount;
+    private List<SalaryPaymentDto> payments;
     private List<SalaryLineDto> lines;
 }

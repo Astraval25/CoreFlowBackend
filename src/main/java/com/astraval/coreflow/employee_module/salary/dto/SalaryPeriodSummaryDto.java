@@ -24,5 +24,8 @@ public class SalaryPeriodSummaryDto {
     private SalaryType salaryType;
     private BigDecimal grossAmount;
     private BigDecimal netAmount;
+    private BigDecimal paidAmount;
+    private BigDecimal balanceAmount;
+    private Integer paymentCount;
     private SalaryPeriodStatus status;
 }
