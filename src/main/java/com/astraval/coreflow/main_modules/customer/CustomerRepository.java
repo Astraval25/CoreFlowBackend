@@ -70,7 +70,8 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
                    'QUOTATION',
                    'QUOTATION_VIEWED',
                    'QUOTATION_ACCEPTED',
-                   'QUOTATION_DECLINED'
+                   'QUOTATION_DECLINED',
+                   'ORDER_CANCELLED'
                  )
              ), 0.0)
              -
@@ -79,7 +80,7 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
                FROM payments p
                WHERE p.customer = :customerId
                  AND COALESCE(p.is_active, TRUE) = TRUE
-                 AND COALESCE(p.payment_status, '') <> 'PAYMENT_DECLINED'
+                 AND COALESCE(p.payment_status, '') <> 'PAYMENT_REFUND'
              ), 0.0)
            """, nativeQuery = true)
     Double calculateDueAmountFallback(@Param("customerId") Long customerId);

@@ -18,6 +18,8 @@ import com.astraval.coreflow.main_modules.analytics.dto.CashFlowDto;
 import com.astraval.coreflow.main_modules.analytics.dto.DashboardKpiDto;
 import com.astraval.coreflow.main_modules.analytics.dto.ItemFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.MonthlyTrendDto;
+import com.astraval.coreflow.main_modules.analytics.dto.OrderHistoryDto;
+import com.astraval.coreflow.main_modules.analytics.dto.PaymentHistoryDto;
 import com.astraval.coreflow.main_modules.analytics.dto.OrderFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentModeDistributionDto;
@@ -340,5 +342,41 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ApiResponseFactory.ok(analyticsService.getMonthlyTrend(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Monthly trend retrieved");
+    }
+
+    @GetMapping("/{companyId}/analytics/history/orders")
+    public ApiResponse<List<OrderHistoryDto>> orderHistory(
+            @PathVariable Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false, defaultValue = "ALL") String orderType,
+            @RequestParam(required = false, defaultValue = "ALL") String paidState,
+            @RequestParam(required = false) String statuses) {
+        return ApiResponseFactory.ok(
+                analyticsService.getOrderHistory(
+                        companyId,
+                        defaultStart(startDate),
+                        defaultEnd(endDate),
+                        orderType,
+                        paidState,
+                        statuses),
+                "Order history retrieved");
+    }
+
+    @GetMapping("/{companyId}/analytics/history/payments")
+    public ApiResponse<List<PaymentHistoryDto>> paymentHistory(
+            @PathVariable Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false, defaultValue = "ALL") String paymentType,
+            @RequestParam(required = false) String statuses) {
+        return ApiResponseFactory.ok(
+                analyticsService.getPaymentHistory(
+                        companyId,
+                        defaultStart(startDate),
+                        defaultEnd(endDate),
+                        paymentType,
+                        statuses),
+                "Payment history retrieved");
     }
 }

@@ -68,6 +68,8 @@ public class NotificationService {
         // Send FCM push notification
         Map<String, String> data = new HashMap<>();
         data.put("notificationId", String.valueOf(saved.getNotificationId()));
+        data.put("title", request.getTitle());
+        data.put("body", request.getMessage());
         data.put("type", request.getType());
         if (request.getActionUrl() != null) {
             data.put("actionUrl", request.getActionUrl());
@@ -75,6 +77,9 @@ public class NotificationService {
         if (request.getToCompanyId() != null) {
             data.put("toCompanyId", String.valueOf(request.getToCompanyId()));
         }
+        Long unreadCount = notificationRepository.countByToCompanyCompanyIdAndIsReadFalse(request.getToCompanyId());
+        data.put("unreadCount", String.valueOf(unreadCount));
+        data.put("badge", String.valueOf(unreadCount));
         firebaseMessagingService.sendToCompanyUsers(
                 request.getToCompanyId(), request.getTitle(), request.getMessage(), data);
 

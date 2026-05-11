@@ -62,6 +62,20 @@ public class FirebaseMessagingService {
                     : data.entrySet().stream()
                             .filter(entry -> entry.getKey() != null && entry.getValue() != null)
                             .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            int badgeCount = parseBadgeCount(safeData);
+
+            AndroidNotification.Builder androidNotification = AndroidNotification.builder()
+                    .setChannelId("coreflow_notifications_v2")
+                    .setSound("default");
+            if (badgeCount >= 0) {
+                androidNotification.setNotificationCount(badgeCount);
+            }
+
+            Aps.Builder aps = Aps.builder()
+                    .setSound("default");
+            if (badgeCount >= 0) {
+                aps.setBadge(badgeCount);
+            }
 
             MulticastMessage message = MulticastMessage.builder()
                     .addAllTokens(tokens)
@@ -71,15 +85,10 @@ public class FirebaseMessagingService {
                             .build())
                     .setAndroidConfig(AndroidConfig.builder()
                             .setPriority(AndroidConfig.Priority.HIGH)
-                            .setNotification(AndroidNotification.builder()
-                                    .setChannelId("coreflow_notifications_v2")
-                                    .setSound("default")
-                                    .build())
+                            .setNotification(androidNotification.build())
                             .build())
                     .setApnsConfig(ApnsConfig.builder()
-                            .setAps(Aps.builder()
-                                    .setSound("default")
-                                    .build())
+                            .setAps(aps.build())
                             .build())
                     .putAllData(safeData)
                     .build();
@@ -117,5 +126,22 @@ public class FirebaseMessagingService {
                 }
             }
         }
+    }
+
+    private int parseBadgeCount(Map<String, String> data) {
+        for (String key : List.of("badge", "badgeCount", "unreadCount", "notificationCount")) {
+            String value = data.get(key);
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+
+            try {
+                return Math.max(0, Integer.parseInt(value.trim()));
+            } catch (NumberFormatException ignored) {
+                // Keep looking for another badge key.
+            }
+        }
+
+        return -1;
     }
 }
