@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.astraval.coreflow.common.util.SecurityUtil;
+import com.astraval.coreflow.main_modules.expense.ExpenseAccount;
+import com.astraval.coreflow.main_modules.expense.ExpenseAccountRepository;
 import com.astraval.coreflow.main_modules.companies.dto.CompanyDetailDto;
 import com.astraval.coreflow.main_modules.companies.dto.CompanySummaryDto;
 import com.astraval.coreflow.main_modules.companies.dto.CreateUpdateCompanyDto;
@@ -22,6 +24,15 @@ import com.astraval.coreflow.main_modules.usercompmap.UserCompanyMapRepository;
 
 @Service
 public class CompanyService {
+    private static final String DEFAULT_EXPENSE_ACCOUNT_TYPE = "Expense";
+    private static final List<String> DEFAULT_EXPENSE_ACCOUNT_NAMES = List.of(
+            "EB Bill",
+            "Rent",
+            "Salary",
+            "Office Supplies",
+            "Internet",
+            "Fuel",
+            "Travel");
 
     @Autowired
     private CompanyRepository companyRepository;
@@ -40,6 +51,9 @@ public class CompanyService {
 
     @Autowired
     private FileStorageRepository fileStorageRepository;
+
+    @Autowired
+    private ExpenseAccountRepository expenseAccountRepository;
 
     public List<Companies> getAllCompanies() {
         return companyRepository.findAll();
@@ -69,6 +83,17 @@ public class CompanyService {
                 company.getHsnCode(),
                 company.getShortName(),
                 company.getFsId(),
+                company.getContactPerson(),
+                company.getContactEmail(),
+                company.getContactPhone(),
+                company.getWebsite(),
+                company.getAddressLine1(),
+                company.getAddressLine2(),
+                company.getCity(),
+                company.getState(),
+                company.getCountry(),
+                company.getPostalCode(),
+                company.getPublicDescription(),
                 company.getIsActive());
     }
 
@@ -87,8 +112,21 @@ public class CompanyService {
         company.setGstNo(request.getGstNo());
         company.setHsnCode(request.getHsnCode());
         company.setShortName(request.getShortName());
+        company.setContactPerson(request.getContactPerson());
+        company.setContactEmail(request.getContactEmail());
+        company.setContactPhone(request.getContactPhone());
+        company.setWebsite(request.getWebsite());
+        company.setAddressLine1(request.getAddressLine1());
+        company.setAddressLine2(request.getAddressLine2());
+        company.setCity(request.getCity());
+        company.setState(request.getState());
+        company.setCountry(request.getCountry());
+        company.setPostalCode(request.getPostalCode());
+        company.setPublicDescription(request.getPublicDescription());
 
         Companies savedCompany = companyRepository.save(company);
+
+        seedDefaultExpenseAccounts(savedCompany);
 
         // Map company with user
         UserCompanyMap userCompanyMap = new UserCompanyMap();
@@ -97,6 +135,20 @@ public class CompanyService {
         userCompanyMapRepository.save(userCompanyMap);
 
         return savedCompany.getCompanyId();
+    }
+
+    private void seedDefaultExpenseAccounts(Companies company) {
+        List<ExpenseAccount> defaultAccounts = DEFAULT_EXPENSE_ACCOUNT_NAMES.stream()
+                .map(accountName -> {
+                    ExpenseAccount account = new ExpenseAccount();
+                    account.setCompany(company);
+                    account.setAccountType(DEFAULT_EXPENSE_ACCOUNT_TYPE);
+                    account.setAccountName(accountName);
+                    account.setIsActive(true);
+                    return account;
+                })
+                .toList();
+        expenseAccountRepository.saveAll(defaultAccounts);
     }
 
     @Transactional
@@ -110,6 +162,17 @@ public class CompanyService {
         company.setGstNo(request.getGstNo());
         company.setHsnCode(request.getHsnCode());
         company.setShortName(request.getShortName());
+        company.setContactPerson(request.getContactPerson());
+        company.setContactEmail(request.getContactEmail());
+        company.setContactPhone(request.getContactPhone());
+        company.setWebsite(request.getWebsite());
+        company.setAddressLine1(request.getAddressLine1());
+        company.setAddressLine2(request.getAddressLine2());
+        company.setCity(request.getCity());
+        company.setState(request.getState());
+        company.setCountry(request.getCountry());
+        company.setPostalCode(request.getPostalCode());
+        company.setPublicDescription(request.getPublicDescription());
 
         companyRepository.save(company);
     }

@@ -48,6 +48,7 @@ public class SecurityConfig {
                                 "/api/companies/*/modemp/leave-logs/employee",
                                 "/api/companies/*/modemp/work-logs/employee")
                         .hasAnyRole("ADM", "EMP")
+                        .requestMatchers("/api/marketplace/**").hasAnyRole("ADM", "USR")
                         .requestMatchers("/api/companies/**").hasAnyRole("ADM", "USR")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
