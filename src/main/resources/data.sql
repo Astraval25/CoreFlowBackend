@@ -360,3 +360,40 @@ BEGIN
   RETURN 'CF-PAY-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || nextval('platform_payment_seq');
 END;
 $$ LANGUAGE plpgsql;
+
+-- =============================
+-- Developer announcements
+-- =============================
+-- Create a new announcement_key for each future update that should be shown again.
+INSERT INTO announcements (
+  announcement_key,
+  title,
+  message,
+  action_label,
+  action_url,
+  is_active,
+  created_by,
+  created_dt,
+  modified_by,
+  modified_dt
+)
+VALUES (
+  'coreflow-2026-05-admin-update-popup',
+  'New CoreFlow update',
+  'We added the admin update popup system. Future product updates can now be shown on the dashboard when admins open CoreFlow.',
+  null,
+  null,
+  true,
+  0,
+  NOW(),
+  0,
+  NOW()
+)
+ON CONFLICT (announcement_key) DO UPDATE SET
+  title = EXCLUDED.title,
+  message = EXCLUDED.message,
+  action_label = EXCLUDED.action_label,
+  action_url = EXCLUDED.action_url,
+  is_active = EXCLUDED.is_active,
+  modified_by = 0,
+  modified_dt = NOW();
