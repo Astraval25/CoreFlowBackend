@@ -109,6 +109,33 @@ public class EmployeeLeaveLogController {
         }
     }
 
+    @PreAuthorize("hasRole('ADM')")
+    @PutMapping("/{leaveId}")
+    public ApiResponse<Void> updateLeaveLogByAdmin(
+            @PathVariable Long companyId,
+            @PathVariable Long leaveId,
+            @Valid @RequestBody CreateLeaveLogDto dto) {
+        try {
+            leaveLogService.updateLeaveLogByAdmin(companyId, leaveId, dto);
+            return ApiResponseFactory.updated(null, "Leave log updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PreAuthorize("hasRole('ADM')")
+    @DeleteMapping("/{leaveId}")
+    public ApiResponse<Void> deleteLeaveLog(
+            @PathVariable Long companyId,
+            @PathVariable Long leaveId) {
+        try {
+            leaveLogService.deleteLeaveLog(companyId, leaveId);
+            return ApiResponseFactory.updated(null, "Leave log deleted successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
     private Long extractCurrentEmployeeId() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getDetails() instanceof Claims claims)) {

@@ -100,6 +100,17 @@ public class EmployeeWorkLogService {
                 .stream().map(this::toDto).toList();
     }
 
+    public List<WorkLogDto> getWorkLogsByCompanyEmployee(Long companyId, Long employeeId, LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            return workLogRepository.findByCompanyCompanyIdAndEmployeeEmployeeIdOrderByLogDateDesc(companyId, employeeId)
+                    .stream().map(this::toDto).toList();
+        }
+        return workLogRepository
+                .findByCompanyCompanyIdAndEmployeeEmployeeIdAndLogDateBetweenOrderByLogDateDesc(
+                        companyId, employeeId, from, to)
+                .stream().map(this::toDto).toList();
+    }
+
     public List<WorkLogDto> getPendingWorkLogs(Long companyId) {
         return workLogRepository.findByCompanyCompanyIdAndStatusOrderByLogDateDesc(companyId, WorkLogStatus.PENDING)
                 .stream().map(this::toDto).toList();

@@ -19,6 +19,10 @@ public interface EmployeeLeaveLogRepository extends JpaRepository<EmployeeLeaveL
 
     List<EmployeeLeaveLog> findByEmployeeEmployeeIdAndLeaveDateBetweenOrderByLeaveDateDesc(
             Long employeeId, LocalDate from, LocalDate to);
+    List<EmployeeLeaveLog> findByCompanyCompanyIdAndEmployeeEmployeeIdOrderByLeaveDateDesc(
+            Long companyId, Long employeeId);
+    List<EmployeeLeaveLog> findByCompanyCompanyIdAndEmployeeEmployeeIdAndLeaveDateBetweenOrderByLeaveDateDesc(
+            Long companyId, Long employeeId, LocalDate from, LocalDate to);
 
     List<EmployeeLeaveLog> findByCompanyCompanyIdAndStatusOrderByLeaveDateDesc(
             Long companyId, LeaveStatus status);
@@ -30,6 +34,8 @@ public interface EmployeeLeaveLogRepository extends JpaRepository<EmployeeLeaveL
 
     boolean existsByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDate(
             Long employeeId, Long companyId, LocalDate leaveDate);
+    boolean existsByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDateAndLeaveIdNot(
+            Long employeeId, Long companyId, LocalDate leaveDate, Long leaveId);
 
     @Query("SELECT l FROM EmployeeLeaveLog l " +
             "WHERE l.employee.employeeId = :employeeId " +

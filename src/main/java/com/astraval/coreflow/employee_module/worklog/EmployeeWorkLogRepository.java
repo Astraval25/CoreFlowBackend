@@ -19,6 +19,10 @@ public interface EmployeeWorkLogRepository extends JpaRepository<EmployeeWorkLog
 
     List<EmployeeWorkLog> findByEmployeeEmployeeIdAndLogDateBetweenOrderByLogDateDesc(
             Long employeeId, LocalDate from, LocalDate to);
+    List<EmployeeWorkLog> findByCompanyCompanyIdAndEmployeeEmployeeIdOrderByLogDateDesc(
+            Long companyId, Long employeeId);
+    List<EmployeeWorkLog> findByCompanyCompanyIdAndEmployeeEmployeeIdAndLogDateBetweenOrderByLogDateDesc(
+            Long companyId, Long employeeId, LocalDate from, LocalDate to);
 
     List<EmployeeWorkLog> findByCompanyCompanyIdAndStatusOrderByLogDateDesc(
             Long companyId, WorkLogStatus status);
