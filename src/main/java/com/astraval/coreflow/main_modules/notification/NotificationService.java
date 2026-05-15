@@ -1,6 +1,6 @@
 package com.astraval.coreflow.main_modules.notification;
 
-import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +60,9 @@ public class NotificationService {
         notification.setMessage(request.getMessage());
         notification.setType(request.getType());
         notification.setActionLabel(request.getActionLabel());
-        notification.setActionUrl(request.getActionUrl());
+        String normalizedActionUrl = normalizeActionUrl(request.getActionUrl());
+        notification.setActionUrl(normalizedActionUrl);
+        notification.setEntityKey(resolveEntityKey(request, normalizedActionUrl));
         notification.setIsRead(false);
 
         Notification saved = notificationRepository.save(notification);
@@ -71,14 +73,20 @@ public class NotificationService {
         data.put("title", request.getTitle());
         data.put("body", request.getMessage());
         data.put("type", request.getType());
-        if (request.getActionUrl() != null) {
-            data.put("actionUrl", request.getActionUrl());
+        if (normalizedActionUrl != null) {
+            data.put("actionUrl", normalizedActionUrl);
         }
         if (request.getToCompanyId() != null) {
             data.put("toCompanyId", String.valueOf(request.getToCompanyId()));
         }
+        if (saved.getEntityKey() != null) {
+            data.put("entityKey", saved.getEntityKey());
+        }
         Long unreadCount = notificationRepository.countByToCompanyCompanyIdAndIsReadFalse(request.getToCompanyId());
+        Long entityUnreadCount = getUnreadCountsByEntity(request.getToCompanyId())
+                .getOrDefault(saved.getEntityKey(), 0L);
         data.put("unreadCount", String.valueOf(unreadCount));
+        data.put("entityUnreadCount", String.valueOf(entityUnreadCount));
         data.put("badge", String.valueOf(unreadCount));
         firebaseMessagingService.sendToCompanyUsers(
                 request.getToCompanyId(), request.getTitle(), request.getMessage(), data);
@@ -89,6 +97,12 @@ public class NotificationService {
     @Transactional
     public Long createCompanyNotification(Long fromCompanyId, Long toCompanyId, String title, String message,
             String type, String actionLabel, String actionUrl) {
+        return createCompanyNotification(fromCompanyId, toCompanyId, title, message, type, actionLabel, actionUrl, null);
+    }
+
+    @Transactional
+    public Long createCompanyNotification(Long fromCompanyId, Long toCompanyId, String title, String message,
+            String type, String actionLabel, String actionUrl, String entityKey) {
         CreateNotificationRequest request = new CreateNotificationRequest();
         request.setFromCompanyId(fromCompanyId);
         request.setToCompanyId(toCompanyId);
@@ -97,6 +111,7 @@ public class NotificationService {
         request.setType(type);
         request.setActionLabel(actionLabel);
         request.setActionUrl(actionUrl);
+        request.setEntityKey(entityKey);
         return createNotification(request);
     }
 
@@ -104,16 +119,22 @@ public class NotificationService {
         int pageSize = 6;
         int safePage = Math.max(page, 0);
         PageRequest pageRequest = PageRequest.of(safePage, pageSize, Sort.by(Sort.Direction.DESC, "createdDt"));
-        Page<Notification> notificationPage = notificationRepository.findByToCompanyCompanyId(companyId, pageRequest);
+        Page<Notification> notificationPage = notificationRepository.findByToCompanyCompanyIdAndIsReadFalse(companyId, pageRequest);
+        Map<String, Long> unreadCountByEntity = getUnreadCountsByEntity(companyId);
+        long totalUnreadCount = notificationRepository.countByToCompanyCompanyIdAndIsReadFalse(companyId);
 
         NotificationPageDto response = new NotificationPageDto();
-        response.setNotifications(notificationPage.getContent().stream().map(this::toViewDto).toList());
+        response.setNotifications(notificationPage.getContent().stream()
+                .map(notification -> toViewDto(notification, unreadCountByEntity))
+                .toList());
         response.setPage(notificationPage.getNumber());
         response.setSize(notificationPage.getSize());
         response.setTotalElements(notificationPage.getTotalElements());
         response.setTotalPages(notificationPage.getTotalPages());
         response.setHasNext(notificationPage.hasNext());
         response.setHasPrevious(notificationPage.hasPrevious());
+        response.setTotalUnreadCount(totalUnreadCount);
+        response.setUnreadCountByEntity(unreadCountByEntity);
         return response;
     }
 
@@ -121,42 +142,29 @@ public class NotificationService {
         return notificationRepository.countByToCompanyCompanyIdAndIsReadFalse(companyId);
     }
 
+    public Map<String, Long> getCompanyUnreadCountByEntity(Long companyId) {
+        return getUnreadCountsByEntity(companyId);
+    }
+
     @Transactional
     public void markAsRead(Long companyId, Long notificationId) {
-        Notification notification = notificationRepository.findByNotificationIdAndToCompanyCompanyId(notificationId, companyId)
-                .orElseThrow(() -> new RuntimeException("Notification not found with ID: " + notificationId));
-
-        if (!Boolean.TRUE.equals(notification.getIsRead())) {
-            notification.setIsRead(true);
-            notification.setReadDt(LocalDateTime.now());
-            notificationRepository.save(notification);
+        Long deleted = notificationRepository.deleteByNotificationIdAndToCompanyCompanyId(notificationId, companyId);
+        if (deleted == null || deleted == 0) {
+            throw new RuntimeException("Notification not found with ID: " + notificationId);
         }
     }
 
     @Transactional
     public Long markAllAsRead(Long companyId) {
-        List<Notification> notifications = notificationRepository.findByToCompanyCompanyIdAndIsReadFalse(companyId);
-        LocalDateTime readTime = LocalDateTime.now();
-
-        notifications.forEach(notification -> {
-            notification.setIsRead(true);
-            notification.setReadDt(readTime);
-        });
-
-        notificationRepository.saveAll(notifications);
-        return (long) notifications.size();
+        Long deleted = notificationRepository.deleteByToCompanyCompanyIdAndIsReadFalse(companyId);
+        return deleted == null ? 0L : deleted;
     }
 
     @Transactional
     public NotificationOpenResponse openNotification(Long companyId, Long notificationId) {
         Notification notification = notificationRepository.findByNotificationIdAndToCompanyCompanyId(notificationId, companyId)
                 .orElseThrow(() -> new RuntimeException("Notification not found with ID: " + notificationId));
-
-        if (!Boolean.TRUE.equals(notification.getIsRead())) {
-            notification.setIsRead(true);
-            notification.setReadDt(LocalDateTime.now());
-            notificationRepository.save(notification);
-        }
+        notificationRepository.delete(notification);
 
         return new NotificationOpenResponse(
                 notification.getNotificationId(),
@@ -164,7 +172,7 @@ public class NotificationService {
                 notification.getActionUrl());
     }
 
-    private NotificationViewDto toViewDto(Notification notification) {
+    private NotificationViewDto toViewDto(Notification notification, Map<String, Long> unreadCountByEntity) {
         NotificationViewDto dto = new NotificationViewDto();
         dto.setNotificationId(notification.getNotificationId());
         dto.setFromCompanyId(notification.getFromCompany() != null ? notification.getFromCompany().getCompanyId() : null);
@@ -174,10 +182,91 @@ public class NotificationService {
         dto.setType(notification.getType());
         dto.setActionLabel(notification.getActionLabel());
         dto.setActionUrl(notification.getActionUrl());
+        dto.setEntityKey(notification.getEntityKey());
+        dto.setEntityUnreadCount(unreadCountByEntity.getOrDefault(notification.getEntityKey(), 0L));
         dto.setIsRead(notification.getIsRead());
         dto.setReadDt(notification.getReadDt());
         dto.setCreatedDt(notification.getCreatedDt());
         return dto;
+    }
+
+    private Map<String, Long> getUnreadCountsByEntity(Long companyId) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        notificationRepository.countUnreadByEntity(companyId).forEach(group -> {
+            String key = normalizeEntityKey(group.getEntityKey());
+            if (key != null) {
+                counts.put(key, group.getUnreadCount());
+            }
+        });
+        return counts;
+    }
+
+    private String normalizeActionUrl(String actionUrl) {
+        if (actionUrl == null || actionUrl.isBlank()) {
+            return null;
+        }
+
+        String normalized = actionUrl.trim();
+        if (!normalized.startsWith("/")) {
+            normalized = "/" + normalized;
+        }
+
+        if (normalized.startsWith("/cf/")) {
+            return normalized;
+        }
+
+        if (normalized.startsWith("/companies/") || normalized.startsWith("/company/")) {
+            return "/cf" + normalized;
+        }
+
+        return normalized;
+    }
+
+    private String resolveEntityKey(CreateNotificationRequest request, String actionUrl) {
+        if (request.getEntityKey() != null && !request.getEntityKey().isBlank()) {
+            return normalizeEntityKey(request.getEntityKey());
+        }
+
+        String fromPath = resolveEntityKeyFromPath(actionUrl);
+        if (fromPath != null) {
+            return fromPath;
+        }
+
+        if (request.getType() != null && !request.getType().isBlank()) {
+            return normalizeEntityKey(request.getType());
+        }
+
+        return "GENERAL";
+    }
+
+    private String resolveEntityKeyFromPath(String actionUrl) {
+        if (actionUrl == null || actionUrl.isBlank()) {
+            return null;
+        }
+
+        String lowerPath = actionUrl.toLowerCase();
+        if (lowerPath.contains("/purchase/")) return "PURCHASE";
+        if (lowerPath.contains("/sales/")) return "SALES";
+        if (lowerPath.contains("/payments/received") || lowerPath.contains("/payment-received")) return "PAYMENT_RECEIVED";
+        if (lowerPath.contains("/payments/sent") || lowerPath.contains("/payment-made")) return "PAYMENT_SENT";
+        if (lowerPath.contains("/expenses")) return "EXPENSE";
+        if (lowerPath.contains("/customers")) return "CUSTOMER";
+        if (lowerPath.contains("/vendors")) return "VENDOR";
+        if (lowerPath.contains("/work-logs")) return "WORK_LOG";
+        if (lowerPath.contains("/leave-logs") || lowerPath.contains("/employee-leave-requests")) return "LEAVE_REQUEST";
+
+        return null;
+    }
+
+    private String normalizeEntityKey(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim()
+                .replace('-', '_')
+                .replace(' ', '_')
+                .toUpperCase();
     }
 
 }

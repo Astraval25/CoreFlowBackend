@@ -32,4 +32,7 @@ public class CreateNotificationRequest {
 
     @Size(max = 500)
     private String actionUrl;
+
+    @Size(max = 100)
+    private String entityKey;
 }

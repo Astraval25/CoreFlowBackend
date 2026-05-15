@@ -6,6 +6,8 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -15,9 +17,24 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Page<Notification> findByToCompanyCompanyId(Long toCompanyId, Pageable pageable);
 
+    Page<Notification> findByToCompanyCompanyIdAndIsReadFalse(Long toCompanyId, Pageable pageable);
+
     List<Notification> findByToCompanyCompanyIdAndIsReadFalse(Long toCompanyId);
 
     Optional<Notification> findByNotificationIdAndToCompanyCompanyId(Long notificationId, Long toCompanyId);
 
     Long countByToCompanyCompanyIdAndIsReadFalse(Long toCompanyId);
+
+    Long deleteByNotificationIdAndToCompanyCompanyId(Long notificationId, Long toCompanyId);
+
+    Long deleteByToCompanyCompanyIdAndIsReadFalse(Long toCompanyId);
+
+    @Query("""
+            SELECT COALESCE(n.entityKey, n.type) AS entityKey, COUNT(n) AS unreadCount
+            FROM Notification n
+            WHERE n.toCompany.companyId = :companyId AND n.isRead = false
+            GROUP BY COALESCE(n.entityKey, n.type)
+            ORDER BY COUNT(n) DESC
+            """)
+    List<NotificationEntityUnreadCount> countUnreadByEntity(@Param("companyId") Long companyId);
 }
