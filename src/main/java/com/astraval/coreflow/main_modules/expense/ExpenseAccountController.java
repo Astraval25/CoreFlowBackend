@@ -55,8 +55,15 @@ public class ExpenseAccountController {
     }
 
     @GetMapping("/account-types")
-    public ApiResponse<List<String>> getExpenseAccountTypes() {
-        return ApiResponseFactory.accepted(ExpenseAccountTypes.ALLOWED_TYPES, "Expense account types retrieved successfully");
+    public ApiResponse<List<String>> getExpenseAccountTypes(@PathVariable Long companyId) {
+        try {
+            expenseAccountService.validateCompanyExists(companyId);
+            return ApiResponseFactory.accepted(
+                    ExpenseAccountTypes.ALLOWED_TYPES,
+                    "Expense account types retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
     }
 
     @GetMapping("/{expenseAccountId}")

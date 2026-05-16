@@ -36,7 +36,8 @@ import lombok.Setter;
     name = "notifications",
     indexes = {
         @Index(name = "idx_notifications_to_company_created", columnList = "to_company_id,created_dt"),
-        @Index(name = "idx_notifications_to_company_read", columnList = "to_company_id,is_read")
+        @Index(name = "idx_notifications_to_company_read", columnList = "to_company_id,is_read"),
+        @Index(name = "idx_notifications_to_company_entity_read", columnList = "to_company_id,entity_key,is_read")
     }
 )
 @EntityListeners(AuditingEntityListener.class)
@@ -73,6 +74,9 @@ public class Notification {
 
     @Column(name = "action_url", length = 500)
     private String actionUrl;
+
+    @Column(name = "entity_key", length = 100)
+    private String entityKey;
 
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;

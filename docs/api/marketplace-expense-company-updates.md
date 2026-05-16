@@ -17,6 +17,8 @@ This document captures the newly added and updated APIs for mobile app integrati
 - Supports positive and negative `amount`
 - Mandatory fields: `expenseDate`, `paymentMode`, `amount`, `expenseAccountId`
 - Optional fields: `invoiceNo`, `vendorId`, `customerId`, `remark`
+- Optional `salaryPeriodId` links an expense to a salary period for salary payment tracking
+- Salary expenses are now created only when admin records payment from the Salary screen
 
 ### 3) New module: Marketplace
 - Public listing endpoints to explore companies and what they sell
@@ -177,7 +179,8 @@ Request:
   "invoiceNo": "INV-2026-44",
   "vendorId": 4,
   "customerId": null,
-  "remark": "Fuel refill"
+  "remark": "Fuel refill",
+  "salaryPeriodId": null
 }
 ```
 
@@ -224,6 +227,7 @@ Expense response object:
   "customerId": null,
   "customerName": null,
   "remark": "Fuel refill",
+  "salaryPeriodId": 88,
   "isActive": true,
   "createdDt": "2026-05-11T10:11:00",
   "lastModifiedDt": "2026-05-11T10:11:00"
@@ -241,6 +245,9 @@ Common error messages:
 - `Payment mode is required`
 - `Amount is required`
 - `Expense account is required`
+- `Salary payment amount must be greater than zero`
+- `Salary period not found with ID: {salaryPeriodId}`
+- `Salary period must be approved before recording payment`
 
 ---
 
@@ -386,6 +393,42 @@ Common error messages:
 
 ---
 
+## Work Log Admin APIs
+
+Base: `/api/companies/{companyId}/modemp/work-logs`
+
+### New / Updated admin behavior
+- Admin can update work logs even if they are already `APPROVED` or `REJECTED`
+- On admin update, the work log is reset to `PENDING`
+- Admin update/delete is blocked once salary is already calculated for that employee/date
+- Delete is admin-only
+
+### 1) Update Work Log by Admin
+- `PUT /api/companies/{companyId}/modemp/work-logs/{logId}`
+
+Request:
+```json
+{
+  "employeeId": 15,
+  "workDefId": 4,
+  "logDate": "2026-05-11",
+  "quantity": 8,
+  "employeeRemarks": "Adjusted quantity after review"
+}
+```
+
+### 2) Delete Work Log by Admin
+- `DELETE /api/companies/{companyId}/modemp/work-logs/{logId}`
+
+Common error messages:
+- `Work log not found with ID: {logId}`
+- `Cannot update this work log because salary is already calculated for {logDate}`
+- `Cannot move this work log to {logDate} because salary is already calculated for that employee and date`
+- `Cannot delete this work log because salary is already calculated for {logDate}`
+- `Another work log already exists for the same employee, work type, and date`
+
+---
+
 ## Mobile Integration Notes
 - Use `responseData` for business payload.
 - For list screens:
@@ -398,3 +441,21 @@ Common error messages:
   - fetch account types once -> `/expense-accounts/account-types`
   - fetch active expense accounts -> `?activeOnly=true`
   - create/update expenses using `expenseAccountId`
+  - salary payment flow -> create expense with `salaryPeriodId`
+
+## Salary + Dashboard Integration Notes
+- `POST /api/companies/{companyId}/modemp/salary/calculate` only creates the salary period. It does not create an expense.
+- Salary payment is recorded by creating one or more Expense rows linked through `salaryPeriodId`.
+- Partial salary payments are supported.
+- Salary period summary/detail now returns:
+  - `paidAmount`
+  - `balanceAmount`
+  - `paymentCount`
+  - `payments` (detail endpoint only)
+- `PATCH /api/companies/{companyId}/modemp/salary/periods/{salaryPeriodId}/mark-paid` should no longer be used by clients. Use the Expense create flow instead.
+- Dashboard APIs now include active records from `public.expenses` in expense/outgoing totals:
+  - `/api/companies/{companyId}/analytics/dashboard/kpi`
+  - `/api/companies/{companyId}/analytics/dashboard/cash-flow`
+  - `/api/companies/{companyId}/analytics/dashboard/revenue-expense`
+  - `/api/companies/{companyId}/analytics/dashboard/monthly-trend`
+  - `/api/companies/{companyId}/analytics/dashboard/payment-mode-distribution`

@@ -22,8 +22,7 @@ public class ExpenseAccountService {
 
     @Transactional
     public Long createExpenseAccount(Long companyId, CreateUpdateExpenseAccountDto request) {
-        Companies company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
+        Companies company = getCompanyOrThrow(companyId);
 
         String accountType = resolveAccountType(request.getAccountType());
         String accountName = normalizeRequired(request.getAccountName(), "Account name is required");
@@ -42,6 +41,7 @@ public class ExpenseAccountService {
     }
 
     public List<ExpenseAccountDto> getExpenseAccounts(Long companyId) {
+        getCompanyOrThrow(companyId);
         return expenseAccountRepository.findByCompanyCompanyIdOrderByAccountName(companyId)
                 .stream()
                 .map(this::toDto)
@@ -49,6 +49,7 @@ public class ExpenseAccountService {
     }
 
     public List<ExpenseAccountDto> getActiveExpenseAccounts(Long companyId) {
+        getCompanyOrThrow(companyId);
         return expenseAccountRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByAccountName(companyId)
                 .stream()
                 .map(this::toDto)
@@ -93,8 +94,13 @@ public class ExpenseAccountService {
     }
 
     private ExpenseAccount getAccount(Long companyId, Long expenseAccountId) {
+        getCompanyOrThrow(companyId);
         return expenseAccountRepository.findByExpenseAccountIdAndCompanyCompanyId(expenseAccountId, companyId)
                 .orElseThrow(() -> new RuntimeException("Expense account not found with ID: " + expenseAccountId));
+    }
+
+    public void validateCompanyExists(Long companyId) {
+        getCompanyOrThrow(companyId);
     }
 
     private String resolveAccountType(String accountType) {
@@ -103,6 +109,11 @@ public class ExpenseAccountService {
             throw new RuntimeException("Invalid account type. " + ExpenseAccountTypes.validTypesMessage());
         }
         return normalized;
+    }
+
+    private Companies getCompanyOrThrow(Long companyId) {
+        return companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
     }
 
     private String normalizeRequired(String value, String message) {

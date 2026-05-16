@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -99,6 +100,33 @@ public class EmployeeWorkLogController {
 
             workLogService.updateWorkLog(companyId, dto);
             return ApiResponseFactory.updated(null, "Work log updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PreAuthorize("hasRole('ADM')")
+    @PutMapping("/{logId}")
+    public ApiResponse<Void> updateWorkLogByAdmin(
+            @PathVariable Long companyId,
+            @PathVariable Long logId,
+            @Valid @RequestBody CreateWorkLogDto dto) {
+        try {
+            workLogService.updateWorkLogByAdmin(companyId, logId, dto);
+            return ApiResponseFactory.updated(null, "Work log updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PreAuthorize("hasRole('ADM')")
+    @DeleteMapping("/{logId}")
+    public ApiResponse<Void> deleteWorkLog(
+            @PathVariable Long companyId,
+            @PathVariable Long logId) {
+        try {
+            workLogService.deleteWorkLog(companyId, logId);
+            return ApiResponseFactory.updated(null, "Work log deleted successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

@@ -25,6 +25,7 @@ public class ExpenseDto {
     private Long customerId;
     private String customerName;
     private String remark;
+    private Long salaryPeriodId;
     private Boolean isActive;
     private LocalDateTime createdDt;
     private LocalDateTime lastModifiedDt;

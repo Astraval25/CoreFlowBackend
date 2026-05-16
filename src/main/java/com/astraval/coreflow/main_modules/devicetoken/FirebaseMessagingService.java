@@ -1,5 +1,6 @@
 package com.astraval.coreflow.main_modules.devicetoken;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +27,6 @@ public class FirebaseMessagingService {
     private static final Logger log = LoggerFactory.getLogger(FirebaseMessagingService.class);
 
     @Autowired
-    private DeviceTokenService deviceTokenService;
-
-    @Autowired
     private DeviceTokenRepository deviceTokenRepository;
 
     @Autowired
@@ -50,9 +48,9 @@ public class FirebaseMessagingService {
     }
 
     public void sendToUsers(List<Long> userIds, String title, String body, Map<String, String> data) {
-        List<String> tokens = deviceTokenService.getActiveTokensForUsers(userIds);
+        List<DeviceToken> activeDeviceTokens = deviceTokenRepository.findByUserUserIdInAndIsActiveTrue(userIds);
 
-        if (tokens.isEmpty()) {
+        if (activeDeviceTokens.isEmpty()) {
             log.warn("No active FCM tokens found for users: {}", userIds);
             return;
         }
@@ -64,47 +62,104 @@ public class FirebaseMessagingService {
                             .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             int badgeCount = parseBadgeCount(safeData);
 
-            AndroidNotification.Builder androidNotification = AndroidNotification.builder()
-                    .setChannelId("coreflow_notifications_v2")
-                    .setSound("default");
-            if (badgeCount >= 0) {
-                androidNotification.setNotificationCount(badgeCount);
+            List<String> androidTokens = activeDeviceTokens.stream()
+                    .filter(this::isAndroidToken)
+                    .map(DeviceToken::getToken)
+                    .toList();
+            List<String> notificationTokens = activeDeviceTokens.stream()
+                    .filter(deviceToken -> !isAndroidToken(deviceToken))
+                    .map(DeviceToken::getToken)
+                    .toList();
+
+            int totalSuccess = 0;
+            int totalFailure = 0;
+
+            if (!androidTokens.isEmpty()) {
+                BatchResponse androidResponse = sendAndroidDataMessage(androidTokens, title, body, safeData);
+                totalSuccess += androidResponse.getSuccessCount();
+                totalFailure += androidResponse.getFailureCount();
+                if (androidResponse.getFailureCount() > 0) {
+                    handleFailedTokens(androidTokens, androidResponse.getResponses());
+                }
             }
 
-            Aps.Builder aps = Aps.builder()
-                    .setSound("default");
-            if (badgeCount >= 0) {
-                aps.setBadge(badgeCount);
+            if (!notificationTokens.isEmpty()) {
+                BatchResponse notificationResponse = sendNotificationMessage(
+                        notificationTokens, title, body, safeData, badgeCount);
+                totalSuccess += notificationResponse.getSuccessCount();
+                totalFailure += notificationResponse.getFailureCount();
+                if (notificationResponse.getFailureCount() > 0) {
+                    handleFailedTokens(notificationTokens, notificationResponse.getResponses());
+                }
             }
 
-            MulticastMessage message = MulticastMessage.builder()
-                    .addAllTokens(tokens)
-                    .setNotification(Notification.builder()
-                            .setTitle(title)
-                            .setBody(body)
-                            .build())
-                    .setAndroidConfig(AndroidConfig.builder()
-                            .setPriority(AndroidConfig.Priority.HIGH)
-                            .setNotification(androidNotification.build())
-                            .build())
-                    .setApnsConfig(ApnsConfig.builder()
-                            .setAps(aps.build())
-                            .build())
-                    .putAllData(safeData)
-                    .build();
-
-            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
-
-            if (response.getFailureCount() > 0) {
-                handleFailedTokens(tokens, response.getResponses());
-            }
-
-            log.info("FCM sent: {} success, {} failed",
-                    response.getSuccessCount(), response.getFailureCount());
+            log.info("FCM sent: {} success, {} failed", totalSuccess, totalFailure);
         } catch (Exception e) {
-            log.error("FCM send failed (title='{}', users={}, tokens={}): {}", title, userIds.size(), tokens.size(),
-                    e.getMessage(), e);
+            log.error("FCM send failed (title='{}', users={}, tokens={}): {}", title, userIds.size(),
+                    activeDeviceTokens.size(), e.getMessage(), e);
         }
+    }
+
+    private BatchResponse sendAndroidDataMessage(
+            List<String> tokens,
+            String title,
+            String body,
+            Map<String, String> safeData) throws Exception {
+        Map<String, String> androidData = new HashMap<>(safeData);
+        androidData.putIfAbsent("title", title == null ? "" : title);
+        androidData.putIfAbsent("body", body == null ? "" : body);
+
+        MulticastMessage message = MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .build())
+                .putAllData(androidData)
+                .build();
+
+        return FirebaseMessaging.getInstance().sendEachForMulticast(message);
+    }
+
+    private BatchResponse sendNotificationMessage(
+            List<String> tokens,
+            String title,
+            String body,
+            Map<String, String> safeData,
+            int badgeCount) throws Exception {
+        AndroidNotification.Builder androidNotification = AndroidNotification.builder()
+                .setChannelId("coreflow_notifications_v2")
+                .setSound("default");
+        if (badgeCount >= 0) {
+            androidNotification.setNotificationCount(badgeCount);
+        }
+
+        Aps.Builder aps = Aps.builder()
+                .setSound("default");
+        if (badgeCount >= 0) {
+            aps.setBadge(badgeCount);
+        }
+
+        MulticastMessage message = MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .setNotification(Notification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .setNotification(androidNotification.build())
+                        .build())
+                .setApnsConfig(ApnsConfig.builder()
+                        .setAps(aps.build())
+                        .build())
+                .putAllData(safeData)
+                .build();
+
+        return FirebaseMessaging.getInstance().sendEachForMulticast(message);
+    }
+
+    private boolean isAndroidToken(DeviceToken deviceToken) {
+        return "ANDROID".equalsIgnoreCase(deviceToken.getDeviceType());
     }
 
     private void handleFailedTokens(List<String> tokens, List<SendResponse> responses) {

@@ -13,6 +13,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.vendor.Vendors;
+import com.astraval.coreflow.employee_module.salary.EmployeeSalaryPeriod;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -73,6 +74,10 @@ public class Expense {
 
     @Column(name = "remark", length = 1000)
     private String remark;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "salary_period_id")
+    private EmployeeSalaryPeriod salaryPeriod;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

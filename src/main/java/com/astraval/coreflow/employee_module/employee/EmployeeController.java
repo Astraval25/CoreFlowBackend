@@ -9,11 +9,15 @@ import com.astraval.coreflow.employee_module.portaluser.dto.PortalUserDto;
 import com.astraval.coreflow.employee_module.salaryconfig.EmployeeSalaryConfigService;
 import com.astraval.coreflow.employee_module.salaryconfig.dto.CreateSalaryConfigDto;
 import com.astraval.coreflow.employee_module.salaryconfig.dto.SalaryConfigDto;
+import com.astraval.coreflow.employee_module.leavelog.EmployeeLeaveLogService;
+import com.astraval.coreflow.employee_module.worklog.EmployeeWorkLogService;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +33,12 @@ public class EmployeeController {
 
     @Autowired
     private EmployeePortalUserService portalUserService;
+
+    @Autowired
+    private EmployeeWorkLogService workLogService;
+
+    @Autowired
+    private EmployeeLeaveLogService leaveLogService;
 
     // ── Employee CRUD ──
 
@@ -65,6 +75,27 @@ public class EmployeeController {
         try {
             EmployeeDetailDto dto = employeeService.getEmployeeDetail(companyId, employeeId);
             return ApiResponseFactory.accepted(dto, "Employee retrieved successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @GetMapping("/{employeeId}/activity-logs")
+    public ApiResponse<EmployeeActivityLogsDto> getEmployeeActivityLogs(
+            @PathVariable Long companyId,
+            @PathVariable Long employeeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        try {
+            employeeService.getEmployeeDetail(companyId, employeeId);
+            if ((from == null) != (to == null)) {
+                throw new RuntimeException("Both from and to dates are required when filtering by date");
+            }
+
+            EmployeeActivityLogsDto dto = new EmployeeActivityLogsDto(
+                    workLogService.getWorkLogsByCompanyEmployee(companyId, employeeId, from, to),
+                    leaveLogService.getLeaveLogsByCompanyEmployee(companyId, employeeId, from, to));
+            return ApiResponseFactory.accepted(dto, "Employee activity logs retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

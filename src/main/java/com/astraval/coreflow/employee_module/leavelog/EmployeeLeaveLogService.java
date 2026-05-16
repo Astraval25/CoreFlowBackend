@@ -91,6 +91,18 @@ public class EmployeeLeaveLogService {
                 .stream().map(this::toDto).toList();
     }
 
+    public List<LeaveLogDto> getLeaveLogsByCompanyEmployee(Long companyId, Long employeeId, LocalDate from,
+            LocalDate to) {
+        if (from == null || to == null) {
+            return leaveLogRepository.findByCompanyCompanyIdAndEmployeeEmployeeIdOrderByLeaveDateDesc(companyId, employeeId)
+                    .stream().map(this::toDto).toList();
+        }
+        return leaveLogRepository
+                .findByCompanyCompanyIdAndEmployeeEmployeeIdAndLeaveDateBetweenOrderByLeaveDateDesc(
+                        companyId, employeeId, from, to)
+                .stream().map(this::toDto).toList();
+    }
+
     public List<LeaveLogDto> getPendingLeaveLogs(Long companyId) {
         return leaveLogRepository.findByCompanyCompanyIdAndStatusOrderByLeaveDateDesc(companyId, LeaveStatus.PENDING)
                 .stream().map(this::toDto).toList();
@@ -137,6 +149,62 @@ public class EmployeeLeaveLogService {
         log.setApprovedDt(null);
 
         leaveLogRepository.save(log);
+    }
+
+    @Transactional
+    public void updateLeaveLogByAdmin(Long companyId, Long leaveId, CreateLeaveLogDto dto) {
+        EmployeeLeaveLog log = leaveLogRepository.findByLeaveIdAndCompanyCompanyId(leaveId, companyId)
+                .orElseThrow(() -> new RuntimeException("Leave log not found with ID: " + leaveId));
+
+        Employee employee = employeeRepository.findByEmployeeIdAndCompanyCompanyId(dto.getEmployeeId(), companyId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + dto.getEmployeeId()));
+
+        if (salaryPeriodRepository.existsSalaryPeriodForEmployeeOnDate(
+                companyId, log.getEmployee().getEmployeeId(), log.getLeaveDate())) {
+            throw new RuntimeException("Cannot update this leave log because salary is already calculated for "
+                    + log.getLeaveDate());
+        }
+
+        if (!log.getEmployee().getEmployeeId().equals(employee.getEmployeeId())
+                || !log.getLeaveDate().equals(dto.getLeaveDate())) {
+            if (salaryPeriodRepository.existsSalaryPeriodForEmployeeOnDate(
+                    companyId, employee.getEmployeeId(), dto.getLeaveDate())) {
+                throw new RuntimeException("Cannot move this leave log to " + dto.getLeaveDate()
+                        + " because salary is already calculated for that employee and date");
+            }
+        }
+
+        boolean duplicate = leaveLogRepository
+                .existsByEmployeeEmployeeIdAndCompanyCompanyIdAndLeaveDateAndLeaveIdNot(
+                        employee.getEmployeeId(), companyId, dto.getLeaveDate(), leaveId);
+        if (duplicate) {
+            throw new RuntimeException("Another leave log already exists for the same employee and date");
+        }
+
+        log.setEmployee(employee);
+        log.setLeaveDate(dto.getLeaveDate());
+        log.setLeaveType(dto.getLeaveType());
+        log.setLeaveCategory(dto.getLeaveCategory());
+        log.setReason(dto.getReason());
+        log.setStatus(LeaveStatus.PENDING);
+        log.setApprovedBy(null);
+        log.setApprovedDt(null);
+
+        leaveLogRepository.save(log);
+    }
+
+    @Transactional
+    public void deleteLeaveLog(Long companyId, Long leaveId) {
+        EmployeeLeaveLog log = leaveLogRepository.findByLeaveIdAndCompanyCompanyId(leaveId, companyId)
+                .orElseThrow(() -> new RuntimeException("Leave log not found with ID: " + leaveId));
+
+        if (salaryPeriodRepository.existsSalaryPeriodForEmployeeOnDate(
+                companyId, log.getEmployee().getEmployeeId(), log.getLeaveDate())) {
+            throw new RuntimeException("Cannot delete this leave log because salary is already calculated for "
+                    + log.getLeaveDate());
+        }
+
+        leaveLogRepository.delete(log);
     }
 
     private LeaveLogDto toDto(EmployeeLeaveLog log) {

@@ -49,10 +49,13 @@ public class NotificationController {
     }
 
     @GetMapping("/companies/{companyId}/notifications/unread-count")
-    public ApiResponse<Map<String, Long>> getUnreadCount(@PathVariable Long companyId) {
+    public ApiResponse<Map<String, Object>> getUnreadCount(@PathVariable Long companyId) {
         try {
             Long count = notificationService.getCompanyUnreadCount(companyId);
-            return ApiResponseFactory.accepted(Map.of("unreadCount", count), "Unread count retrieved successfully");
+            Map<String, Object> response = new java.util.LinkedHashMap<>();
+            response.put("unreadCount", count);
+            response.put("unreadCountByEntity", notificationService.getCompanyUnreadCountByEntity(companyId));
+            return ApiResponseFactory.accepted(response, "Unread count retrieved successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
@@ -62,7 +65,7 @@ public class NotificationController {
     public ApiResponse<String> markAsRead(@PathVariable Long companyId, @PathVariable Long notificationId) {
         try {
             notificationService.markAsRead(companyId, notificationId);
-            return ApiResponseFactory.updated(null, "Notification marked as read");
+            return ApiResponseFactory.updated(null, "Notification cleared");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
@@ -72,7 +75,7 @@ public class NotificationController {
     public ApiResponse<Map<String, Long>> markAllAsRead(@PathVariable Long companyId) {
         try {
             Long updatedCount = notificationService.markAllAsRead(companyId);
-            return ApiResponseFactory.updated(Map.of("updatedCount", updatedCount), "All notifications marked as read");
+            return ApiResponseFactory.updated(Map.of("updatedCount", updatedCount), "All notifications cleared");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }

@@ -17,6 +17,8 @@ import com.astraval.coreflow.employee_module.worklog.EmployeeWorkLog;
 import com.astraval.coreflow.employee_module.worklog.EmployeeWorkLogRepository;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.expense.Expense;
+import com.astraval.coreflow.main_modules.expense.ExpenseRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -26,13 +28,13 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 public class SalaryService {
-
     @Autowired
     private EmployeeSalaryPeriodRepository salaryPeriodRepository;
 
@@ -53,6 +55,9 @@ public class SalaryService {
 
     @Autowired
     private EmployeeLeaveLogRepository leaveLogRepository;
+
+    @Autowired
+    private ExpenseRepository expenseRepository;
 
     @Transactional
     public List<Long> calculateSalary(Long companyId, CalculateSalaryRequestDto request) {
@@ -349,6 +354,10 @@ public class SalaryService {
         dto.setPaidDt(sp.getPaidDt());
         dto.setPaymentRef(sp.getPaymentRef());
         dto.setComputedDt(sp.getComputedDt());
+        dto.setPaidAmount(getPaidAmount(sp));
+        dto.setBalanceAmount(getBalanceAmount(sp));
+        List<Expense> payments = getSalaryPaymentExpenses(sp);
+        dto.setPaymentCount(payments.size());
 
         List<EmployeeSalaryLine> lines = salaryLineRepository.findBySalaryPeriodSalaryPeriodId(sp.getSalaryPeriodId());
         dto.setLines(lines.stream().map(line -> new SalaryLineDto(
@@ -362,6 +371,15 @@ public class SalaryService {
                 line.getWorkDefinition() != null ? line.getWorkDefinition().getWorkDefId() : null,
                 line.getWorkDefinition() != null ? line.getWorkDefinition().getWorkName() : null
         )).toList());
+        dto.setPayments(payments.stream()
+                .map(expense -> new SalaryPaymentDto(
+                        expense.getExpenseId(),
+                        expense.getExpenseDate(),
+                        expense.getPaymentMode(),
+                        expense.getAmount(),
+                        expense.getInvoiceNo(),
+                        expense.getRemark()))
+                .toList());
 
         return dto;
     }
@@ -378,6 +396,9 @@ public class SalaryService {
         dto.setSalaryType(sp.getSalaryType());
         dto.setGrossAmount(sp.getGrossAmount());
         dto.setNetAmount(sp.getNetAmount());
+        dto.setPaidAmount(getPaidAmount(sp));
+        dto.setBalanceAmount(getBalanceAmount(sp));
+        dto.setPaymentCount(getSalaryPaymentExpenses(sp).size());
         dto.setStatus(sp.getStatus());
         return dto;
     }
@@ -432,17 +453,7 @@ public class SalaryService {
 
     @Transactional
     public void markSalaryPaid(Long companyId, Long salaryPeriodId, MarkPaidDto dto) {
-        EmployeeSalaryPeriod sp = salaryPeriodRepository.findBySalaryPeriodIdAndCompanyCompanyId(salaryPeriodId, companyId)
-                .orElseThrow(() -> new RuntimeException("Salary period not found with ID: " + salaryPeriodId));
-
-        if (sp.getStatus() != SalaryPeriodStatus.APPROVED) {
-            throw new RuntimeException("Only APPROVED salary periods can be marked as paid");
-        }
-
-        sp.setStatus(SalaryPeriodStatus.PAID);
-        sp.setPaidDt(LocalDateTime.now());
-        sp.setPaymentRef(dto != null ? dto.getPaymentRef() : null);
-        salaryPeriodRepository.save(sp);
+        throw new RuntimeException("Record salary payments through Expenses so partial and multiple payments are tracked correctly");
     }
 
     private Long getCurrentUserId() {
@@ -451,5 +462,29 @@ public class SalaryService {
         } catch (Exception e) {
             return 0L;
         }
+    }
+
+    private BigDecimal getPaidAmount(EmployeeSalaryPeriod salaryPeriod) {
+        return getSalaryPaymentExpenses(salaryPeriod).stream()
+                .map(Expense::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal getBalanceAmount(EmployeeSalaryPeriod salaryPeriod) {
+        BigDecimal netAmount = salaryPeriod.getNetAmount() == null ? BigDecimal.ZERO : salaryPeriod.getNetAmount();
+        BigDecimal paidAmount = getPaidAmount(salaryPeriod);
+        BigDecimal balance = netAmount.subtract(paidAmount);
+        return balance.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : balance;
+    }
+
+    private List<Expense> getSalaryPaymentExpenses(EmployeeSalaryPeriod salaryPeriod) {
+        Map<Long, Expense> payments = new LinkedHashMap<>();
+        if (salaryPeriod.getExpense() != null && Boolean.TRUE.equals(salaryPeriod.getExpense().getIsActive())) {
+            payments.put(salaryPeriod.getExpense().getExpenseId(), salaryPeriod.getExpense());
+        }
+        expenseRepository
+                .findBySalaryPeriodSalaryPeriodIdAndIsActiveTrueOrderByExpenseDateAscExpenseIdAsc(salaryPeriod.getSalaryPeriodId())
+                .forEach(expense -> payments.put(expense.getExpenseId(), expense));
+        return new ArrayList<>(payments.values());
     }
 }

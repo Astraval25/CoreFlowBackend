@@ -32,7 +32,9 @@ public class CompanyService {
             "Office Supplies",
             "Internet",
             "Fuel",
-            "Travel");
+            "Travel",
+            "Maintenance",
+            "Miscellaneous Expense");
 
     @Autowired
     private CompanyRepository companyRepository;

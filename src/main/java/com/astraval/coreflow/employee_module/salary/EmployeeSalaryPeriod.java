@@ -14,6 +14,7 @@ import com.astraval.coreflow.employee_module.employee.Employee;
 import com.astraval.coreflow.employee_module.enums.SalaryPeriodStatus;
 import com.astraval.coreflow.employee_module.enums.SalaryType;
 import com.astraval.coreflow.main_modules.companies.Companies;
+import com.astraval.coreflow.main_modules.expense.Expense;
 
 @Getter
 @Setter
@@ -92,6 +93,10 @@ public class EmployeeSalaryPeriod {
 
     @Column(name = "computed_dt")
     private LocalDateTime computedDt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expense_id")
+    private Expense expense;
 
     @Column(name = "created_dt")
     private LocalDateTime createdDt;

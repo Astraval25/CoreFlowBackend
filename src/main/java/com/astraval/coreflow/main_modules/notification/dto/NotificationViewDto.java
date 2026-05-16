@@ -14,6 +14,8 @@ public class NotificationViewDto {
     private String type;
     private String actionLabel;
     private String actionUrl;
+    private String entityKey;
+    private Long entityUnreadCount;
     private Boolean isRead;
     private LocalDateTime readDt;
     private LocalDateTime createdDt;
