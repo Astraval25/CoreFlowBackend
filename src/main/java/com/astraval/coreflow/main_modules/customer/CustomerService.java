@@ -21,6 +21,7 @@ import com.astraval.coreflow.main_modules.customer.dto.CustomerOrderPaymentSumma
 import com.astraval.coreflow.main_modules.customer.dto.CustomerOrderSummaryDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerSummaryDto;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
 
 @Service
@@ -40,6 +41,9 @@ public class CustomerService {
 
     @Autowired
     private PartnerBalanceService partnerBalanceService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
     public Long createCustomer(Long companyId, CreateUpdateCustomerDto request) {
@@ -130,15 +134,17 @@ public class CustomerService {
     }
 
     public List<CustomerSummaryDto> getCustomersByCompany(Long companyId) {
-        return customerRepository.findByCompanyIdSummary(companyId);
+        return applyUnreadCounts(customerRepository.findByCompanyIdSummary(companyId), companyId);
     }
 
     public List<CustomerSummaryDto> getActiveCustomersByCompany(Long companyId) {
-        return customerRepository.findByCompanyCompanyIdAndIsActiveOrderByDisplayName(companyId, true);
+        return applyUnreadCounts(
+                customerRepository.findByCompanyCompanyIdAndIsActiveOrderByDisplayName(companyId, true),
+                companyId);
     }
     
     public List<CustomerSummaryDto> getUnlinkedCustomersByCompany(Long companyId) {
-        return customerRepository.findUnlinkedByCompanyIdSummary(companyId);
+        return applyUnreadCounts(customerRepository.findUnlinkedByCompanyIdSummary(companyId), companyId);
     }
 
     public List<Customers> getAllCustomers() {
@@ -233,6 +239,13 @@ public class CustomerService {
         CustomerOrderPaymentSummaryDto result = new CustomerOrderPaymentSummaryDto(orders, payments);
         result.setPaginationInfo(paginationInfo);
         return result;
+    }
+
+    private List<CustomerSummaryDto> applyUnreadCounts(List<CustomerSummaryDto> customers, Long companyId) {
+        var unreadCountByCustomer = notificationService.getCompanyUnreadCountBySubjectType(companyId, "CUSTOMER");
+        customers.forEach(customer -> customer.setUnreadCount(
+                unreadCountByCustomer.getOrDefault(customer.getCustomerId(), 0L)));
+        return customers;
     }
 
 }

@@ -162,7 +162,10 @@ public class BuyerPaymentService {
                     "A buyer payment is made by " + vendor.getCompany().getCompanyName(),
                     "BUYER_PAYMENT_CREATED",
                     "View Payments",
-                    "/companies/" + toCompanyId + "/payments/received");
+                    "/companies/" + toCompanyId + "/payments/received",
+                    null,
+                    "CUSTOMER",
+                    savedPayment.getCustomers() != null ? savedPayment.getCustomers().getCustomerId() : null);
         }
 
         return savedPayment.getPaymentId();

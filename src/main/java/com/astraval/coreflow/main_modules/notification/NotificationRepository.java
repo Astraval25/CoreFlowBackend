@@ -27,6 +27,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Long deleteByNotificationIdAndToCompanyCompanyId(Long notificationId, Long toCompanyId);
 
+    Long deleteByToCompanyCompanyIdAndSubjectTypeAndSubjectIdAndIsReadFalse(
+            Long toCompanyId,
+            String subjectType,
+            Long subjectId);
+
     Long deleteByToCompanyCompanyIdAndIsReadFalse(Long toCompanyId);
 
     @Query("""
@@ -37,4 +42,17 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             ORDER BY COUNT(n) DESC
             """)
     List<NotificationEntityUnreadCount> countUnreadByEntity(@Param("companyId") Long companyId);
+
+    @Query("""
+            SELECT n.subjectId AS subjectId, COUNT(n) AS unreadCount
+            FROM Notification n
+            WHERE n.toCompany.companyId = :companyId
+              AND n.isRead = false
+              AND n.subjectType = :subjectType
+              AND n.subjectId IS NOT NULL
+            GROUP BY n.subjectId
+            """)
+    List<NotificationSubjectUnreadCount> countUnreadBySubjectType(
+            @Param("companyId") Long companyId,
+            @Param("subjectType") String subjectType);
 }

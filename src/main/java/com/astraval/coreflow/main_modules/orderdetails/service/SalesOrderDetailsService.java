@@ -14,6 +14,7 @@ import com.astraval.coreflow.main_modules.customer.CustomerRepository;
 import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.items.model.Items;
 import com.astraval.coreflow.main_modules.items.repo.ItemRepository;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 import com.astraval.coreflow.main_modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.main_modules.orderdetails.dto.CreateSalesOrder;
@@ -57,6 +58,9 @@ public class SalesOrderDetailsService {
 
     @Autowired
     private PartnerBalanceService partnerBalanceService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private CompanyRefService companyRefService;
@@ -140,6 +144,20 @@ public class SalesOrderDetailsService {
             Long buyerCompanyId = toCustomers.getCustomerCompany().getCompanyId();
             String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(buyerCompanyId, "PURCHASE_ORDER");
             companyRefService.createOrderRef(buyerCompanyId, savedOrder, buyerLocalNumber);
+
+            if (savedOrder.getVendors() != null) {
+                notificationService.createCompanyNotification(
+                        companyId,
+                        buyerCompanyId,
+                        "New Sales Order",
+                        "A new sales order is created by " + toCustomers.getCompany().getCompanyName(),
+                        "SALES_ORDER_CREATED",
+                        "View Orders",
+                        "/companies/" + buyerCompanyId + "/purchase/orders",
+                        null,
+                        "VENDOR",
+                        savedOrder.getVendors().getVendorId());
+            }
         }
 
         partnerBalanceService.refreshDueAmountsForOrder(savedOrder);

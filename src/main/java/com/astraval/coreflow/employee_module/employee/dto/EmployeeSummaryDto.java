@@ -20,4 +20,5 @@ public class EmployeeSummaryDto {
     private Boolean isActive;
     private SalaryType currentSalaryType;
     private BigDecimal currentMonthlyAmount;
+    private Long unreadCount;
 }

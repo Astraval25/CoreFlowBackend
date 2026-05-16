@@ -100,7 +100,10 @@ public class PurchaseOrderDetailsService {
                     "A new purchase order is created by " + myVendor.getCompany().getCompanyName(),
                     "PURCHASE_ORDER_CREATED",
                     "View Orders",
-                    "/companies/" + vendorsCustomerCompanyId + "/purchase/orders");
+                    "/companies/" + vendorsCustomerCompanyId + "/purchase/orders",
+                    null,
+                    "CUSTOMER",
+                    sellerCustomer.getCustomerId());
         }
         
         

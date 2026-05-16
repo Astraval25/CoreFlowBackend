@@ -63,6 +63,8 @@ public class NotificationService {
         String normalizedActionUrl = normalizeActionUrl(request.getActionUrl());
         notification.setActionUrl(normalizedActionUrl);
         notification.setEntityKey(resolveEntityKey(request, normalizedActionUrl));
+        notification.setSubjectType(normalizeSubjectType(request.getSubjectType()));
+        notification.setSubjectId(request.getSubjectId());
         notification.setIsRead(false);
 
         Notification saved = notificationRepository.save(notification);
@@ -97,12 +99,38 @@ public class NotificationService {
     @Transactional
     public Long createCompanyNotification(Long fromCompanyId, Long toCompanyId, String title, String message,
             String type, String actionLabel, String actionUrl) {
-        return createCompanyNotification(fromCompanyId, toCompanyId, title, message, type, actionLabel, actionUrl, null);
+        return createCompanyNotification(
+                fromCompanyId,
+                toCompanyId,
+                title,
+                message,
+                type,
+                actionLabel,
+                actionUrl,
+                null,
+                null,
+                null);
     }
 
     @Transactional
     public Long createCompanyNotification(Long fromCompanyId, Long toCompanyId, String title, String message,
             String type, String actionLabel, String actionUrl, String entityKey) {
+        return createCompanyNotification(
+                fromCompanyId,
+                toCompanyId,
+                title,
+                message,
+                type,
+                actionLabel,
+                actionUrl,
+                entityKey,
+                null,
+                null);
+    }
+
+    @Transactional
+    public Long createCompanyNotification(Long fromCompanyId, Long toCompanyId, String title, String message,
+            String type, String actionLabel, String actionUrl, String entityKey, String subjectType, Long subjectId) {
         CreateNotificationRequest request = new CreateNotificationRequest();
         request.setFromCompanyId(fromCompanyId);
         request.setToCompanyId(toCompanyId);
@@ -112,6 +140,8 @@ public class NotificationService {
         request.setActionLabel(actionLabel);
         request.setActionUrl(actionUrl);
         request.setEntityKey(entityKey);
+        request.setSubjectType(subjectType);
+        request.setSubjectId(subjectId);
         return createNotification(request);
     }
 
@@ -146,6 +176,10 @@ public class NotificationService {
         return getUnreadCountsByEntity(companyId);
     }
 
+    public Map<Long, Long> getCompanyUnreadCountBySubjectType(Long companyId, String subjectType) {
+        return getUnreadCountsBySubjectType(companyId, subjectType);
+    }
+
     @Transactional
     public void markAsRead(Long companyId, Long notificationId) {
         Long deleted = notificationRepository.deleteByNotificationIdAndToCompanyCompanyId(notificationId, companyId);
@@ -157,6 +191,20 @@ public class NotificationService {
     @Transactional
     public Long markAllAsRead(Long companyId) {
         Long deleted = notificationRepository.deleteByToCompanyCompanyIdAndIsReadFalse(companyId);
+        return deleted == null ? 0L : deleted;
+    }
+
+    @Transactional
+    public Long markSubjectAsRead(Long companyId, String subjectType, Long subjectId) {
+        String normalizedSubjectType = normalizeSubjectType(subjectType);
+        if (normalizedSubjectType == null || subjectId == null) {
+            return 0L;
+        }
+
+        Long deleted = notificationRepository.deleteByToCompanyCompanyIdAndSubjectTypeAndSubjectIdAndIsReadFalse(
+                companyId,
+                normalizedSubjectType,
+                subjectId);
         return deleted == null ? 0L : deleted;
     }
 
@@ -196,6 +244,21 @@ public class NotificationService {
             String key = normalizeEntityKey(group.getEntityKey());
             if (key != null) {
                 counts.put(key, group.getUnreadCount());
+            }
+        });
+        return counts;
+    }
+
+    private Map<Long, Long> getUnreadCountsBySubjectType(Long companyId, String subjectType) {
+        String normalizedSubjectType = normalizeSubjectType(subjectType);
+        Map<Long, Long> counts = new LinkedHashMap<>();
+        if (normalizedSubjectType == null) {
+            return counts;
+        }
+
+        notificationRepository.countUnreadBySubjectType(companyId, normalizedSubjectType).forEach(group -> {
+            if (group.getSubjectId() != null) {
+                counts.put(group.getSubjectId(), group.getUnreadCount());
             }
         });
         return counts;
@@ -267,6 +330,10 @@ public class NotificationService {
                 .replace('-', '_')
                 .replace(' ', '_')
                 .toUpperCase();
+    }
+
+    private String normalizeSubjectType(String value) {
+        return normalizeEntityKey(value);
     }
 
 }

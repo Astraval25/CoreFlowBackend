@@ -17,6 +17,7 @@ import com.astraval.coreflow.main_modules.address.AddressService;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
 import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 import com.astraval.coreflow.main_modules.vendor.dto.CreateUpdateVendorDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderSummaryDto;
@@ -40,6 +41,9 @@ public class VendorService {
 
     @Autowired
     private PartnerBalanceService partnerBalanceService;
+
+    @Autowired
+    private NotificationService notificationService;
 
 
     @Transactional
@@ -131,15 +135,17 @@ public class VendorService {
     }
 
     public List<VendorSummaryDto> getVendorsByCompany(Long companyId) {
-        return vendorRepository.findByCompanyIdSummary(companyId);
+        return applyUnreadCounts(vendorRepository.findByCompanyIdSummary(companyId), companyId);
     }
 
     public List<VendorSummaryDto> getActiveVendorsByCompany(Long companyId) {
-        return vendorRepository.findByCompanyCompanyIdAndIsActiveOrderByDisplayName(companyId, true);
+        return applyUnreadCounts(
+                vendorRepository.findByCompanyCompanyIdAndIsActiveOrderByDisplayName(companyId, true),
+                companyId);
     }
     
     public List<VendorSummaryDto> getUnlinkedVendorsByCompany(Long companyId) {
-        return vendorRepository.findUnlinkedByCompanyIdSummary(companyId);
+        return applyUnreadCounts(vendorRepository.findUnlinkedByCompanyIdSummary(companyId), companyId);
     }
 
     public List<Vendors> getAllVendors() {
@@ -233,5 +239,12 @@ public class VendorService {
         VendorOrderPaymentSummaryDto result = new VendorOrderPaymentSummaryDto(orders, payments);
         result.setPaginationInfo(paginationInfo);
         return result;
+    }
+
+    private List<VendorSummaryDto> applyUnreadCounts(List<VendorSummaryDto> vendors, Long companyId) {
+        var unreadCountByVendor = notificationService.getCompanyUnreadCountBySubjectType(companyId, "VENDOR");
+        vendors.forEach(vendor -> vendor.setUnreadCount(
+                unreadCountByVendor.getOrDefault(vendor.getVendorId(), 0L)));
+        return vendors;
     }
 }

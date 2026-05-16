@@ -85,7 +85,10 @@ public class EmployeeWorkLogService {
                         + " on " + dto.getLogDate(),
                 "WORK_LOG_CREATED",
                 "View Work Logs",
-                "/cf/company/" + companyId + "/work-logs");
+                "/cf/company/" + companyId + "/work-logs",
+                null,
+                "EMPLOYEE",
+                employee.getEmployeeId());
 
         return saved.getLogId();
     }

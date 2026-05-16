@@ -11,6 +11,7 @@ import com.astraval.coreflow.employee_module.salaryconfig.EmployeeSalaryConfigRe
 import com.astraval.coreflow.employee_module.salaryconfig.dto.SalaryConfigDto;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,6 +28,9 @@ public class EmployeeService {
 
     @Autowired
     private EmployeeSalaryConfigRepository salaryConfigRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
     public Long createEmployee(Long companyId, CreateEmployeeDto dto) {
@@ -68,12 +72,12 @@ public class EmployeeService {
 
     public List<EmployeeSummaryDto> getEmployees(Long companyId) {
         List<Employee> employees = employeeRepository.findByCompanyCompanyIdOrderByEmployeeName(companyId);
-        return employees.stream().map(this::toSummaryDto).toList();
+        return applyUnreadCounts(employees.stream().map(this::toSummaryDto).toList(), companyId);
     }
 
     public List<EmployeeSummaryDto> getActiveEmployees(Long companyId) {
         List<Employee> employees = employeeRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByEmployeeName(companyId);
-        return employees.stream().map(this::toSummaryDto).toList();
+        return applyUnreadCounts(employees.stream().map(this::toSummaryDto).toList(), companyId);
     }
 
     public EmployeeDetailDto getEmployeeDetail(Long companyId, Long employeeId) {
@@ -157,7 +161,15 @@ public class EmployeeService {
                     dto.setCurrentSalaryType(config.getSalaryType());
                     dto.setCurrentMonthlyAmount(config.getMonthlyAmount());
                 });
+        dto.setUnreadCount(0L);
 
         return dto;
+    }
+
+    private List<EmployeeSummaryDto> applyUnreadCounts(List<EmployeeSummaryDto> employees, Long companyId) {
+        var unreadCountByEmployee = notificationService.getCompanyUnreadCountBySubjectType(companyId, "EMPLOYEE");
+        employees.forEach(employee -> employee.setUnreadCount(
+                unreadCountByEmployee.getOrDefault(employee.getEmployeeId(), 0L)));
+        return employees;
     }
 }

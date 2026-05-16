@@ -19,6 +19,7 @@ import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.filestorage.FileStorage;
 import com.astraval.coreflow.main_modules.filestorage.FileStorageRepository;
 import com.astraval.coreflow.main_modules.filestorage.FileStorageService;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 import com.astraval.coreflow.main_modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.main_modules.orderdetails.repo.OrderDetailsRepository;
@@ -77,6 +78,9 @@ public class SellerPaymentService {
 
     @Autowired
     private CompanyNumberSequenceRepository companyNumberSequenceRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
     public Long createSellerPayment(Long companyId, CreateSellerPaymentDto request) {
@@ -139,6 +143,20 @@ public class SellerPaymentService {
             Long buyerCompanyId = customer.getCustomerCompany().getCompanyId();
             String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(buyerCompanyId, "PAYMENT_OUT");
             companyRefService.createPaymentRef(buyerCompanyId, savedPayment, buyerLocalNumber);
+
+            if (savedPayment.getVendors() != null) {
+                notificationService.createCompanyNotification(
+                        companyId,
+                        buyerCompanyId,
+                        "New Seller Payment",
+                        "A seller payment is recorded by " + customer.getCompany().getCompanyName(),
+                        "SELLER_PAYMENT_CREATED",
+                        "View Payments",
+                        "/companies/" + buyerCompanyId + "/payments/sent",
+                        null,
+                        "VENDOR",
+                        savedPayment.getVendors().getVendorId());
+            }
         }
 
         // Create order allocations if provided

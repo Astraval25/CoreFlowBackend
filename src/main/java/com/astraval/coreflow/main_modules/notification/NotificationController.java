@@ -81,6 +81,21 @@ public class NotificationController {
         }
     }
 
+    @PatchMapping("/companies/{companyId}/notifications/subjects/{subjectType}/{subjectId}/read")
+    public ApiResponse<Map<String, Long>> markSubjectAsRead(
+            @PathVariable Long companyId,
+            @PathVariable String subjectType,
+            @PathVariable Long subjectId) {
+        try {
+            Long updatedCount = notificationService.markSubjectAsRead(companyId, subjectType, subjectId);
+            return ApiResponseFactory.updated(
+                    Map.of("updatedCount", updatedCount),
+                    "Subject notifications cleared");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
     @PostMapping("/companies/{companyId}/notifications/{notificationId}/open")
     public ApiResponse<NotificationOpenResponse> openNotification(@PathVariable Long companyId, @PathVariable Long notificationId) {
         try {
