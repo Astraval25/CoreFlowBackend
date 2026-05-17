@@ -1,7 +1,11 @@
 package com.astraval.coreflow.main_modules.payments.service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -285,67 +289,87 @@ public class SellerPaymentService {
 
     @Transactional
     private void updateOrderAllocations(Payments payment, List<UpdatePaymentOrderAllocationDto> allocations) {
-        allocations.forEach(allocationDto -> {
+        final List<PaymentOrderAllocations> existingAllocations =
+                paymentOrderAllocationRepository.findByPayments(payment);
+        final Map<Long, PaymentOrderAllocations> existingById = new HashMap<>();
+        for (PaymentOrderAllocations existing : existingAllocations) {
+            if (existing.getPaymentOrderAllocationId() != null) {
+                existingById.put(existing.getPaymentOrderAllocationId(), existing);
+            }
+        }
+
+        final Set<Long> retainedExistingIds = new HashSet<>();
+        final Set<OrderDetails> touchedOrders = new HashSet<>();
+        final Set<Long> requestAllocationIds = new HashSet<>();
+        double totalAllocated = 0.0;
+
+        for (UpdatePaymentOrderAllocationDto allocationDto : allocations) {
             OrderDetails order = orderDetailsRepository.findById(allocationDto.getOrderId())
                     .orElseThrow(() -> new RuntimeException("Order not found with ID: " + allocationDto.getOrderId()));
-            
-            if (payment.getCustomers() != null) {
-                if (order.getCustomers() == null || !order.getCustomers().getCustomerId().equals(payment.getCustomers().getCustomerId())) {
-                    throw new RuntimeException(
-                            "Order " + allocationDto.getOrderId() + 
-                            " does not belong to customer " + payment.getCustomers().getCustomerName());
-                }
-            }
-            
-            PaymentOrderAllocations allocation;
-            OrderDetails previousOrder = null;
-            Double previousAppliedAmount = 0.0;
-            
-            if (allocationDto.getPaymentOrderAllocationId() != null) {
-                allocation = paymentOrderAllocationRepository.findById(allocationDto.getPaymentOrderAllocationId())
-                        .orElseThrow(() -> new RuntimeException("Payment allocation not found with ID: " + allocationDto.getPaymentOrderAllocationId()));
-                
-                if (!allocation.getPayments().getPaymentId().equals(payment.getPaymentId())) {
-                    throw new RuntimeException("Payment allocation does not belong to this payment");
-                }
 
-                previousOrder = allocation.getOrderDetails();
-                previousAppliedAmount = allocation.getAmountApplied() != null ? allocation.getAmountApplied() : 0.0;
+            if (payment.getCustomers() != null &&
+                    (order.getCustomers() == null ||
+                            !order.getCustomers().getCustomerId().equals(payment.getCustomers().getCustomerId()))) {
+                throw new RuntimeException(
+                        "Order " + allocationDto.getOrderId() +
+                                " does not belong to customer " + payment.getCustomers().getCustomerName());
+            }
+
+            PaymentOrderAllocations allocation;
+            if (allocationDto.getPaymentOrderAllocationId() != null) {
+                Long allocationId = allocationDto.getPaymentOrderAllocationId();
+                if (!requestAllocationIds.add(allocationId)) {
+                    throw new RuntimeException("Duplicate allocation id in request: " + allocationId);
+                }
+                allocation = existingById.get(allocationId);
+                if (allocation == null) {
+                    throw new RuntimeException("Payment allocation not found with ID: " + allocationId);
+                }
+                retainedExistingIds.add(allocationId);
+                if (allocation.getOrderDetails() != null) {
+                    touchedOrders.add(allocation.getOrderDetails());
+                }
             } else {
                 allocation = new PaymentOrderAllocations();
                 allocation.setPayments(payment);
             }
 
-            Double currentPaidForTarget = paymentOrderAllocationRepository.getTotalPaidAmountForOrder(order.getOrderId());
-            if (currentPaidForTarget == null) {
-                currentPaidForTarget = 0.0;
-            }
-
-            Double nextPaidForTarget = currentPaidForTarget + allocationDto.getAmountApplied();
-            if (previousOrder != null && previousOrder.getOrderId().equals(order.getOrderId())) {
-                nextPaidForTarget = currentPaidForTarget - previousAppliedAmount + allocationDto.getAmountApplied();
-            }
-
-            if (nextPaidForTarget > order.getTotalAmount()) {
-                throw new RuntimeException(
-                        "Payment exceeds remaining amount for Order " + allocationDto.getOrderId() +
-                                ". Amount needed: " + (order.getTotalAmount() - currentPaidForTarget) +
-                                ", Amount trying to pay: " + allocationDto.getAmountApplied());
-            }
-            
             allocation.setOrderDetails(order);
             allocation.setAmountApplied(allocationDto.getAmountApplied());
-            allocation.setAllocationDate(allocationDto.getAllocationDate() != null ? 
-                    allocationDto.getAllocationDate() : LocalDateTime.now());
+            allocation.setAllocationDate(allocationDto.getAllocationDate() != null
+                    ? allocationDto.getAllocationDate()
+                    : LocalDateTime.now());
             allocation.setAllocationRemarks(allocationDto.getAllocationRemarks());
-            
             paymentOrderAllocationRepository.save(allocation);
 
-            recalculateOrderPaymentState(order);
-            if (previousOrder != null && !previousOrder.getOrderId().equals(order.getOrderId())) {
-                recalculateOrderPaymentState(previousOrder);
+            totalAllocated += allocationDto.getAmountApplied();
+            touchedOrders.add(order);
+        }
+
+        if (totalAllocated - payment.getAmount() > 0.0001) {
+            throw new RuntimeException(
+                    "Total allocated amount (" + totalAllocated + ") exceeds payment amount (" + payment.getAmount() + ")");
+        }
+
+        for (PaymentOrderAllocations existing : existingAllocations) {
+            Long existingId = existing.getPaymentOrderAllocationId();
+            if (existingId != null && !retainedExistingIds.contains(existingId)) {
+                touchedOrders.add(existing.getOrderDetails());
+                paymentOrderAllocationRepository.delete(existing);
             }
-        });
+        }
+
+        for (OrderDetails touchedOrder : touchedOrders) {
+            if (touchedOrder == null) continue;
+            Double latestTotalPaid = paymentOrderAllocationRepository.getTotalPaidAmountForOrder(touchedOrder.getOrderId());
+            if (latestTotalPaid != null && latestTotalPaid - touchedOrder.getTotalAmount() > 0.0001) {
+                throw new RuntimeException(
+                        "Payment exceeds remaining amount for Order " + touchedOrder.getOrderId() +
+                                ". Order total: " + touchedOrder.getTotalAmount() +
+                                ", total allocated: " + latestTotalPaid);
+            }
+            recalculateOrderPaymentState(touchedOrder);
+        }
     }
 
     @Transactional
