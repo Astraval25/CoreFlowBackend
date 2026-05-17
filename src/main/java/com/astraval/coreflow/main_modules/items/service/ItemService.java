@@ -213,72 +213,33 @@ public class ItemService {
         Customers customer = customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
 
-        if (customer.getCustomerCompany() == null) {
-            List<ItemCustomerPrice> prices = itemCustomerPriceRepository
-                    .findByCustomerCustomerIdAndIsActiveTrue(customerId);
-            java.util.Map<Long, ItemCustomerPrice> priceByItemId = prices.stream()
-                    .collect(java.util.stream.Collectors.toMap(
-                            p -> p.getItem().getItemId(),
-                            p -> p,
-                            (a, b) -> a));
+        List<ItemCustomerPrice> prices = itemCustomerPriceRepository
+                .findByCustomerCustomerIdAndIsActiveTrue(customer.getCustomerId());
+        java.util.Map<Long, ItemCustomerPrice> priceByItemId = prices.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        p -> p.getItem().getItemId(),
+                        p -> p,
+                        (a, b) -> a));
 
-            return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
-                    .map(item -> {
-                        ItemCustomerPrice price = priceByItemId.get(item.getItemId());
-                        String source = (price != null
-                                && (price.getSalesPrice() != null || price.getSalesDescription() != null))
-                                        ? "CUSTOMER_ITEM"
-                                        : "ITEM_BASE";
-                        return new SellableItemDto(
-                                item.getItemId(),
-                                item.getItemName(),
-                                resolveSalesDescription(item, price),
-                                resolveSalesPrice(item, price),
-                                item.getTaxRate(),
-                                item.getHsnCode(),
-                                source,
-                                item.getFsId());
-                    })
-                    .filter(dto -> dto.getPrice() != null)
-                    .toList();
-        }
-        else{
-            Long customerCompanyId = customer.getCustomerCompany().getCompanyId();
-            CompanyLink customerVendorLink = customerVendorLinkRepository
-                    .findByCustomerCustomerIdAndVendorCompanyCompanyId(customerId, customerCompanyId)
-                    .orElseThrow(() -> new RuntimeException(
-                            "Customer Link not present in customer_vendor_link table: " + customerId));
-            
-            Long vendorId = customerVendorLink.getVendor().getVendorId();
-            List<ItemVendorPrice> prices = itemVendorPriceRepository
-                    .findByVendorVendorIdAndIsActiveTrue(vendorId);
-            java.util.Map<Long, ItemVendorPrice> priceByItemId = prices.stream()
-                    .collect(java.util.stream.Collectors.toMap(
-                            p -> p.getItem().getItemId(),
-                            p -> p,
-                            (a, b) -> a));
-
-            return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(customerCompanyId).stream()
-                    .map(item -> {
-                        ItemVendorPrice price = priceByItemId.get(item.getItemId());
-                        String source = (price != null
-                                && (price.getPurchasePrice() != null || price.getPurchaseDescription() != null))
-                                        ? "VENDOR_ITEM"
-                                        : "ITEM_BASE";
-                        return new SellableItemDto(
-                                item.getItemId(),
-                                item.getItemName(),
-                                resolvePurchaseDescription(item, price),
-                                resolvePurchasePrice(item, price),
-                                item.getTaxRate(),
-                                item.getHsnCode(),
-                                source,
-                                item.getFsId());
-                    })
-                    .filter(dto -> dto.getPrice() != null)
-                    .toList();
-            
-        }        
+        return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                .map(item -> {
+                    ItemCustomerPrice price = priceByItemId.get(item.getItemId());
+                    String source = (price != null
+                            && (price.getSalesPrice() != null || price.getSalesDescription() != null))
+                                    ? "CUSTOMER_ITEM"
+                                    : "ITEM_BASE";
+                    return new SellableItemDto(
+                            item.getItemId(),
+                            item.getItemName(),
+                            resolveSalesDescription(item, price),
+                            resolveSalesPrice(item, price),
+                            item.getTaxRate(),
+                            item.getHsnCode(),
+                            source,
+                            item.getFsId());
+                })
+                .filter(dto -> dto.getPrice() != null)
+                .toList();
     }
 
     // VERY_IMPORTANT API - GET PURCHASEABLE ITEMS BY COMPANY AND VENDOR.
