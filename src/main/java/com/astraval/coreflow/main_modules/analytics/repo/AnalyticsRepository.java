@@ -847,10 +847,15 @@ public class AnalyticsRepository {
                     od.order_id,
                     CASE WHEN c.comp_id = :companyId THEN 'SALES' ELSE 'PURCHASE' END AS order_type,
                     od.order_date,
+                    CASE
+                        WHEN c.comp_id = :companyId THEN COALESCE(NULLIF(c.display_name, ''), c.customer_name, '')
+                        ELSE COALESCE(NULLIF(v.display_name, ''), v.vendor_name, '')
+                    END AS party_name,
                     COALESCE(cor.local_order_number, od.order_number, '') AS local_order_number,
                     od.order_status,
                     COALESCE(SUM(oid.quantity), 0) AS total_item_quantity,
                     COALESCE(od.total_amount, 0) AS total_amount,
+                    COALESCE(od.paid_amount, 0) AS paid_amount,
                     CASE
                         WHEN COALESCE(od.total_amount, 0) > 0
                             THEN ROUND((COALESCE(od.paid_amount, 0) / od.total_amount) * 100)
@@ -877,7 +882,7 @@ public class AnalyticsRepository {
                         OR (:paidState = 'PAID' AND COALESCE(od.total_amount, 0) > 0 AND COALESCE(od.paid_amount, 0) >= COALESCE(od.total_amount, 0))
                       )
                   AND (:statusesEmpty = true OR od.order_status IN :statuses)
-                GROUP BY od.order_id, order_type, od.order_date, cor.local_order_number, od.order_number, od.order_status, od.total_amount, od.paid_amount
+                GROUP BY od.order_id, order_type, od.order_date, c.comp_id, c.display_name, c.customer_name, v.display_name, v.vendor_name, cor.local_order_number, od.order_number, od.order_status, od.total_amount, od.paid_amount
                 ORDER BY od.order_date DESC, od.order_id DESC
                 """;
         Query q = em.createNativeQuery(sql);
@@ -902,6 +907,10 @@ public class AnalyticsRepository {
                     p.payment_id,
                     CASE WHEN c.comp_id = :companyId THEN 'RECEIVED' ELSE 'MADE' END AS payment_type,
                     p.payment_date,
+                    CASE
+                        WHEN c.comp_id = :companyId THEN COALESCE(NULLIF(c.display_name, ''), c.customer_name, '')
+                        ELSE COALESCE(NULLIF(v.display_name, ''), v.vendor_name, '')
+                    END AS party_name,
                     COALESCE(cpr.local_payment_number, p.payment_number, '') AS local_payment_number,
                     p.payment_status,
                     p.mode_of_payment,

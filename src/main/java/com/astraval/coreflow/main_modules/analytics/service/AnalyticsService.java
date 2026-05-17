@@ -387,9 +387,11 @@ public class AnalyticsService {
                 toLocalDateTime(r[2]),
                 (String) r[3],
                 (String) r[4],
-                toDouble(r[5]),
+                (String) r[5],
                 toDouble(r[6]),
-                ((Number) r[7]).intValue()
+                toDouble(r[7]),
+                toDouble(r[8]),
+                ((Number) r[9]).intValue()
         )).toList();
     }
 
@@ -413,7 +415,8 @@ public class AnalyticsService {
                 (String) r[3],
                 (String) r[4],
                 (String) r[5],
-                toDouble(r[6])
+                (String) r[6],
+                toDouble(r[7])
         )).toList();
     }
 
