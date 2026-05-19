@@ -252,6 +252,13 @@ public class VendorService {
         return vendors;
     }
 
+    /**
+     * Double-tick ("viewed") rule for vendor orders.
+     *
+     * We intentionally infer this from lifecycle status rather than storing a
+     * separate viewed flag. Any status at or after viewed in the flow is
+     * considered viewed in client UI.
+     */
     private boolean isViewedOrderStatus(String status) {
         if (status == null || status.isBlank()) return false;
         return OrderStatus.getOrderViewed().equalsIgnoreCase(status)
@@ -259,6 +266,12 @@ public class VendorService {
                 || OrderStatus.getOrderPayed().equalsIgnoreCase(status);
     }
 
+    /**
+     * Double-tick ("viewed") rule for vendor payments.
+     *
+     * Payments are treated as viewed when they enter viewed or any terminal /
+     * decision state.
+     */
     private boolean isViewedPaymentStatus(String status) {
         if (status == null || status.isBlank()) return false;
         return PaymentStatus.getPaymentViewed().equalsIgnoreCase(status)
