@@ -40,4 +40,13 @@ public interface EmployeeWorkLogRepository extends JpaRepository<EmployeeWorkLog
             @Param("employeeId") Long employeeId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT w.employee.employeeId, COUNT(w.logId) " +
+            "FROM EmployeeWorkLog w " +
+            "WHERE w.company.companyId = :companyId " +
+            "AND w.status = :status " +
+            "GROUP BY w.employee.employeeId")
+    List<Object[]> countByCompanyAndStatusGroupedByEmployee(
+            @Param("companyId") Long companyId,
+            @Param("status") WorkLogStatus status);
 }

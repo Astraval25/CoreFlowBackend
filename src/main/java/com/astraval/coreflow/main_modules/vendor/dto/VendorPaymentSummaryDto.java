@@ -6,5 +6,6 @@ public record VendorPaymentSummaryDto(
     Long paymentId,
     String paymentPlatformRef,
     LocalDateTime paymentDate,
-    Double amount
+    Double amount,
+    Boolean isViewed
 ) {}

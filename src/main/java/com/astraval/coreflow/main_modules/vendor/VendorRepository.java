@@ -104,7 +104,7 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
 
     @Query(value = """
             SELECT o.order_id, o.order_number, o.total_amount,
-                   o.platform_ref, o.paid_amount, o.order_date
+                   o.platform_ref, o.paid_amount, o.order_date, o.order_status
             FROM order_details o
             WHERE o.vendor = :vendorId
               AND COALESCE(o.is_active, TRUE) = TRUE
@@ -129,7 +129,7 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
             Pageable pageable);
 
     @Query(value = """
-            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount
+            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount, p.payment_status
             FROM payments p
             WHERE p.vendor = :vendorId
               AND COALESCE(p.is_active, TRUE) = TRUE

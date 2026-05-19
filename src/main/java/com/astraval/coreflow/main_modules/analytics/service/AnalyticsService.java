@@ -14,11 +14,14 @@ import org.springframework.stereotype.Service;
 import com.astraval.coreflow.main_modules.analytics.dto.BusinessGrowthDto;
 import com.astraval.coreflow.main_modules.analytics.dto.CashFlowDto;
 import com.astraval.coreflow.main_modules.analytics.dto.DashboardKpiDto;
+import com.astraval.coreflow.main_modules.analytics.dto.EmployeeAnalyticsOverviewDto;
+import com.astraval.coreflow.main_modules.analytics.dto.EmployeeDailyAnalyticsDto;
 import com.astraval.coreflow.main_modules.analytics.dto.ItemFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.MonthlyTrendDto;
 import com.astraval.coreflow.main_modules.analytics.dto.OrderHistoryDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentHistoryDto;
 import com.astraval.coreflow.main_modules.analytics.dto.OrderFrequencyDto;
+import com.astraval.coreflow.main_modules.analytics.dto.PartyOrderPaymentTrendDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentModeDistributionDto;
 import com.astraval.coreflow.main_modules.analytics.dto.ProfitByItemDto;
@@ -160,7 +163,8 @@ public class AnalyticsService {
                 ((Number) r[2]).longValue(),
                 toDouble(r[3]),
                 toDouble(r[4]),
-                toDouble(r[5])
+                toDouble(r[5]),
+                toDouble(r[6])
         )).toList();
     }
 
@@ -172,7 +176,8 @@ public class AnalyticsService {
                 ((Number) r[2]).longValue(),
                 toDouble(r[3]),
                 toDouble(r[4]),
-                toDouble(r[5])
+                toDouble(r[5]),
+                toDouble(r[6])
         )).toList();
     }
 
@@ -366,6 +371,82 @@ public class AnalyticsService {
         )).toList();
     }
 
+    public List<PartyOrderPaymentTrendDto> getCustomerOrderPaymentTrend(
+            Long companyId,
+            Long customerId,
+            LocalDate startDate,
+            LocalDate endDate) {
+        List<Object[]> rows = analyticsRepository.customerOrderPaymentTrend(
+                companyId,
+                customerId,
+                toStartOfDay(startDate),
+                toEndOfDay(endDate));
+        return rows.stream().map(r -> new PartyOrderPaymentTrendDto(
+                (String) r[0],
+                toDouble(r[1]),
+                toDouble(r[2]),
+                toDouble(r[3])
+        )).toList();
+    }
+
+    public List<PartyOrderPaymentTrendDto> getVendorOrderPaymentTrend(
+            Long companyId,
+            Long vendorId,
+            LocalDate startDate,
+            LocalDate endDate) {
+        List<Object[]> rows = analyticsRepository.vendorOrderPaymentTrend(
+                companyId,
+                vendorId,
+                toStartOfDay(startDate),
+                toEndOfDay(endDate));
+        return rows.stream().map(r -> new PartyOrderPaymentTrendDto(
+                (String) r[0],
+                toDouble(r[1]),
+                toDouble(r[2]),
+                toDouble(r[3])
+        )).toList();
+    }
+
+    public List<EmployeeAnalyticsOverviewDto> getEmployeeAnalyticsOverview(
+            Long companyId,
+            LocalDate startDate,
+            LocalDate endDate) {
+        List<Object[]> rows = analyticsRepository.employeeAnalyticsOverview(
+                companyId,
+                toStartOfDay(startDate),
+                toEndOfDay(endDate));
+        return rows.stream().map(r -> new EmployeeAnalyticsOverviewDto(
+                toLong(r[0]),
+                (String) r[1],
+                (String) r[2],
+                toLong(r[3]),
+                toDouble(r[4]),
+                toDouble(r[5]),
+                toLong(r[6]),
+                toDouble(r[7]),
+                toLong(r[8]),
+                toLong(r[9])
+        )).toList();
+    }
+
+    public List<EmployeeDailyAnalyticsDto> getEmployeeDailyAnalytics(
+            Long companyId,
+            Long employeeId,
+            LocalDate startDate,
+            LocalDate endDate) {
+        List<Object[]> rows = analyticsRepository.employeeDailyAnalytics(
+                companyId,
+                employeeId,
+                toStartOfDay(startDate),
+                toEndOfDay(endDate));
+        return rows.stream().map(r -> new EmployeeDailyAnalyticsDto(
+                (String) r[0],
+                toDouble(r[1]),
+                toDouble(r[2]),
+                toDouble(r[3])
+        )).toList();
+    }
+
     public List<OrderHistoryDto> getOrderHistory(
             Long companyId,
             LocalDate startDate,
@@ -423,6 +504,11 @@ public class AnalyticsService {
     private Double toDouble(Object val) {
         if (val == null) return 0.0;
         return ((Number) val).doubleValue();
+    }
+
+    private Long toLong(Object val) {
+        if (val == null) return 0L;
+        return ((Number) val).longValue();
     }
 
     private LocalDateTime toLocalDateTime(Object val) {

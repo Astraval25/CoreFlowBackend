@@ -18,6 +18,8 @@ import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
 import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
 import com.astraval.coreflow.main_modules.notification.NotificationService;
+import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
+import com.astraval.coreflow.main_modules.payments.PaymentStatus;
 import com.astraval.coreflow.main_modules.vendor.dto.CreateUpdateVendorDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderSummaryDto;
@@ -214,14 +216,16 @@ public class VendorService {
                 row[2] != null ? ((Number) row[2]).doubleValue() : null,
                 (String) row[3],
                 row[4] != null ? ((Number) row[4]).doubleValue() : null,
-                row[5] != null ? (LocalDateTime) row[5] : null
+                row[5] != null ? (LocalDateTime) row[5] : null,
+                isViewedOrderStatus((String) row[6])
         )).getContent();
 
         List<VendorPaymentSummaryDto> payments = paymentResults.map(row -> new VendorPaymentSummaryDto(
                 row[0] != null ? ((Number) row[0]).longValue() : null,
                 (String) row[1],
                 row[2] != null ? (LocalDateTime) row[2] : null,
-                row[3] != null ? ((Number) row[3]).doubleValue() : null
+                row[3] != null ? ((Number) row[3]).doubleValue() : null,
+                isViewedPaymentStatus((String) row[4])
         )).getContent();
 
         PaginationInfo paginationInfo = new PaginationInfo(
@@ -246,5 +250,22 @@ public class VendorService {
         vendors.forEach(vendor -> vendor.setUnreadCount(
                 unreadCountByVendor.getOrDefault(vendor.getVendorId(), 0L)));
         return vendors;
+    }
+
+    private boolean isViewedOrderStatus(String status) {
+        if (status == null || status.isBlank()) return false;
+        return OrderStatus.getOrderViewed().equalsIgnoreCase(status)
+                || OrderStatus.getOrderInvoiced().equalsIgnoreCase(status)
+                || OrderStatus.getOrderPayed().equalsIgnoreCase(status);
+    }
+
+    private boolean isViewedPaymentStatus(String status) {
+        if (status == null || status.isBlank()) return false;
+        return PaymentStatus.getPaymentViewed().equalsIgnoreCase(status)
+                || PaymentStatus.getPaymentAccepted().equalsIgnoreCase(status)
+                || PaymentStatus.getPaymentDeclined().equalsIgnoreCase(status)
+                || PaymentStatus.getPartiallyPaid().equalsIgnoreCase(status)
+                || PaymentStatus.getPaymentRefund().equalsIgnoreCase(status)
+                || PaymentStatus.getPaymentFailed().equalsIgnoreCase(status);
     }
 }
