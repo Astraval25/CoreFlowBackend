@@ -20,4 +20,6 @@ public class UpdateItemDto {
     private BigDecimal basePurchasePrice;
     private String hsnCode;
     private BigDecimal taxRate;
+    private Boolean isSellable;
+    private Boolean isPurchasable;
 }

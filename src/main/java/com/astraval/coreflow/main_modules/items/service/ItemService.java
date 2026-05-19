@@ -75,17 +75,13 @@ public class ItemService {
     @Transactional
     public Long createItem(Long companyId, CreateItemDto request, MultipartFile file) {
         try {
-            if (request.getBaseSalesPrice() == null && request.getBasePurchasePrice() == null) {
-                throw new RuntimeException("Either sales price or purchase price is required");
-            }
-
             Companies company = companyRepository.findById(companyId)
                     .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
 
             Items item = new Items();
             item.setCompany(company);
             itemMapper.mapDtoToEntity(request, item);
-            applySellablePurchasableFlags(item);
+            applyItemCapabilitiesOnCreate(item, request);
 
             // Handle file upload if provided
             if (file != null && !file.isEmpty()) {
@@ -119,7 +115,7 @@ public class ItemService {
                     .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
 
             itemMapper.mapUpdateDtoToEntity(request, item);
-            applySellablePurchasableFlags(item);
+            applyItemCapabilitiesOnUpdate(item, request);
 
             // Handle file upload if provided
             if (file != null && !file.isEmpty()) {
@@ -222,6 +218,7 @@ public class ItemService {
                         (a, b) -> a));
 
         return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                .filter(item -> Boolean.TRUE.equals(item.getIsSellable()))
                 .map(item -> {
                     ItemCustomerPrice price = priceByItemId.get(item.getItemId());
                     String source = (price != null
@@ -257,6 +254,7 @@ public class ItemService {
                             (a, b) -> a));
 
             return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(companyId).stream()
+                    .filter(item -> Boolean.TRUE.equals(item.getIsPurchasable()))
                     .map(item -> {
                         ItemVendorPrice price = priceByItemId.get(item.getItemId());
                         String source = (price != null
@@ -294,6 +292,7 @@ public class ItemService {
                             (a, b) -> a));
 
             return itemRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByItemName(vendorCompanyId).stream()
+                    .filter(item -> Boolean.TRUE.equals(item.getIsSellable()))
                     .map(item -> {
                         ItemCustomerPrice price = priceByItemId.get(item.getItemId());
                         String source = (price != null
@@ -332,9 +331,56 @@ public class ItemService {
                 item.getFsId());
     }
 
-    private void applySellablePurchasableFlags(Items item) {
-        item.setIsSellable(item.getBaseSalesPrice() != null);
-        item.setIsPurchasable(item.getBasePurchasePrice() != null);
+    private void applyItemCapabilitiesOnCreate(Items item, CreateItemDto request) {
+        boolean isSellable = request.getIsSellable() != null
+                ? request.getIsSellable()
+                : request.getBaseSalesPrice() != null;
+        boolean isPurchasable = request.getIsPurchasable() != null
+                ? request.getIsPurchasable()
+                : request.getBasePurchasePrice() != null;
+        validateAndApplyCapabilities(item, isSellable, isPurchasable);
+    }
+
+    private void applyItemCapabilitiesOnUpdate(Items item, UpdateItemDto request) {
+        boolean isSellable = request.getIsSellable() != null
+                ? request.getIsSellable()
+                : Boolean.TRUE.equals(item.getIsSellable());
+        boolean isPurchasable = request.getIsPurchasable() != null
+                ? request.getIsPurchasable()
+                : Boolean.TRUE.equals(item.getIsPurchasable());
+
+        if (request.getIsSellable() == null && request.getBaseSalesPrice() != null) {
+            isSellable = true;
+        }
+        if (request.getIsPurchasable() == null && request.getBasePurchasePrice() != null) {
+            isPurchasable = true;
+        }
+
+        validateAndApplyCapabilities(item, isSellable, isPurchasable);
+    }
+
+    private void validateAndApplyCapabilities(Items item, boolean isSellable, boolean isPurchasable) {
+        if (!isSellable && !isPurchasable) {
+            throw new RuntimeException("At least one option must be selected: sellable or purchasable");
+        }
+        if (isSellable && item.getBaseSalesPrice() == null) {
+            throw new RuntimeException("Sales price is required for sellable items");
+        }
+        if (isPurchasable && item.getBasePurchasePrice() == null) {
+            throw new RuntimeException("Purchase price is required for purchasable items");
+        }
+
+        if (!isSellable) {
+            item.setBaseSalesPrice(null);
+            item.setSalesDescription(null);
+        }
+        if (!isPurchasable) {
+            item.setBasePurchasePrice(null);
+            item.setPurchaseDescription(null);
+        }
+
+        item.setIsSellable(isSellable);
+        item.setIsPurchasable(isPurchasable);
     }
 
     private BigDecimal resolveSalesPrice(Items item, ItemCustomerPrice price) {

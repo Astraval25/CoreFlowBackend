@@ -50,6 +50,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
+           "AND i.isSellable = true " +
            "AND i.baseSalesPrice IS NOT NULL " +
            "ORDER BY i.itemName")
     List<SellableItemDto> findSellableItemsByCompanyId(@Param("companyId") Long companyId);
@@ -60,6 +61,7 @@ public interface ItemRepository extends JpaRepository<Items, Long> {
            "FROM Items i " +
            "WHERE i.company.companyId = :companyId " +
            "AND i.isActive = true " +
+           "AND i.isPurchasable = true " +
            "AND i.basePurchasePrice IS NOT NULL " +
            "ORDER BY i.itemName")
     List<PurchasableItemDto> findPurchasableItemsByCompanyId(@Param("companyId") Long companyId);
