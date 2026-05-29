@@ -26,6 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -60,10 +61,11 @@ public class AuthService {
     }
 
     public LoginResponse login(@Valid LoginRequest request) {
-        Optional<User> userOpt = userService.findUserByEmail(request.getEmail());
+        String contactNo = buildContactNumber(request.getCountryCode(), request.getPhoneNumber());
+        Optional<User> userOpt = userService.findUserByContactNo(contactNo);
 
         if (userOpt.isEmpty()) {
-            throw new InvalidCredentialsException("Invalid email or user not found");
+            throw new InvalidCredentialsException("Invalid phone number or user not found");
         }
         User user = userOpt.get();
 
@@ -75,8 +77,14 @@ public class AuthService {
         }
 
         if (!user.isVerified()) {
+            if (!hasText(user.getEmail())) {
+                user.setVerified(true);
+                userRepository.save(user);
+            } else {
             return new LoginResponse(
-                    null, null, user.getUserId().intValue(), null, "/verify/user", null, null);
+                        null, null, user.getUserId().intValue(), null, "/verify/user", null, null, null,
+                        user.getEmail());
+            }
         }
 
         UserRoleMap userRole = getUserRoleMap(user);
@@ -98,7 +106,7 @@ public class AuthService {
         return new LoginResponse(
                 token, refreshToken, user.getUserId().intValue(), userRole.getRole().getRoleCode(),
                 userRole.getRole().getLandingUrl(), user.getDefaultCompany().getCompanyId(),
-                user.getDefaultCompany().getCompanyName(), companyIds);
+                user.getDefaultCompany().getCompanyName(), companyIds, user.getEmail());
     }
 
     private UserRoleMap getUserRoleMap(User user) {
@@ -118,34 +126,56 @@ public class AuthService {
 
     @Transactional
     public RegisterResponse registerNewUser(RegisterRequest dto) {
-        // Check if user already exists by email
-        if (userService.findUserByEmail(dto.getEmail()).isPresent()) {
-            log.warn("Registration failed - email already exists: {}", dto.getEmail());
+        String normalizedEmail = normalizeEmail(dto.getEmail());
+        String contactNo = buildContactNumber(dto.getCountryCode(), dto.getPhoneNumber());
+        String requestedUserName = trimToNull(dto.getUserName());
+
+        // Check if user already exists by phone number
+        if (userService.findUserByContactNo(contactNo).isPresent()) {
+            log.warn("Registration failed - phone already exists: {}", contactNo);
+            throw new InvalidCredentialsException("User with this phone number already exists");
+        }
+
+        // Check if user already exists by email (when email is provided)
+        if (hasText(normalizedEmail) && userService.findUserByEmail(normalizedEmail).isPresent()) {
+            log.warn("Registration failed - email already exists: {}", normalizedEmail);
             throw new InvalidCredentialsException("User with this email already exists");
         }
 
-        // Check if username already exists
-        if (userRepository.findByUserNameAndIsActiveTrue(dto.getUserName()).isPresent()) {
-            log.warn("Registration failed - username already exists: {}", dto.getUserName());
+        String finalUserName = requestedUserName;
+
+        // Check if provided username already exists
+        if (hasText(finalUserName)
+                && userRepository.findByUserNameAndIsActiveTrue(finalUserName).isPresent()) {
+            log.warn("Registration failed - username already exists: {}", finalUserName);
             throw new InvalidCredentialsException("Username already exists");
+        }
+
+        // Auto-generate username when omitted
+        if (!hasText(finalUserName)) {
+            finalUserName = generateUniqueUserName(contactNo);
         }
 
         // 1. Create company
         Companies newCompany = new Companies();
-        newCompany.setCompanyName(dto.getCompanyName());
-        newCompany.setIndustry(dto.getIndustry());
-        newCompany.setPan(dto.getPan());
+        newCompany.setCompanyName(dto.getCompanyName().trim());
+        // companies.industry is non-null at DB level; keep a safe default when
+        // registration does not provide industry.
+        newCompany.setIndustry(hasText(dto.getIndustry()) ? dto.getIndustry().trim() : "General");
+        newCompany.setPan(trimToNull(dto.getPan()));
         newCompany = companyRepository.save(newCompany);
 
         // 2. Create user
         User newUser = new User();
-        newUser.setUserName(dto.getUserName());
-        newUser.setFirstName(dto.getFirstName());
-        newUser.setLastName(dto.getLastName());
-        newUser.setEmail(dto.getEmail());
+        newUser.setUserName(finalUserName);
+        newUser.setFirstName(trimToNull(dto.getFirstName()));
+        newUser.setLastName(trimToNull(dto.getLastName()));
+        newUser.setEmail(normalizedEmail);
+        newUser.setContactNo(contactNo);
         newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
         newUser.setDefaultCompany(newCompany);
-        newUser.setVerified(false);
+        boolean emailVerificationRequired = hasText(normalizedEmail);
+        newUser.setVerified(!emailVerificationRequired);
         newUser = userRepository.save(newUser);
 
         // 3. Assign default role
@@ -162,9 +192,13 @@ public class AuthService {
 
         RegisterResponse response = new RegisterResponse();
         response.setEmail(newUser.getEmail());
+        response.setEmailVerificationRequired(emailVerificationRequired);
+        response.setLandingUrl(emailVerificationRequired ? "/verify/user" : "/login");
 
-        // Send OTP for email verification
-        otpService.sendOtp(newUser.getEmail());
+        // Send OTP for email verification only when email is provided
+        if (emailVerificationRequired) {
+            otpService.sendOtp(newUser.getEmail());
+        }
         log.info("Registration completed for user: {}", newUser.getUserId());
 
         return response;
@@ -266,7 +300,7 @@ public class AuthService {
         return new LoginResponse(
                 newToken, newRefreshToken, user.getUserId().intValue(), userRole.getRole().getRoleCode(),
                 userRole.getRole().getLandingUrl(), user.getDefaultCompany().getCompanyId(),
-                user.getDefaultCompany().getCompanyName(), companyIds);
+                user.getDefaultCompany().getCompanyName(), companyIds, user.getEmail());
     }
 
     private EmployeeLoginResponse refreshEmployeeToken(io.jsonwebtoken.Claims claims) {
@@ -308,6 +342,58 @@ public class AuthService {
                 companyId,
                 portalUser.getCompany().getCompanyName(),
                 portalUser.getEmployee().getDesignation());
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+        String normalized = email.trim().toLowerCase(Locale.ROOT);
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String buildContactNumber(String countryCode, String phoneNumber) {
+        if (!hasText(countryCode) || !hasText(phoneNumber)) {
+            throw new InvalidCredentialsException("Country code and phone number are required");
+        }
+
+        String digitsCountryCode = countryCode.trim().replaceAll("[^0-9]", "");
+        String digitsPhone = phoneNumber.trim().replaceAll("[^0-9]", "");
+
+        if (digitsCountryCode.isEmpty()) {
+            throw new InvalidCredentialsException("Invalid country code");
+        }
+        if (digitsPhone.length() < 6 || digitsPhone.length() > 15) {
+            throw new InvalidCredentialsException("Invalid phone number");
+        }
+
+        return "+" + digitsCountryCode + digitsPhone;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String generateUniqueUserName(String contactNo) {
+        String digits = contactNo.replaceAll("[^0-9]", "");
+        String lastDigits = digits.length() > 8 ? digits.substring(digits.length() - 8) : digits;
+        String base = "user_" + lastDigits;
+        String candidate = base;
+        int counter = 1;
+
+        while (userRepository.findByUserNameAndIsActiveTrue(candidate).isPresent()) {
+            candidate = base + "_" + counter++;
+        }
+
+        return candidate;
     }
 
 }

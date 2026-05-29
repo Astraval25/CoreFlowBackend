@@ -19,6 +19,11 @@ public class UserService {
   public Optional<User> findUserByEmail(String email) {
     return userRepository.findActiveUserByEmail(email);
   }
+
+  @Transactional(readOnly = true)
+  public Optional<User> findUserByContactNo(String contactNo) {
+    return userRepository.findActiveUserByContactNo(contactNo);
+  }
   
   @Transactional
   public User saveUser(User user) {
