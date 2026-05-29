@@ -93,6 +93,11 @@ public class BuyerPaymentService {
 
         Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(request.getVendorId(), companyId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + request.getVendorId()));
+        // Block payments for vendors with pending/rejected connection
+        if (!com.astraval.coreflow.main_modules.companylink.ConnectionStatus.allowsTransactions(vendor.getConnectionStatus())) {
+            throw new RuntimeException("Cannot create payment: vendor connection is " + vendor.getConnectionStatus()
+                    + ". The connection request must be accepted first.");
+        }
         // -------------------------------------
 
         Payments payment = new Payments();

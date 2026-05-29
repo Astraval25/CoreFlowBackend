@@ -14,6 +14,7 @@ public class VendorSummaryDto {
     private String email;
     private Double dueAmount;
     private Boolean isActive;
+    private String connectionStatus;
     private Long unreadCount;
 
     public VendorSummaryDto(
@@ -22,13 +23,15 @@ public class VendorSummaryDto {
             String vendorCompanyName,
             String email,
             Double dueAmount,
-            Boolean isActive) {
+            Boolean isActive,
+            String connectionStatus) {
         this.vendorId = vendorId;
         this.displayName = displayName;
         this.vendorCompanyName = vendorCompanyName;
         this.email = email;
         this.dueAmount = dueAmount;
         this.isActive = isActive;
+        this.connectionStatus = connectionStatus;
         this.unreadCount = 0L;
     }
 }

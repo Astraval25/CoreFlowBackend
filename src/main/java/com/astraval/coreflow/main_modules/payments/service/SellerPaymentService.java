@@ -92,6 +92,11 @@ public class SellerPaymentService {
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
         Customers customer = customerService.getCustomerById(companyId, request.getCustomerId());
+        // Block payments for customers with pending/rejected connection
+        if (!com.astraval.coreflow.main_modules.companylink.ConnectionStatus.allowsTransactions(customer.getConnectionStatus())) {
+            throw new RuntimeException("Cannot create payment: customer connection is " + customer.getConnectionStatus()
+                    + ". The connection request must be accepted first.");
+        }
 
         Payments payment = new Payments();
         payment.setCustomers(customer);

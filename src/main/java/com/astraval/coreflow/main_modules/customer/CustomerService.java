@@ -21,6 +21,8 @@ import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
 import com.astraval.coreflow.main_modules.companylink.CompanyLink;
 import com.astraval.coreflow.main_modules.companylink.CompanyLinkRepository;
+import com.astraval.coreflow.main_modules.companylink.ConnectionRequestService;
+import com.astraval.coreflow.main_modules.companylink.ConnectionStatus;
 import com.astraval.coreflow.main_modules.customer.dto.CreateUpdateCustomerDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupRequest;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupResultDto;
@@ -67,6 +69,9 @@ public class CustomerService {
     @Autowired
     private VendorRepository vendorRepository;
 
+    @Autowired
+    private ConnectionRequestService connectionRequestService;
+
     @Transactional
     public Long createCustomer(Long companyId, CreateUpdateCustomerDto request) {
         try {
@@ -96,16 +101,19 @@ public class CustomerService {
             customer.setGst(request.getGst());
             customer.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
-            Companies linkedAccountCompany = null;
+            // Check if phone matches an existing user's company — create PENDING connection request
+            Companies matchedCompany = null;
             if (phoneKey != null) {
-                userRepository.findActiveUserByPhoneKey(phoneKey)
+                matchedCompany = userRepository.findActiveUserByPhoneKey(phoneKey)
                         .map(User::getDefaultCompany)
                         .filter(linkedCompany -> linkedCompany != null
                                 && !linkedCompany.getCompanyId().equals(companyId))
-                        .ifPresent(linkedCompany -> {
-                            customer.setCustomerCompany(linkedCompany);
-                        });
-                linkedAccountCompany = customer.getCustomerCompany();
+                        .orElse(null);
+            }
+
+            if (matchedCompany != null) {
+                customer.setConnectionStatus(ConnectionStatus.PENDING);
+                // Do NOT set customerCompany or create CompanyLink — wait for acceptance
             }
 
             // Create addresses if provided
@@ -124,9 +132,12 @@ public class CustomerService {
             }
 
             Customers savedCustomer = customerRepository.save(customer);
-            if (linkedAccountCompany != null) {
-                upsertCompanyLinkForCustomer(savedCustomer, linkedAccountCompany);
+
+            // Create connection request (auto-creates vendor on the other side + sends notification)
+            if (matchedCompany != null) {
+                connectionRequestService.createConnectionRequestFromCustomer(savedCustomer, company, matchedCompany);
             }
+
             partnerBalanceService.refreshCustomerDueAmount(savedCustomer.getCustomerId());
             return savedCustomer.getCustomerId();
 
@@ -177,8 +188,11 @@ public class CustomerService {
             }
 
             Customers savedCustomer = customerRepository.save(customer);
-            resolveLinkedCompanyForCustomer(savedCustomer)
-                    .ifPresent(linkedCompany -> upsertCompanyLinkForCustomer(savedCustomer, linkedCompany));
+            // Only attempt auto-link resolution if no connection request flow is active
+            if (savedCustomer.getConnectionStatus() == null) {
+                resolveLinkedCompanyForCustomer(savedCustomer)
+                        .ifPresent(linkedCompany -> upsertCompanyLinkForCustomer(savedCustomer, linkedCompany));
+            }
             partnerBalanceService.refreshCustomerDueAmount(customer.getCustomerId());
             
         } catch (Exception e) {
@@ -337,9 +351,11 @@ public class CustomerService {
             throw new RuntimeException("Cannot link customer to the same company");
         }
 
-        customer.setCustomerCompany(targetCompany);
+        // Create a PENDING connection request instead of immediate linking
+        Companies ownerCompany = customer.getCompany();
+        customer.setConnectionStatus(ConnectionStatus.PENDING);
         Customers savedCustomer = customerRepository.save(customer);
-        upsertCompanyLinkForCustomer(savedCustomer, targetCompany);
+        connectionRequestService.createConnectionRequestFromCustomer(savedCustomer, ownerCompany, targetCompany);
         return savedCustomer;
     }
 

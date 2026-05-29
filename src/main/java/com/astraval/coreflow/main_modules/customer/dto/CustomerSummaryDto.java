@@ -14,6 +14,7 @@ public class CustomerSummaryDto {
     private String email;
     private Double dueAmount;
     private Boolean isActive;
+    private String connectionStatus;
     private Long unreadCount;
 
     public CustomerSummaryDto(
@@ -22,13 +23,15 @@ public class CustomerSummaryDto {
             String customerCompanyName,
             String email,
             Double dueAmount,
-            Boolean isActive) {
+            Boolean isActive,
+            String connectionStatus) {
         this.customerId = customerId;
         this.displayName = displayName;
         this.customerCompanyName = customerCompanyName;
         this.email = email;
         this.dueAmount = dueAmount;
         this.isActive = isActive;
+        this.connectionStatus = connectionStatus;
         this.unreadCount = 0L;
     }
 }

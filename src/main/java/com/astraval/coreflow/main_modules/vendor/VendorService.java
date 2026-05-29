@@ -18,6 +18,8 @@ import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
 import com.astraval.coreflow.main_modules.companylink.CompanyLink;
 import com.astraval.coreflow.main_modules.companylink.CompanyLinkRepository;
+import com.astraval.coreflow.main_modules.companylink.ConnectionRequestService;
+import com.astraval.coreflow.main_modules.companylink.ConnectionStatus;
 import com.astraval.coreflow.main_modules.customer.CustomerPhoneUtil;
 import com.astraval.coreflow.main_modules.customer.CustomerRepository;
 import com.astraval.coreflow.main_modules.customer.Customers;
@@ -65,6 +67,9 @@ public class VendorService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private ConnectionRequestService connectionRequestService;
+
     @Transactional
     public Long createVendor(Long companyId, CreateUpdateVendorDto request) {
         try {
@@ -82,17 +87,20 @@ public class VendorService {
             vendor.setGst(request.getGst());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
-            Companies linkedAccountCompany = null;
+            // Check if phone matches an existing user's company — create PENDING connection request
+            Companies matchedCompany = null;
             String phoneKey = CustomerPhoneUtil.toLast10PhoneKey(request.getPhone());
             if (phoneKey != null) {
-                userRepository.findActiveUserByPhoneKey(phoneKey)
+                matchedCompany = userRepository.findActiveUserByPhoneKey(phoneKey)
                         .map(User::getDefaultCompany)
                         .filter(linkedCompany -> linkedCompany != null
                                 && !linkedCompany.getCompanyId().equals(companyId))
-                        .ifPresent(linkedCompany -> {
-                            vendor.setVendorCompany(linkedCompany);
-                        });
-                linkedAccountCompany = vendor.getVendorCompany();
+                        .orElse(null);
+            }
+
+            if (matchedCompany != null) {
+                vendor.setConnectionStatus(ConnectionStatus.PENDING);
+                // Do NOT set vendorCompany or create CompanyLink — wait for acceptance
             }
 
             // Create addresses if provided
@@ -111,9 +119,12 @@ public class VendorService {
             }
 
             Vendors savedVendor = vendorRepository.save(vendor);
-            if (linkedAccountCompany != null) {
-                upsertCompanyLinkForVendor(savedVendor, linkedAccountCompany);
+
+            // Create connection request (auto-creates customer on the other side + sends notification)
+            if (matchedCompany != null) {
+                connectionRequestService.createConnectionRequestFromVendor(savedVendor, company, matchedCompany);
             }
+
             partnerBalanceService.refreshVendorDueAmount(savedVendor.getVendorId());
             return savedVendor.getVendorId();
 
@@ -137,7 +148,8 @@ public class VendorService {
             vendor.setGst(request.getGst());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
-            if (resolveLinkedCompanyForVendor(vendor).isEmpty()) {
+            // Only attempt auto-link resolution if no connection request flow is active
+            if (vendor.getConnectionStatus() == null && resolveLinkedCompanyForVendor(vendor).isEmpty()) {
                 String phoneKey = CustomerPhoneUtil.toLast10PhoneKey(request.getPhone());
                 if (phoneKey != null) {
                     userRepository.findActiveUserByPhoneKey(phoneKey)
@@ -176,7 +188,10 @@ public class VendorService {
             }
 
             Vendors savedVendor = vendorRepository.save(vendor);
-            resolveLinkedCompanyForVendor(savedVendor).ifPresent(linkedCompany -> upsertCompanyLinkForVendor(savedVendor, linkedCompany));
+            if (savedVendor.getConnectionStatus() == null) {
+                resolveLinkedCompanyForVendor(savedVendor)
+                        .ifPresent(linkedCompany -> upsertCompanyLinkForVendor(savedVendor, linkedCompany));
+            }
             partnerBalanceService.refreshVendorDueAmount(vendor.getVendorId());
             
         } catch (Exception e) {

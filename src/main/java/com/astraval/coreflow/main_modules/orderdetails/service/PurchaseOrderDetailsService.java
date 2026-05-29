@@ -86,7 +86,11 @@ public class PurchaseOrderDetailsService {
 
         Vendors myVendor = vendorRepository.findById(createOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-
+        // Block orders for vendors with pending/rejected connection
+        if (!com.astraval.coreflow.main_modules.companylink.ConnectionStatus.allowsTransactions(myVendor.getConnectionStatus())) {
+            throw new RuntimeException("Cannot create order: vendor connection is " + myVendor.getConnectionStatus()
+                    + ". The connection request must be accepted first.");
+        }
 
         OrderDetails orderDetails = orderDetailsMapper.toPurchaseOrderDetails(createOrder);
         // Main id setting...

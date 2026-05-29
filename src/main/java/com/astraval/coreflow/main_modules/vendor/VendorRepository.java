@@ -21,9 +21,9 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
            "v.vendorId, " +
            "v.displayName, " +
            "COALESCE(vc.companyName, ''), " +
-           "v.email, " + 
+           "v.email, " +
            "v.dueAmount, " +
-           "v.isActive) " +
+           "v.isActive, v.connectionStatus) " +
            "FROM Vendors v " +
            "LEFT JOIN v.vendorCompany vc " +
                   "WHERE v.company.companyId = :companyId " +
@@ -34,9 +34,9 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
            "v.vendorId, " +
            "v.displayName, " +
            "COALESCE(vc.companyName, ''), " +
-           "v.email, " + 
+           "v.email, " +
            "v.dueAmount, " +
-           "v.isActive) " +
+           "v.isActive, v.connectionStatus) " +
            "FROM Vendors v " +
            "LEFT JOIN v.vendorCompany vc " +
            "WHERE v.company.companyId = :companyId " +
@@ -47,13 +47,13 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
            ") " +
            "ORDER BY v.displayName")
     List<VendorSummaryDto> findUnlinkedByCompanyIdSummary(@Param("companyId") Long companyId);
-    
+
     @Query("SELECT new com.astraval.coreflow.main_modules.vendor.dto.VendorSummaryDto(" +
                   "v.vendorId, " +
                   "v.displayName, " +
                   "COALESCE(vc.companyName, ''), " +
                   "v.email, " +
-                  "v.dueAmount, v.isActive) " +
+                  "v.dueAmount, v.isActive, v.connectionStatus) " +
                   "FROM Vendors v " +
                   "LEFT JOIN v.vendorCompany vc " +
                   "WHERE v.company.companyId = :companyId " +

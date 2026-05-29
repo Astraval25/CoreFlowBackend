@@ -87,6 +87,11 @@ public class SalesOrderDetailsService {
                 .findByCustomerIdAndCompanyCompanyId(createOrder.getCustomerId(), companyId)
                 .orElseThrow(() -> new RuntimeException(
                         "Customer not found for company ID: " + companyId + " (customerId=" + createOrder.getCustomerId() + ")"));
+        // Block orders for customers with pending/rejected connection
+        if (!com.astraval.coreflow.main_modules.companylink.ConnectionStatus.allowsTransactions(toCustomers.getConnectionStatus())) {
+            throw new RuntimeException("Cannot create order: customer connection is " + toCustomers.getConnectionStatus()
+                    + ". The connection request must be accepted first.");
+        }
         // Access Validation Done if all ok then only allow to create.
 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);

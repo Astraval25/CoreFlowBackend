@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.common.util.PaginationRequest;
+import com.astraval.coreflow.main_modules.companylink.ConnectionRequestService;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupRequest;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupResultDto;
 import com.astraval.coreflow.main_modules.customer.dto.CreateUpdateCustomerDto;
@@ -32,6 +33,9 @@ public class CustomerController {
 
     @Autowired
     private CustomerService customerService;
+
+    @Autowired
+    private ConnectionRequestService connectionRequestService;
 
     // Create
     @PostMapping("/{companyId}/customers")
@@ -192,6 +196,52 @@ public class CustomerController {
             return ApiResponseFactory.deleted("Customer deleted successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
+        }
+    }
+
+    // Connection request endpoints
+
+    @PostMapping("/{companyId}/customers/{customerId}/connection/accept")
+    public ApiResponse<String> acceptConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            connectionRequestService.acceptConnectionForCustomer(companyId, customerId);
+            return ApiResponseFactory.accepted("Connection accepted successfully", "Connection accepted successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/{customerId}/connection/reject")
+    public ApiResponse<String> rejectConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            connectionRequestService.rejectConnectionForCustomer(companyId, customerId);
+            return ApiResponseFactory.accepted("Connection rejected successfully", "Connection rejected successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/{customerId}/connection/undo")
+    public ApiResponse<String> undoConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId,
+            @RequestBody Map<String, String> request) {
+        try {
+            String newStatus = request.get("newStatus");
+            if ("ACCEPTED".equals(newStatus)) {
+                connectionRequestService.acceptConnectionForCustomer(companyId, customerId);
+            } else if ("REJECTED".equals(newStatus)) {
+                connectionRequestService.rejectConnectionForCustomer(companyId, customerId);
+            } else {
+                return ApiResponseFactory.error("Invalid status. Must be ACCEPTED or REJECTED", 400);
+            }
+            return ApiResponseFactory.accepted("Connection updated successfully", "Connection updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
 }
