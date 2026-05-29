@@ -40,7 +40,11 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
            "FROM Vendors v " +
            "LEFT JOIN v.vendorCompany vc " +
            "WHERE v.company.companyId = :companyId " +
-           "AND v.vendorCompany IS NULL " +
+           "AND NOT EXISTS (" +
+           "  SELECT 1 FROM CompanyLink l " +
+           "  WHERE l.vendor.vendorId = v.vendorId " +
+           "    AND COALESCE(l.isActive, TRUE) = TRUE" +
+           ") " +
            "ORDER BY v.displayName")
     List<VendorSummaryDto> findUnlinkedByCompanyIdSummary(@Param("companyId") Long companyId);
     

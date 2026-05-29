@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companies.Companies;
+import com.astraval.coreflow.main_modules.customer.CustomerService;
 import com.astraval.coreflow.main_modules.customer.CustomerRepository;
 import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.items.model.Items;
@@ -48,6 +50,9 @@ public class SalesOrderSnapshotService {
     private CustomerRepository customerRepository;
 
     @Autowired
+    private CustomerService customerService;
+
+    @Autowired
     private VendorService vendorService;
 
     @Transactional
@@ -58,14 +63,18 @@ public class SalesOrderSnapshotService {
         companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customers toCustomers = customerRepository
+                .findByCustomerIdAndCompanyCompanyId(createOrder.getCustomerId(), companyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found for company ID: " + companyId + " (customerId=" + createOrder.getCustomerId() + ")"));
         // Access Validation Done if all ok then only allow to create.
 
         OrderSnapshot orderSnapshot = orderSnapshotMapper.toOrderSnapshot(createOrder);
         orderSnapshot.setCustomers(toCustomers);
-        if (toCustomers.getCustomerCompany() != null) {
-            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        Long customersVendorCompanyId = customerService.resolveLinkedCompanyForCustomer(toCustomers)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (customersVendorCompanyId != null) {
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
             orderSnapshot.setVendors(buyerVendor);
         }
@@ -126,13 +135,18 @@ public class SalesOrderSnapshotService {
             throw new RuntimeException("Order does not belong to the requesting company");
         }
 
-        Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customers toCustomers = customerRepository
+                .findByCustomerIdAndCompanyCompanyId(updateOrder.getCustomerId(), companyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found for company ID: " + companyId + " (customerId=" + updateOrder.getCustomerId() + ")"));
 
         // Update order Snapshot
         existingOrder.setCustomers(toCustomers);
-        if (toCustomers.getCustomerCompany() != null) {
-            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        Long updatedCustomersVendorCompanyId = customerService.resolveLinkedCompanyForCustomer(toCustomers)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (updatedCustomersVendorCompanyId != null) {
+            Long customersVendorCompanyId = updatedCustomersVendorCompanyId;
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
             existingOrder.setVendors(buyerVendor);
         } else {

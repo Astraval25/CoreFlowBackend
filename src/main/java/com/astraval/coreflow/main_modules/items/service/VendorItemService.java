@@ -139,15 +139,16 @@ public class VendorItemService {
     public List<VendorItemSummaryDto> getMappedItemsByVendor(Long companyId, Long vendorId) {
         Vendors vendor = getVendorOrThrow(companyId, vendorId);
 
-        if (vendor.getVendorCompany() != null) {
-            // Linked vendor: show items from the linked company's customer
-            // (ItemCustomerPrice)
-            CompanyLink link = customerVendorLinkRepository
+        CompanyLink link = customerVendorLinkRepository.findByVendorVendorIdAndIsActiveTrue(vendorId).orElse(null);
+        if (link == null && vendor.getVendorCompany() != null) {
+            link = customerVendorLinkRepository
                     .findByVendorVendorIdAndCustomerCompanyCompanyId(vendorId, companyId)
                     .orElse(null);
-            if (link == null) {
-                return List.of();
-            }
+        }
+
+        if (link != null && link.getCustomer() != null) {
+            // Linked vendor: show items from the linked company's customer
+            // (ItemCustomerPrice)
             Long customerId = link.getCustomer().getCustomerId();
             List<ItemCustomerPrice> customerPrices = itemCustomerPriceRepository
                     .findByCustomerCustomerIdAndIsActiveTrue(customerId);

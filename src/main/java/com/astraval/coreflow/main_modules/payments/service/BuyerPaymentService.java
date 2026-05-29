@@ -98,17 +98,10 @@ public class BuyerPaymentService {
         Payments payment = new Payments();
         payment.setVendors(vendor);
 
-        if (vendor.getVendorCompany() != null) {
-            Long expectedCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
-
-            CompanyLink customerVendorLink = customerVendorLinkRepository
-                    .findByVendorVendorIdAndVendorCompanyCompanyId(vendor.getVendorId(), expectedCustomerCompanyId)
-                    .orElseThrow(() -> new RuntimeException(
-                            "Customer-vendor link not found for payments-made. " +
-                                    "vendorId=" + vendor.getVendorId() +
-                                    ", senderCompanyId=" + companyId +
-                                    ", expectedCustomerCompanyId=" + expectedCustomerCompanyId));
-
+        CompanyLink customerVendorLink = customerVendorLinkRepository
+                .findByVendorVendorIdAndIsActiveTrue(vendor.getVendorId())
+                .orElse(null);
+        if (customerVendorLink != null && customerVendorLink.getCustomer() != null) {
             Customers linkedCustomer = customerVendorLink.getCustomer();
             if (linkedCustomer == null || linkedCustomer.getCompany() == null) {
                 throw new RuntimeException(
@@ -118,6 +111,7 @@ public class BuyerPaymentService {
             }
 
             Long linkedCustomerCompanyId = linkedCustomer.getCompany().getCompanyId();
+            Long expectedCustomerCompanyId = companyId;
             if (!expectedCustomerCompanyId.equals(linkedCustomerCompanyId)) {
                 throw new RuntimeException(
                         "Customer-vendor link mismatch for payments-made. " +
@@ -145,8 +139,13 @@ public class BuyerPaymentService {
         companyRefService.createPaymentRef(companyId, savedPayment, buyerLocalNumber);
 
         // Company overlay for seller (payee, if linked)
-        if (vendor.getVendorCompany() != null) {
-            Long sellerCompanyId = vendor.getVendorCompany().getCompanyId();
+        Long sellerCompanyId = null;
+        if (customerVendorLink != null && customerVendorLink.getVendorCompany() != null) {
+            sellerCompanyId = customerVendorLink.getVendorCompany().getCompanyId();
+        } else if (vendor.getVendorCompany() != null) {
+            sellerCompanyId = vendor.getVendorCompany().getCompanyId();
+        }
+        if (sellerCompanyId != null) {
             String sellerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(sellerCompanyId, "PAYMENT_IN");
             companyRefService.createPaymentRef(sellerCompanyId, savedPayment, sellerLocalNumber);
         }

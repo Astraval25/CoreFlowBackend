@@ -8,8 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companyref.CompanyRefService;
 import com.astraval.coreflow.main_modules.config.CompanyNumberSequenceRepository;
+import com.astraval.coreflow.main_modules.customer.CustomerService;
 import com.astraval.coreflow.main_modules.customer.CustomerRepository;
 import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.items.model.Items;
@@ -52,6 +54,9 @@ public class SalesOrderDetailsService {
         
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private CustomerService customerService;
     
     @Autowired
     private VendorService vendorService;
@@ -78,15 +83,19 @@ public class SalesOrderDetailsService {
         // 1. check the companyId is exist
         companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-        Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customers toCustomers = customerRepository
+                .findByCustomerIdAndCompanyCompanyId(createOrder.getCustomerId(), companyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found for company ID: " + companyId + " (customerId=" + createOrder.getCustomerId() + ")"));
         // Access Validation Done if all ok then only allow to create.
 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
         // Main id setting...
         orderDetails.setCustomers(toCustomers);
-        if(toCustomers.getCustomerCompany() != null){
-            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        Long customersVendorCompanyId = customerService.resolveLinkedCompanyForCustomer(toCustomers)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (customersVendorCompanyId != null) {
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
             orderDetails.setVendors(buyerVendor);
         }
@@ -140,8 +149,8 @@ public class SalesOrderDetailsService {
         companyRefService.createOrderRef(companyId, savedOrder, sellerLocalNumber);
 
         // Company overlay for buyer (if linked)
-        if (toCustomers.getCustomerCompany() != null) {
-            Long buyerCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        if (customersVendorCompanyId != null) {
+            Long buyerCompanyId = customersVendorCompanyId;
             String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(buyerCompanyId, "PURCHASE_ORDER");
             companyRefService.createOrderRef(buyerCompanyId, savedOrder, buyerLocalNumber);
 
@@ -191,13 +200,18 @@ public class SalesOrderDetailsService {
                 ? existingOrder.getVendors().getVendorId()
                 : null;
         
-        Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customers toCustomers = customerRepository
+                .findByCustomerIdAndCompanyCompanyId(updateOrder.getCustomerId(), companyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found for company ID: " + companyId + " (customerId=" + updateOrder.getCustomerId() + ")"));
         
         // Update order details
         existingOrder.setCustomers(toCustomers);
-        if (toCustomers.getCustomerCompany() != null) {
-            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        Long updatedCustomersVendorCompanyId = customerService.resolveLinkedCompanyForCustomer(toCustomers)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (updatedCustomersVendorCompanyId != null) {
+            Long customersVendorCompanyId = updatedCustomersVendorCompanyId;
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
             existingOrder.setVendors(buyerVendor);
         } else {

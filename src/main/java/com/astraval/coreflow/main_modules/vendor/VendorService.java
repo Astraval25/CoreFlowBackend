@@ -16,15 +16,24 @@ import com.astraval.coreflow.main_modules.address.AddressMapper;
 import com.astraval.coreflow.main_modules.address.AddressService;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companylink.CompanyLink;
+import com.astraval.coreflow.main_modules.companylink.CompanyLinkRepository;
+import com.astraval.coreflow.main_modules.customer.CustomerPhoneUtil;
+import com.astraval.coreflow.main_modules.customer.CustomerRepository;
+import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
 import com.astraval.coreflow.main_modules.notification.NotificationService;
 import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.main_modules.payments.PaymentStatus;
+import com.astraval.coreflow.main_modules.user.User;
+import com.astraval.coreflow.main_modules.user.UserRepository;
 import com.astraval.coreflow.main_modules.vendor.dto.CreateUpdateVendorDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderSummaryDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorSummaryDto;
+
+import java.util.Optional;
 
 @Service
 public class VendorService {
@@ -47,6 +56,14 @@ public class VendorService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private CompanyLinkRepository companyLinkRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
 
     @Transactional
     public Long createVendor(Long companyId, CreateUpdateVendorDto request) {
@@ -65,6 +82,19 @@ public class VendorService {
             vendor.setGst(request.getGst());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
 
+            Companies linkedAccountCompany = null;
+            String phoneKey = CustomerPhoneUtil.toLast10PhoneKey(request.getPhone());
+            if (phoneKey != null) {
+                userRepository.findActiveUserByPhoneKey(phoneKey)
+                        .map(User::getDefaultCompany)
+                        .filter(linkedCompany -> linkedCompany != null
+                                && !linkedCompany.getCompanyId().equals(companyId))
+                        .ifPresent(linkedCompany -> {
+                            vendor.setVendorCompany(linkedCompany);
+                        });
+                linkedAccountCompany = vendor.getVendorCompany();
+            }
+
             // Create addresses if provided
             if (request.getBillingAddress() != null) {
                 Address billingAddress = addressMapper.toAddress(request.getBillingAddress());
@@ -81,6 +111,9 @@ public class VendorService {
             }
 
             Vendors savedVendor = vendorRepository.save(vendor);
+            if (linkedAccountCompany != null) {
+                upsertCompanyLinkForVendor(savedVendor, linkedAccountCompany);
+            }
             partnerBalanceService.refreshVendorDueAmount(savedVendor.getVendorId());
             return savedVendor.getVendorId();
 
@@ -103,6 +136,20 @@ public class VendorService {
             vendor.setPan(request.getPan());
             vendor.setGst(request.getGst());
             vendor.setSameAsBillingAddress(request.isSameAsBillingAddress());
+
+            if (resolveLinkedCompanyForVendor(vendor).isEmpty()) {
+                String phoneKey = CustomerPhoneUtil.toLast10PhoneKey(request.getPhone());
+                if (phoneKey != null) {
+                    userRepository.findActiveUserByPhoneKey(phoneKey)
+                            .map(User::getDefaultCompany)
+                            .filter(linkedCompany -> linkedCompany != null
+                                    && !linkedCompany.getCompanyId().equals(companyId))
+                            .ifPresent(linkedCompany -> {
+                                vendor.setVendorCompany(linkedCompany);
+                                upsertCompanyLinkForVendor(vendor, linkedCompany);
+                            });
+                }
+            }
 
             // Update billing address
             if (request.getBillingAddress() != null) {
@@ -128,7 +175,8 @@ public class VendorService {
                 }
             }
 
-            vendorRepository.save(vendor);
+            Vendors savedVendor = vendorRepository.save(vendor);
+            resolveLinkedCompanyForVendor(savedVendor).ifPresent(linkedCompany -> upsertCompanyLinkForVendor(savedVendor, linkedCompany));
             partnerBalanceService.refreshVendorDueAmount(vendor.getVendorId());
             
         } catch (Exception e) {
@@ -185,17 +233,87 @@ public class VendorService {
     }
 
     public Vendors getBuyerVendorId( Long companyId, Long customersVendorId) {
-        return vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(companyId, 
-                customersVendorId)
-                .orElseThrow(() -> new RuntimeException("Vendor " + customersVendorId + " not found for company ID: " + companyId));
+        Optional<Vendors> linkedVendor = companyLinkRepository
+                .findByCustomerCompanyCompanyIdAndVendorCompanyCompanyIdAndIsActiveTrue(companyId, customersVendorId)
+                .map(CompanyLink::getVendor)
+                .filter(vendor -> vendor != null);
+        if (linkedVendor.isPresent()) {
+            return linkedVendor.get();
+        }
+
+        Vendors fallback = vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(companyId, customersVendorId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Linked company setup incomplete: company " + companyId
+                                + " has not created a vendor linked to your company " + customersVendorId
+                                + ". Ask them to create vendor first, then retry order creation."));
+        if (fallback.getVendorCompany() != null) {
+            upsertCompanyLinkForVendor(fallback, fallback.getVendorCompany());
+        }
+        return fallback;
     }
 
     // get vendor by company id and vendorCompany_id
     public Vendors getBuyersVendorId(Long companyId, Long vendorCompanyId) {
-        return vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(companyId, vendorCompanyId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Vendor link not found. Expected vendors row with comp_id=" + companyId +
-                                " and vendor_comp_id=" + vendorCompanyId));
+        return getBuyerVendorId(companyId, vendorCompanyId);
+    }
+
+    public Optional<Companies> resolveLinkedCompanyForVendor(Vendors vendor) {
+        if (vendor == null || vendor.getVendorId() == null) {
+            return Optional.empty();
+        }
+        Optional<Companies> linkCompany = companyLinkRepository.findByVendorVendorIdAndIsActiveTrue(vendor.getVendorId())
+                .map(CompanyLink::getVendorCompany)
+                .filter(company -> company != null);
+        if (linkCompany.isPresent()) {
+            return linkCompany;
+        }
+        return Optional.ofNullable(vendor.getVendorCompany());
+    }
+
+    public Optional<Customers> resolveLinkedCustomerForVendor(Vendors vendor) {
+        if (vendor == null || vendor.getVendorId() == null || vendor.getCompany() == null) {
+            return Optional.empty();
+        }
+        Optional<Customers> linkedCustomer = companyLinkRepository.findByVendorVendorIdAndIsActiveTrue(vendor.getVendorId())
+                .map(CompanyLink::getCustomer)
+                .filter(customer -> customer != null);
+        if (linkedCustomer.isPresent()) {
+            return linkedCustomer;
+        }
+        Optional<Companies> linkedCompany = resolveLinkedCompanyForVendor(vendor);
+        if (linkedCompany.isEmpty()) {
+            return Optional.empty();
+        }
+        return customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(
+                linkedCompany.get().getCompanyId(),
+                vendor.getCompany().getCompanyId());
+    }
+
+    private void upsertCompanyLinkForVendor(Vendors vendor, Companies linkedCompany) {
+        if (vendor == null || vendor.getVendorId() == null || vendor.getCompany() == null || linkedCompany == null) {
+            return;
+        }
+        Long ownerCompanyId = vendor.getCompany().getCompanyId();
+        Long linkedCompanyId = linkedCompany.getCompanyId();
+        if (ownerCompanyId == null || linkedCompanyId == null || ownerCompanyId.equals(linkedCompanyId)) {
+            return;
+        }
+
+        CompanyLink link = companyLinkRepository.findByVendorVendorId(vendor.getVendorId())
+                .or(() -> companyLinkRepository.findByCustomerCompanyCompanyIdAndVendorCompanyCompanyId(
+                        ownerCompanyId,
+                        linkedCompanyId))
+                .orElseGet(CompanyLink::new);
+
+        link.setVendor(vendor);
+        link.setVendorCompany(linkedCompany);
+        link.setCustomerCompany(vendor.getCompany());
+        if (link.getCustomer() == null) {
+            customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(linkedCompanyId, ownerCompanyId)
+                    .ifPresent(link::setCustomer);
+        }
+        link.setIsActive(true);
+        companyLinkRepository.save(link);
     }
 
     public VendorOrderPaymentSummaryDto getOrdersAndPaymentsByVendor(

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.customer.CustomerService;
 import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.items.model.Items;
@@ -22,6 +23,7 @@ import com.astraval.coreflow.main_modules.ordersnapshot.dto.UpdatePurchaseOrder;
 import com.astraval.coreflow.main_modules.ordersnapshot.mapper.OrderSnapshotMapper;
 import com.astraval.coreflow.main_modules.ordersnapshot.repo.PurchaseOrderSnapshotRepository;
 import com.astraval.coreflow.main_modules.vendor.VendorRepository;
+import com.astraval.coreflow.main_modules.vendor.VendorService;
 import com.astraval.coreflow.main_modules.vendor.Vendors;
 
 @Service
@@ -50,6 +52,9 @@ public class PurchaseOrderSnapshotService {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private VendorService vendorService;
+
   @Transactional
   public Long createPurchaseOrder(Long companyId, CreatePurchaseOrder createOrder) {
       
@@ -62,8 +67,10 @@ public class PurchaseOrderSnapshotService {
 
       OrderSnapshot orderSnapshot = orderSnapshotMapper.toPurchaseOrderSnapshot(createOrder);
       orderSnapshot.setVendors(vendor);
-      if (vendor.getVendorCompany() != null) {
-          Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
+      Long vendorsCustomerCompanyId = vendorService.resolveLinkedCompanyForVendor(vendor)
+              .map(Companies::getCompanyId)
+              .orElse(null);
+      if (vendorsCustomerCompanyId != null) {
           Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
           orderSnapshot.setCustomers(sellerCustomer);
       }
@@ -127,8 +134,11 @@ public class PurchaseOrderSnapshotService {
 
         // Update order Snapshot
         existingOrder.setVendors(vendor);
-        if (vendor.getVendorCompany() != null) {
-            Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
+        Long updatedVendorsCustomerCompanyId = vendorService.resolveLinkedCompanyForVendor(vendor)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (updatedVendorsCustomerCompanyId != null) {
+            Long vendorsCustomerCompanyId = updatedVendorsCustomerCompanyId;
             Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
             existingOrder.setCustomers(sellerCustomer);
         } else {

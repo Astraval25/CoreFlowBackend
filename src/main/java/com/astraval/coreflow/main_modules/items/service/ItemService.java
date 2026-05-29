@@ -244,7 +244,14 @@ public class ItemService {
         Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
 
-        if (vendor.getVendorCompany() == null) {
+        CompanyLink activeLink = customerVendorLinkRepository.findByVendorVendorIdAndIsActiveTrue(vendorId).orElse(null);
+        if (activeLink == null && vendor.getVendorCompany() != null) {
+            activeLink = customerVendorLinkRepository
+                    .findByVendorVendorIdAndVendorCompanyCompanyId(vendorId, vendor.getVendorCompany().getCompanyId())
+                    .orElse(null);
+        }
+
+        if (activeLink == null || activeLink.getCustomer() == null || activeLink.getVendorCompany() == null) {
             List<ItemVendorPrice> prices = itemVendorPriceRepository
                     .findByVendorVendorIdAndIsActiveTrue(vendorId);
             java.util.Map<Long, ItemVendorPrice> priceByItemId = prices.stream()
@@ -275,13 +282,9 @@ public class ItemService {
                     .toList();
         }
         else{
-            Long vendorCompanyId = vendor.getVendorCompany().getCompanyId();
-            CompanyLink customerVendorLink = customerVendorLinkRepository
-                    .findByVendorVendorIdAndVendorCompanyCompanyId(vendorId, vendorCompanyId)
-                    .orElseThrow(() -> new RuntimeException(
-                            "Vendor Link not present in customer_vendor_link table: " + vendorId));
+            Long vendorCompanyId = activeLink.getVendorCompany().getCompanyId();
             
-            Long customerId = customerVendorLink.getCustomer().getCustomerId();
+            Long customerId = activeLink.getCustomer().getCustomerId();
             // company is linked so we need to get the items that the company is given to that user or that company items (here we need to take the sales price that is the purchase price for this company)
             List<ItemCustomerPrice> prices = itemCustomerPriceRepository
                     .findByCustomerCustomerIdAndIsActiveTrue(customerId);

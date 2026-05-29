@@ -39,8 +39,10 @@ import lombok.Setter;
  *   vendor          -> the Vendors record (owned by the buyer, Company B)
  *   vendorCompany   -> the SELLER's company (Company A) — i.e. the company the vendor represents
  *
- * Created by InvitationService.upsertCustomerVendorLink() when an invitation is accepted.
- * Unique constraint on customer_id — one customer maps to at most one vendor.
+ * Created by invitation acceptance and customer/vendor direct-link flows.
+ * Unique constraint on customer_id ensures one customer maps at most once.
+ * Rows may start as partial (only customer or only vendor side present) and later
+ * complete when the opposite side record is created.
  *
  * Used throughout the app to:
  *   - Resolve the counterpart record (customer <-> vendor) for single-source orders/payments
@@ -62,7 +64,7 @@ public class CompanyLink {
     private Long CompanyLinkId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "customer_id")
     private Customers customer;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -70,7 +72,7 @@ public class CompanyLink {
     private Companies customerCompany;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vendor_id", nullable = false)
+    @JoinColumn(name = "vendor_id")
     private Vendors vendor;
 
     @ManyToOne(fetch = FetchType.LAZY)

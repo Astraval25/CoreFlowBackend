@@ -96,17 +96,10 @@ public class SellerPaymentService {
         Payments payment = new Payments();
         payment.setCustomers(customer);
 
-        if (customer.getCustomerCompany() != null) {
-            Long expectedVendorCompanyId = customer.getCustomerCompany().getCompanyId();
-
-            CompanyLink customerVendorLink = customerVendorLinkRepository
-                    .findByCustomerCustomerId(customer.getCustomerId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Customer-vendor link not found for payments-received. " +
-                                    "customerId=" + customer.getCustomerId() +
-                                    ", receiverCompanyId=" + companyId +
-                                    ", expectedVendorCompanyId=" + expectedVendorCompanyId));
-
+        CompanyLink customerVendorLink = customerVendorLinkRepository
+                .findByCustomerCustomerIdAndIsActiveTrue(customer.getCustomerId())
+                .orElse(null);
+        if (customerVendorLink != null && customerVendorLink.getVendor() != null) {
             Vendors linkedVendor = customerVendorLink.getVendor();
             if (linkedVendor == null || linkedVendor.getCompany() == null) {
                 throw new RuntimeException(
@@ -116,6 +109,9 @@ public class SellerPaymentService {
             }
 
             Long linkedVendorCompanyId = linkedVendor.getCompany().getCompanyId();
+            Long expectedVendorCompanyId = customerVendorLink.getCustomerCompany() != null
+                    ? customerVendorLink.getCustomerCompany().getCompanyId()
+                    : linkedVendorCompanyId;
             if (!expectedVendorCompanyId.equals(linkedVendorCompanyId)) {
                 throw new RuntimeException(
                         "Customer-vendor link mismatch for payments-received. " +
@@ -143,8 +139,13 @@ public class SellerPaymentService {
         companyRefService.createPaymentRef(companyId, savedPayment, sellerLocalNumber);
 
         // Company overlay for buyer (payer, if linked)
-        if (customer.getCustomerCompany() != null) {
-            Long buyerCompanyId = customer.getCustomerCompany().getCompanyId();
+        Long buyerCompanyId = null;
+        if (customerVendorLink != null && customerVendorLink.getCustomerCompany() != null) {
+            buyerCompanyId = customerVendorLink.getCustomerCompany().getCompanyId();
+        } else if (customer.getCustomerCompany() != null) {
+            buyerCompanyId = customer.getCustomerCompany().getCompanyId();
+        }
+        if (buyerCompanyId != null) {
             String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(buyerCompanyId, "PAYMENT_OUT");
             companyRefService.createPaymentRef(buyerCompanyId, savedPayment, buyerLocalNumber);
 

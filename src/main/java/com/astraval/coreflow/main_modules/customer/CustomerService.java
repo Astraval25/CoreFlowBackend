@@ -1,7 +1,10 @@
 package com.astraval.coreflow.main_modules.customer;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,7 +19,11 @@ import com.astraval.coreflow.main_modules.address.AddressMapper;
 import com.astraval.coreflow.main_modules.address.AddressService;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companylink.CompanyLink;
+import com.astraval.coreflow.main_modules.companylink.CompanyLinkRepository;
 import com.astraval.coreflow.main_modules.customer.dto.CreateUpdateCustomerDto;
+import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupRequest;
+import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupResultDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerOrderPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerOrderSummaryDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerPaymentSummaryDto;
@@ -25,6 +32,10 @@ import com.astraval.coreflow.main_modules.notification.NotificationService;
 import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.main_modules.payments.PaymentStatus;
 import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
+import com.astraval.coreflow.main_modules.user.User;
+import com.astraval.coreflow.main_modules.user.UserRepository;
+import com.astraval.coreflow.main_modules.vendor.VendorRepository;
+import com.astraval.coreflow.main_modules.vendor.Vendors;
 
 @Service
 public class CustomerService {
@@ -47,11 +58,32 @@ public class CustomerService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private CompanyLinkRepository companyLinkRepository;
+
+    @Autowired
+    private VendorRepository vendorRepository;
+
     @Transactional
     public Long createCustomer(Long companyId, CreateUpdateCustomerDto request) {
         try {
             Companies company = companyRepository.findById(companyId)
                     .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
+
+            String phoneKey = CustomerPhoneUtil.toLast10PhoneKey(request.getPhone());
+            if (phoneKey != null) {
+                Optional<Customers> existingCustomer = customerRepository.findFirstByCompanyIdAndPhoneKey(companyId, phoneKey);
+                if (existingCustomer.isPresent()) {
+                    Customers duplicate = existingCustomer.get();
+                    throw new DuplicateCustomerPhoneException(
+                            "A customer with this phone already exists in your company. Open existing customer instead.",
+                            duplicate.getCustomerId(),
+                            phoneKey);
+                }
+            }
 
             Customers customer = new Customers();
             customer.setCompany(company);
@@ -63,6 +95,18 @@ public class CustomerService {
             customer.setPan(request.getPan());
             customer.setGst(request.getGst());
             customer.setSameAsBillingAddress(request.isSameAsBillingAddress());
+
+            Companies linkedAccountCompany = null;
+            if (phoneKey != null) {
+                userRepository.findActiveUserByPhoneKey(phoneKey)
+                        .map(User::getDefaultCompany)
+                        .filter(linkedCompany -> linkedCompany != null
+                                && !linkedCompany.getCompanyId().equals(companyId))
+                        .ifPresent(linkedCompany -> {
+                            customer.setCustomerCompany(linkedCompany);
+                        });
+                linkedAccountCompany = customer.getCustomerCompany();
+            }
 
             // Create addresses if provided
             if (request.getBillingAddress() != null) {
@@ -80,9 +124,14 @@ public class CustomerService {
             }
 
             Customers savedCustomer = customerRepository.save(customer);
+            if (linkedAccountCompany != null) {
+                upsertCompanyLinkForCustomer(savedCustomer, linkedAccountCompany);
+            }
             partnerBalanceService.refreshCustomerDueAmount(savedCustomer.getCustomerId());
             return savedCustomer.getCustomerId();
 
+        } catch (DuplicateCustomerPhoneException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create customer: " + e.getMessage(), e);
         }
@@ -127,7 +176,9 @@ public class CustomerService {
                 }
             }
 
-            customerRepository.save(customer);
+            Customers savedCustomer = customerRepository.save(customer);
+            resolveLinkedCompanyForCustomer(savedCustomer)
+                    .ifPresent(linkedCompany -> upsertCompanyLinkForCustomer(savedCustomer, linkedCompany));
             partnerBalanceService.refreshCustomerDueAmount(customer.getCustomerId());
             
         } catch (Exception e) {
@@ -151,6 +202,59 @@ public class CustomerService {
 
     public List<Customers> getAllCustomers() {
         return customerRepository.findAll();
+    }
+
+    public List<CustomerContactLookupResultDto> contactLookup(Long companyId, CustomerContactLookupRequest request) {
+        companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found with ID: " + companyId));
+
+        List<String> inputPhones = request != null && request.getPhones() != null ? request.getPhones() : List.of();
+        if (inputPhones.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Optional<User>> userCacheByPhoneKey = new HashMap<>();
+        Map<String, Optional<Customers>> customerCacheByPhoneKey = new HashMap<>();
+
+        return inputPhones.stream()
+                .map(inputPhone -> {
+                    String phoneKey = CustomerPhoneUtil.toLast10PhoneKey(inputPhone);
+                    if (phoneKey == null) {
+                        return new CustomerContactLookupResultDto(
+                                inputPhone,
+                                null,
+                                false,
+                                false,
+                                null,
+                                null,
+                                null);
+                    }
+
+                    Optional<User> userOpt = userCacheByPhoneKey.computeIfAbsent(
+                            phoneKey,
+                            key -> userRepository.findActiveUserByPhoneKey(key));
+
+                    Optional<Customers> existingCustomerOpt = customerCacheByPhoneKey.computeIfAbsent(
+                            phoneKey,
+                            key -> customerRepository.findFirstByCompanyIdAndPhoneKey(companyId, key));
+
+                    Long accountCompanyId = null;
+                    String accountCompanyName = null;
+                    if (userOpt.isPresent() && userOpt.get().getDefaultCompany() != null) {
+                        accountCompanyId = userOpt.get().getDefaultCompany().getCompanyId();
+                        accountCompanyName = userOpt.get().getDefaultCompany().getCompanyName();
+                    }
+
+                    return new CustomerContactLookupResultDto(
+                            inputPhone,
+                            phoneKey,
+                            true,
+                            accountCompanyId != null,
+                            accountCompanyId,
+                            accountCompanyName,
+                            existingCustomerOpt.map(Customers::getCustomerId).orElse(null));
+                })
+                .toList();
     }
 
     public Customers getCustomerById(Long companyId, Long customerId) {
@@ -185,16 +289,117 @@ public class CustomerService {
 
     // get customer by company id and customerCompany_id
     public Customers getSellersCustomerId(Long companyId, Long customerCompanyId) {
-        return customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(companyId, customerCompanyId)
+        Optional<Customers> linkedCustomer = companyLinkRepository
+                .findByCustomerCompanyCompanyIdAndVendorCompanyCompanyIdAndIsActiveTrue(customerCompanyId, companyId)
+                .map(CompanyLink::getCustomer)
+                .filter(customer -> customer != null);
+        if (linkedCustomer.isPresent()) {
+            return linkedCustomer.get();
+        }
+
+        Customers fallback = customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(companyId, customerCompanyId)
                 .orElseThrow(() -> new RuntimeException(
                         "Customer " + customerCompanyId + " not found for company ID: " + companyId));
+        if (fallback.getCustomerCompany() != null) {
+            upsertCompanyLinkForCustomer(fallback, fallback.getCustomerCompany());
+        }
+        return fallback;
     }
 
     // get customer by buyer company id and seller company id
     public Customers getBuyersCustomerId(Long companyId, Long customerCompanyId) {
-        return customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(companyId, customerCompanyId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Customer " + customerCompanyId + " not found for company ID: " + companyId));
+        return getSellersCustomerId(companyId, customerCompanyId);
+    }
+
+    @Transactional
+    public Customers linkCustomerByPhone(Long companyId, Long customerId) {
+        Customers customer = customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
+                .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
+
+        if (companyLinkRepository.findByCustomerCustomerIdAndIsActiveTrue(customer.getCustomerId()).isPresent()
+                || customer.getCustomerCompany() != null) {
+            throw new RuntimeException("Customer is already linked to a company");
+        }
+
+        String phoneKey = CustomerPhoneUtil.toLast10PhoneKey(customer.getPhone());
+        if (phoneKey == null) {
+            throw new RuntimeException("Customer phone is missing or invalid for account linking");
+        }
+
+        User user = userRepository.findActiveUserByPhoneKey(phoneKey)
+                .orElseThrow(() -> new RuntimeException("No CoreFlow account found for this phone"));
+
+        Companies targetCompany = user.getDefaultCompany();
+        if (targetCompany == null) {
+            throw new RuntimeException("Matched account has no default company to link");
+        }
+        if (targetCompany.getCompanyId().equals(companyId)) {
+            throw new RuntimeException("Cannot link customer to the same company");
+        }
+
+        customer.setCustomerCompany(targetCompany);
+        Customers savedCustomer = customerRepository.save(customer);
+        upsertCompanyLinkForCustomer(savedCustomer, targetCompany);
+        return savedCustomer;
+    }
+
+    public Optional<Companies> resolveLinkedCompanyForCustomer(Customers customer) {
+        if (customer == null || customer.getCustomerId() == null) {
+            return Optional.empty();
+        }
+        Optional<Companies> linkCompany = companyLinkRepository.findByCustomerCustomerIdAndIsActiveTrue(customer.getCustomerId())
+                .map(CompanyLink::getCustomerCompany)
+                .filter(company -> company != null);
+        if (linkCompany.isPresent()) {
+            return linkCompany;
+        }
+        return Optional.ofNullable(customer.getCustomerCompany());
+    }
+
+    public Optional<Vendors> resolveLinkedVendorForCustomer(Customers customer) {
+        if (customer == null || customer.getCustomerId() == null || customer.getCompany() == null) {
+            return Optional.empty();
+        }
+        Optional<Vendors> linkedVendor = companyLinkRepository.findByCustomerCustomerIdAndIsActiveTrue(customer.getCustomerId())
+                .map(CompanyLink::getVendor)
+                .filter(vendor -> vendor != null);
+        if (linkedVendor.isPresent()) {
+            return linkedVendor;
+        }
+        Optional<Companies> linkedCompany = resolveLinkedCompanyForCustomer(customer);
+        if (linkedCompany.isEmpty()) {
+            return Optional.empty();
+        }
+        return vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(
+                linkedCompany.get().getCompanyId(),
+                customer.getCompany().getCompanyId());
+    }
+
+    private void upsertCompanyLinkForCustomer(Customers customer, Companies linkedCompany) {
+        if (customer == null || customer.getCustomerId() == null || customer.getCompany() == null || linkedCompany == null) {
+            return;
+        }
+        Long ownerCompanyId = customer.getCompany().getCompanyId();
+        Long linkedCompanyId = linkedCompany.getCompanyId();
+        if (ownerCompanyId == null || linkedCompanyId == null || ownerCompanyId.equals(linkedCompanyId)) {
+            return;
+        }
+
+        CompanyLink link = companyLinkRepository.findByCustomerCustomerId(customer.getCustomerId())
+                .or(() -> companyLinkRepository.findByCustomerCompanyCompanyIdAndVendorCompanyCompanyId(
+                        linkedCompanyId,
+                        ownerCompanyId))
+                .orElseGet(CompanyLink::new);
+
+        link.setCustomer(customer);
+        link.setCustomerCompany(linkedCompany);
+        link.setVendorCompany(customer.getCompany());
+        if (link.getVendor() == null) {
+            vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(linkedCompanyId, ownerCompanyId)
+                    .ifPresent(link::setVendor);
+        }
+        link.setIsActive(true);
+        companyLinkRepository.save(link);
     }
 
     public CustomerOrderPaymentSummaryDto getOrdersAndPaymentsByCustomer(

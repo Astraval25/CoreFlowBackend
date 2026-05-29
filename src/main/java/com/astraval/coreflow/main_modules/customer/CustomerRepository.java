@@ -32,7 +32,11 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
            "FROM Customers c " +
            "LEFT JOIN c.customerCompany cc " +
            "WHERE c.company.companyId = :companyId " +
-           "AND c.customerCompany IS NULL " +
+           "AND NOT EXISTS (" +
+           "  SELECT 1 FROM CompanyLink l " +
+           "  WHERE l.customer.customerId = c.customerId " +
+           "    AND COALESCE(l.isActive, TRUE) = TRUE" +
+           ") " +
            "ORDER BY c.displayName")
     List<CustomerSummaryDto> findUnlinkedByCompanyIdSummary(@Param("companyId") Long companyId);
     
@@ -55,6 +59,19 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
 
 
     Optional<Customers> findByCompanyCompanyIdAndCustomerCompanyCompanyId(Long companyId, Long customerCompanyId);
+
+    @Query(value = """
+            SELECT *
+            FROM customers c
+            WHERE c.comp_id = :companyId
+              AND LENGTH(REGEXP_REPLACE(COALESCE(c.phone, ''), '[^0-9]', '', 'g')) >= 10
+              AND RIGHT(REGEXP_REPLACE(COALESCE(c.phone, ''), '[^0-9]', '', 'g'), 10) = :phoneKey
+            ORDER BY c.customer_id
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<Customers> findFirstByCompanyIdAndPhoneKey(
+            @Param("companyId") Long companyId,
+            @Param("phoneKey") String phoneKey);
 
     @Query(value = "SELECT COALESCE(fn_customer_due_amount(:customerId), 0.0)", nativeQuery = true)
     Double calculateDueAmount(@Param("customerId") Long customerId);

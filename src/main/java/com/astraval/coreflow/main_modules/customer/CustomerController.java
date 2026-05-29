@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.common.util.PaginationRequest;
+import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupRequest;
+import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupResultDto;
 import com.astraval.coreflow.main_modules.customer.dto.CreateUpdateCustomerDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerOrderPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerSummaryDto;
@@ -33,13 +35,50 @@ public class CustomerController {
 
     // Create
     @PostMapping("/{companyId}/customers")
-    public ApiResponse<Map<String, Long>> createCustomer(@PathVariable Long companyId,
+    public ApiResponse<Map<String, Object>> createCustomer(@PathVariable Long companyId,
             @Valid @RequestBody CreateUpdateCustomerDto request) {
         try {
             Long customerId = customerService.createCustomer(companyId, request);
             return ApiResponseFactory.created(
                     Map.of("customerId", customerId),
                     "Customer created successfully");
+        } catch (DuplicateCustomerPhoneException e) {
+            return ApiResponseFactory.validation(
+                    Map.of(
+                            "existingCustomerId", e.getExistingCustomerId(),
+                            "phoneKey", e.getPhoneKey()),
+                    e.getMessage());
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/contact-lookup")
+    public ApiResponse<List<CustomerContactLookupResultDto>> contactLookup(
+            @PathVariable Long companyId,
+            @RequestBody CustomerContactLookupRequest request) {
+        try {
+            List<CustomerContactLookupResultDto> lookupResults = customerService.contactLookup(companyId, request);
+            return ApiResponseFactory.accepted(lookupResults, "Contact lookup completed");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/{customerId}/link-by-phone")
+    public ApiResponse<Map<String, Object>> linkCustomerByPhone(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            Customers linkedCustomer = customerService.linkCustomerByPhone(companyId, customerId);
+            var linkedCompany = customerService.resolveLinkedCompanyForCustomer(linkedCustomer)
+                    .orElse(linkedCustomer.getCustomerCompany());
+            return ApiResponseFactory.updated(
+                    Map.of(
+                            "customerId", linkedCustomer.getCustomerId(),
+                            "customerCompanyId", linkedCompany.getCompanyId(),
+                            "customerCompanyName", linkedCompany.getCompanyName()),
+                    "Customer linked by phone successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
