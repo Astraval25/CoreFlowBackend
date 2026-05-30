@@ -114,7 +114,8 @@ public class VendorService {
 
             if (matchedCompany != null) {
                 vendor.setConnectionStatus(ConnectionStatus.PENDING);
-                // Do NOT set vendorCompany or create CompanyLink — wait for acceptance
+                vendor.setVendorCompany(matchedCompany);
+                // Do NOT create CompanyLink — wait for mutual acceptance
             }
 
             // Create addresses if provided
@@ -321,6 +322,7 @@ public class VendorService {
         // Create a PENDING connection request instead of immediate linking
         Companies ownerCompany = vendor.getCompany();
         vendor.setConnectionStatus(ConnectionStatus.PENDING);
+        vendor.setVendorCompany(targetCompany);
         Vendors savedVendor = vendorRepository.save(vendor);
         connectionRequestService.createConnectionRequestFromVendor(savedVendor, ownerCompany, targetCompany);
         return savedVendor;

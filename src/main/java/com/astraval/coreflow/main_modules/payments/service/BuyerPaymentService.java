@@ -104,8 +104,10 @@ public class BuyerPaymentService {
         payment.setVendors(vendor);
 
         CompanyLink customerVendorLink = customerVendorLinkRepository
-                .findByVendorVendorIdAndIsActiveTrue(vendor.getVendorId())
-                .orElse(null);
+                .findByVendorVendorIdAndCustomerCompanyCompanyId(vendor.getVendorId(), companyId)
+                .orElseGet(() -> customerVendorLinkRepository
+                        .findByVendorVendorIdAndIsActiveTrue(vendor.getVendorId())
+                        .orElse(null));
         if (customerVendorLink != null && customerVendorLink.getCustomer() != null) {
             Customers linkedCustomer = customerVendorLink.getCustomer();
             if (linkedCustomer == null || linkedCustomer.getCompany() == null) {
@@ -115,9 +117,11 @@ public class BuyerPaymentService {
                                 ", senderCompanyId=" + companyId);
             }
 
-            Long linkedCustomerCompanyId = linkedCustomer.getCompany().getCompanyId();
+            Long linkedCustomerCompanyId = customerVendorLink.getCustomerCompany() != null
+                    ? customerVendorLink.getCustomerCompany().getCompanyId()
+                    : null;
             Long expectedCustomerCompanyId = companyId;
-            if (!expectedCustomerCompanyId.equals(linkedCustomerCompanyId)) {
+            if (linkedCustomerCompanyId == null || !expectedCustomerCompanyId.equals(linkedCustomerCompanyId)) {
                 throw new RuntimeException(
                         "Customer-vendor link mismatch for payments-made. " +
                                 "vendorId=" + vendor.getVendorId() +

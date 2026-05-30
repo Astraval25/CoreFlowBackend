@@ -113,7 +113,8 @@ public class CustomerService {
 
             if (matchedCompany != null) {
                 customer.setConnectionStatus(ConnectionStatus.PENDING);
-                // Do NOT set customerCompany or create CompanyLink — wait for acceptance
+                customer.setCustomerCompany(matchedCompany);
+                // Do NOT create CompanyLink — wait for mutual acceptance
             }
 
             // Create addresses if provided
@@ -354,6 +355,7 @@ public class CustomerService {
         // Create a PENDING connection request instead of immediate linking
         Companies ownerCompany = customer.getCompany();
         customer.setConnectionStatus(ConnectionStatus.PENDING);
+        customer.setCustomerCompany(targetCompany);
         Customers savedCustomer = customerRepository.save(customer);
         connectionRequestService.createConnectionRequestFromCustomer(savedCustomer, ownerCompany, targetCompany);
         return savedCustomer;

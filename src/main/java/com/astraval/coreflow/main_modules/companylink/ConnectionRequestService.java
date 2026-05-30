@@ -87,6 +87,7 @@ public class ConnectionRequestService {
         autoVendor.setPhone(requesterPhone);
         autoVendor.setEmail(ownerCompany.getContactEmail());
         autoVendor.setConnectionStatus(ConnectionStatus.PENDING);
+        autoVendor.setVendorCompany(ownerCompany);
         Vendors savedVendor = vendorRepository.save(autoVendor);
 
         // Create the auto-invitation record
@@ -147,6 +148,7 @@ public class ConnectionRequestService {
         autoCustomer.setPhone(requesterPhone);
         autoCustomer.setEmail(ownerCompany.getContactEmail());
         autoCustomer.setConnectionStatus(ConnectionStatus.PENDING);
+        autoCustomer.setCustomerCompany(ownerCompany);
         Customers savedCustomer = customerRepository.save(autoCustomer);
 
         // Create the auto-invitation record
@@ -295,9 +297,17 @@ public class ConnectionRequestService {
 
         boolean wasAccepted = ConnectionStatus.isAccepted(customer.getConnectionStatus());
 
-        Invitation invitation = findAutoInvitationForEntity(TYPE_CUSTOMER, customerId)
-                .or(() -> findAutoInvitationForEntity(TYPE_VENDOR, null, customerId))
-                .orElseThrow(() -> new RuntimeException("Connection request not found for customer"));
+        Optional<Invitation> invitationOpt = findAutoInvitationForEntity(TYPE_CUSTOMER, customerId)
+                .or(() -> findAutoInvitationForEntity(TYPE_VENDOR, null, customerId));
+
+        if (invitationOpt.isEmpty() && !wasAccepted) {
+            throw new RuntimeException("Connection request not found for customer");
+        }
+
+        Invitation invitation = invitationOpt.orElse(null);
+        Vendors vendor = invitation != null
+                ? resolveVendorFromInvitation(invitation)
+                : resolveVendorCounterpartForCustomer(customer);
 
         // Set customer to REJECTED and clear link
         customer.setConnectionStatus(ConnectionStatus.REJECTED);
@@ -306,7 +316,6 @@ public class ConnectionRequestService {
         customerRepository.save(customer);
 
         // Update vendor counterpart
-        Vendors vendor = resolveVendorFromInvitation(invitation);
         if (vendor != null) {
             vendor.setConnectionStatus(ConnectionStatus.REJECTED);
             vendor.setVendorCompany(null);
@@ -319,24 +328,25 @@ public class ConnectionRequestService {
             deactivateCompanyLink(customer, vendor);
         }
 
-        // Update invitation
-        invitation.setStatus(STATUS_REJECTED);
-        invitation.setIsActive(false);
-        invitation.setUpdatedAt(LocalDateTime.now());
-        invitationRepository.save(invitation);
+        // Update invitation + notify requester when invitation context exists
+        if (invitation != null) {
+            invitation.setStatus(STATUS_REJECTED);
+            invitation.setIsActive(false);
+            invitation.setUpdatedAt(LocalDateTime.now());
+            invitationRepository.save(invitation);
 
-        // Notify requester
-        Companies requesterCompany = invitation.getFromCompany();
-        Companies receiverCompany = invitation.getToCompany();
-        notificationService.createCompanyNotification(
-                companyId,
-                requesterCompany.getCompanyId().equals(companyId)
-                        ? receiverCompany.getCompanyId() : requesterCompany.getCompanyId(),
-                "Connection Rejected",
-                "Your connection request has been rejected",
-                "CONNECTION_REJECTED",
-                "View",
-                null);
+            Companies requesterCompany = invitation.getFromCompany();
+            Companies receiverCompany = invitation.getToCompany();
+            notificationService.createCompanyNotification(
+                    companyId,
+                    requesterCompany.getCompanyId().equals(companyId)
+                            ? receiverCompany.getCompanyId() : requesterCompany.getCompanyId(),
+                    "Connection Rejected",
+                    "Your connection request has been rejected",
+                    "CONNECTION_REJECTED",
+                    "View",
+                    null);
+        }
     }
 
     /**
@@ -354,9 +364,17 @@ public class ConnectionRequestService {
 
         boolean wasAccepted = ConnectionStatus.isAccepted(vendor.getConnectionStatus());
 
-        Invitation invitation = findAutoInvitationForEntity(TYPE_VENDOR, vendorId)
-                .or(() -> findAutoInvitationForEntity(TYPE_CUSTOMER, null, vendorId))
-                .orElseThrow(() -> new RuntimeException("Connection request not found for vendor"));
+        Optional<Invitation> invitationOpt = findAutoInvitationForEntity(TYPE_VENDOR, vendorId)
+                .or(() -> findAutoInvitationForEntity(TYPE_CUSTOMER, null, vendorId));
+
+        if (invitationOpt.isEmpty() && !wasAccepted) {
+            throw new RuntimeException("Connection request not found for vendor");
+        }
+
+        Invitation invitation = invitationOpt.orElse(null);
+        Customers customer = invitation != null
+                ? resolveCustomerFromInvitation(invitation)
+                : resolveCustomerCounterpartForVendor(vendor);
 
         // Set vendor to REJECTED and clear link
         vendor.setConnectionStatus(ConnectionStatus.REJECTED);
@@ -365,7 +383,6 @@ public class ConnectionRequestService {
         vendorRepository.save(vendor);
 
         // Update customer counterpart
-        Customers customer = resolveCustomerFromInvitation(invitation);
         if (customer != null) {
             customer.setConnectionStatus(ConnectionStatus.REJECTED);
             customer.setCustomerCompany(null);
@@ -378,24 +395,25 @@ public class ConnectionRequestService {
             deactivateCompanyLink(customer, vendor);
         }
 
-        // Update invitation
-        invitation.setStatus(STATUS_REJECTED);
-        invitation.setIsActive(false);
-        invitation.setUpdatedAt(LocalDateTime.now());
-        invitationRepository.save(invitation);
+        // Update invitation + notify requester when invitation context exists
+        if (invitation != null) {
+            invitation.setStatus(STATUS_REJECTED);
+            invitation.setIsActive(false);
+            invitation.setUpdatedAt(LocalDateTime.now());
+            invitationRepository.save(invitation);
 
-        // Notify requester
-        Companies requesterCompany = invitation.getFromCompany();
-        Companies receiverCompany = invitation.getToCompany();
-        notificationService.createCompanyNotification(
-                companyId,
-                requesterCompany.getCompanyId().equals(companyId)
-                        ? receiverCompany.getCompanyId() : requesterCompany.getCompanyId(),
-                "Connection Rejected",
-                "Your connection request has been rejected",
-                "CONNECTION_REJECTED",
-                "View",
-                null);
+            Companies requesterCompany = invitation.getFromCompany();
+            Companies receiverCompany = invitation.getToCompany();
+            notificationService.createCompanyNotification(
+                    companyId,
+                    requesterCompany.getCompanyId().equals(companyId)
+                            ? receiverCompany.getCompanyId() : requesterCompany.getCompanyId(),
+                    "Connection Rejected",
+                    "Your connection request has been rejected",
+                    "CONNECTION_REJECTED",
+                    "View",
+                    null);
+        }
     }
 
     // --- Helper methods ---
@@ -499,6 +517,38 @@ public class ConnectionRequestService {
             return customerRepository.findById(invitation.getRequestedEntityId()).orElse(null);
         }
         return null;
+    }
+
+    private Vendors resolveVendorCounterpartForCustomer(Customers customer) {
+        if (customer == null || customer.getCompany() == null) {
+            return null;
+        }
+
+        if (customer.getCustomerCompany() != null) {
+            return vendorRepository.findByCompanyCompanyIdAndVendorCompanyCompanyId(
+                    customer.getCustomerCompany().getCompanyId(),
+                    customer.getCompany().getCompanyId()).orElse(null);
+        }
+
+        return companyLinkRepository.findByCustomerCustomerIdAndIsActiveTrue(customer.getCustomerId())
+                .map(CompanyLink::getVendor)
+                .orElse(null);
+    }
+
+    private Customers resolveCustomerCounterpartForVendor(Vendors vendor) {
+        if (vendor == null || vendor.getCompany() == null) {
+            return null;
+        }
+
+        if (vendor.getVendorCompany() != null) {
+            return customerRepository.findByCompanyCompanyIdAndCustomerCompanyCompanyId(
+                    vendor.getVendorCompany().getCompanyId(),
+                    vendor.getCompany().getCompanyId()).orElse(null);
+        }
+
+        return companyLinkRepository.findByVendorVendorIdAndIsActiveTrue(vendor.getVendorId())
+                .map(CompanyLink::getCustomer)
+                .orElse(null);
     }
 
     private void upsertCompanyLink(Customers customer, Vendors vendor) {
