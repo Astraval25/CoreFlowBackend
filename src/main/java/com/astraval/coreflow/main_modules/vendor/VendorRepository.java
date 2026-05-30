@@ -72,6 +72,19 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
                   Long companyId,
                   Long vendorCompanyId);
 
+    @Query(value = """
+            SELECT *
+            FROM vendors v
+            WHERE v.comp_id = :companyId
+              AND LENGTH(REGEXP_REPLACE(COALESCE(v.phone, ''), '[^0-9]', '', 'g')) >= 10
+              AND RIGHT(REGEXP_REPLACE(COALESCE(v.phone, ''), '[^0-9]', '', 'g'), 10) = :phoneKey
+            ORDER BY v.vendor_id
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<Vendors> findFirstByCompanyIdAndPhoneKey(
+            @Param("companyId") Long companyId,
+            @Param("phoneKey") String phoneKey);
+
     @Query(value = "SELECT COALESCE(fn_vendor_due_amount(:vendorId), 0.0)", nativeQuery = true)
     Double calculateDueAmount(@Param("vendorId") Long vendorId);
 

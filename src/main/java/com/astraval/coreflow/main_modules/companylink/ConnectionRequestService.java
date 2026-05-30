@@ -2,6 +2,7 @@ package com.astraval.coreflow.main_modules.companylink;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -184,7 +185,7 @@ public class ConnectionRequestService {
 
     /**
      * Accept a connection request for a Customer record.
-     * Sets both sides to ACCEPTED and creates the CompanyLink.
+     * Requires mutual acceptance from both sides before final linking.
      */
     @Transactional
     public void acceptConnectionForCustomer(Long companyId, Long customerId) {
@@ -201,54 +202,39 @@ public class ConnectionRequestService {
                 .or(() -> findAutoInvitationForEntity(TYPE_VENDOR, null, customerId))
                 .orElseThrow(() -> new RuntimeException("Connection request not found for customer"));
 
-        // Determine the two companies and the counterpart entity
-        Companies requesterCompany = invitation.getFromCompany();
-        Companies receiverCompany = invitation.getToCompany();
+        Vendors vendor = resolveVendorFromInvitation(invitation);
+        if (vendor == null) {
+            throw new RuntimeException("Connection request counterpart not found for customer");
+        }
 
-        // Set customer side to ACCEPTED
-        customer.setConnectionStatus(ConnectionStatus.ACCEPTED);
-        customer.setCustomerCompany(
-                customer.getCompany().getCompanyId().equals(requesterCompany.getCompanyId())
-                        ? receiverCompany : requesterCompany);
+        // Record customer-side acceptance first, but keep connection PENDING
+        customer.setConnectionStatus(ConnectionStatus.PENDING);
         customer.setAcceptedInvitationId(invitation.getInviteId());
         customerRepository.save(customer);
 
-        // Find and update vendor counterpart
-        Vendors vendor = resolveVendorFromInvitation(invitation);
-        if (vendor != null) {
-            vendor.setConnectionStatus(ConnectionStatus.ACCEPTED);
-            vendor.setVendorCompany(
-                    vendor.getCompany().getCompanyId().equals(requesterCompany.getCompanyId())
-                            ? receiverCompany : requesterCompany);
-            vendor.setAcceptedInvitationId(invitation.getInviteId());
-            vendorRepository.save(vendor);
+        // Finalize only when both sides have accepted
+        if (invitation.getInviteId().equals(vendor.getAcceptedInvitationId())) {
+            finalizeMutualAcceptance(invitation, customer, vendor, companyId);
+            return;
         }
 
-        // Create CompanyLink
-        if (vendor != null) {
-            upsertCompanyLink(customer, vendor);
-        }
-
-        // Update invitation status
-        invitation.setStatus(STATUS_ACCEPTED);
-        invitation.setAccespedAt(LocalDateTime.now());
-        invitation.setUpdatedAt(LocalDateTime.now());
-        invitationRepository.save(invitation);
-
-        // Send notification to requester
+        // Ask the counterpart to accept on their side as well
         notificationService.createCompanyNotification(
                 companyId,
-                requesterCompany.getCompanyId().equals(companyId)
-                        ? receiverCompany.getCompanyId() : requesterCompany.getCompanyId(),
-                "Connection Accepted",
-                "Your connection request has been accepted",
-                "CONNECTION_ACCEPTED",
-                "View",
-                null);
+                vendor.getCompany().getCompanyId(),
+                "Connection Approval Pending",
+                "The other company accepted. Please accept to complete the connection.",
+                "CONNECTION_PENDING_COUNTERPART_ACCEPT",
+                "View Request",
+                "/cf/company/" + vendor.getCompany().getCompanyId() + "/vendors/" + vendor.getVendorId() + "/detail",
+                "CONNECTION_REQUEST",
+                "VENDOR",
+                vendor.getVendorId());
     }
 
     /**
      * Accept a connection request for a Vendor record.
+     * Requires mutual acceptance from both sides before final linking.
      */
     @Transactional
     public void acceptConnectionForVendor(Long companyId, Long vendorId) {
@@ -264,49 +250,34 @@ public class ConnectionRequestService {
                 .or(() -> findAutoInvitationForEntity(TYPE_CUSTOMER, null, vendorId))
                 .orElseThrow(() -> new RuntimeException("Connection request not found for vendor"));
 
-        Companies requesterCompany = invitation.getFromCompany();
-        Companies receiverCompany = invitation.getToCompany();
+        Customers customer = resolveCustomerFromInvitation(invitation);
+        if (customer == null) {
+            throw new RuntimeException("Connection request counterpart not found for vendor");
+        }
 
-        // Set vendor side to ACCEPTED
-        vendor.setConnectionStatus(ConnectionStatus.ACCEPTED);
-        vendor.setVendorCompany(
-                vendor.getCompany().getCompanyId().equals(requesterCompany.getCompanyId())
-                        ? receiverCompany : requesterCompany);
+        // Record vendor-side acceptance first, but keep connection PENDING
+        vendor.setConnectionStatus(ConnectionStatus.PENDING);
         vendor.setAcceptedInvitationId(invitation.getInviteId());
         vendorRepository.save(vendor);
 
-        // Find and update customer counterpart
-        Customers customer = resolveCustomerFromInvitation(invitation);
-        if (customer != null) {
-            customer.setConnectionStatus(ConnectionStatus.ACCEPTED);
-            customer.setCustomerCompany(
-                    customer.getCompany().getCompanyId().equals(requesterCompany.getCompanyId())
-                            ? receiverCompany : requesterCompany);
-            customer.setAcceptedInvitationId(invitation.getInviteId());
-            customerRepository.save(customer);
+        // Finalize only when both sides have accepted
+        if (invitation.getInviteId().equals(customer.getAcceptedInvitationId())) {
+            finalizeMutualAcceptance(invitation, customer, vendor, companyId);
+            return;
         }
 
-        // Create CompanyLink
-        if (customer != null) {
-            upsertCompanyLink(customer, vendor);
-        }
-
-        // Update invitation
-        invitation.setStatus(STATUS_ACCEPTED);
-        invitation.setAccespedAt(LocalDateTime.now());
-        invitation.setUpdatedAt(LocalDateTime.now());
-        invitationRepository.save(invitation);
-
-        // Notify requester
+        // Ask the counterpart to accept on their side as well
         notificationService.createCompanyNotification(
                 companyId,
-                requesterCompany.getCompanyId().equals(companyId)
-                        ? receiverCompany.getCompanyId() : requesterCompany.getCompanyId(),
-                "Connection Accepted",
-                "Your connection request has been accepted",
-                "CONNECTION_ACCEPTED",
-                "View",
-                null);
+                customer.getCompany().getCompanyId(),
+                "Connection Approval Pending",
+                "The other company accepted. Please accept to complete the connection.",
+                "CONNECTION_PENDING_COUNTERPART_ACCEPT",
+                "View Request",
+                "/cf/company/" + customer.getCompany().getCompanyId() + "/customers/" + customer.getCustomerId() + "/detail",
+                "CONNECTION_REQUEST",
+                "CUSTOMER",
+                customer.getCustomerId());
     }
 
     /**
@@ -445,17 +416,67 @@ public class ConnectionRequestService {
         if (TYPE_CUSTOMER.equals(entityType) && vendorId != null) {
             // Looking for invitation where selectedVendorId = vendorId
             return invitationRepository.findAll().stream()
-                    .filter(inv -> REQUEST_TYPE_AUTO.equals(inv.getRequestType()))
+                    .filter(this::isAutoInvitation)
                     .filter(inv -> vendorId.equals(inv.getSelectedVendorId()))
-                    .findFirst();
+                    .max(Comparator.comparing(Invitation::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())));
         } else if (TYPE_VENDOR.equals(entityType) && customerId != null) {
             // Looking for invitation where selectedCustomerId = customerId
             return invitationRepository.findAll().stream()
-                    .filter(inv -> REQUEST_TYPE_AUTO.equals(inv.getRequestType()))
+                    .filter(this::isAutoInvitation)
                     .filter(inv -> customerId.equals(inv.getSelectedCustomerId()))
-                    .findFirst();
+                    .max(Comparator.comparing(Invitation::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())));
         }
         return Optional.empty();
+    }
+
+    private boolean isAutoInvitation(Invitation invitation) {
+        if (invitation == null) {
+            return false;
+        }
+        return REQUEST_TYPE_AUTO.equals(invitation.getRequestType());
+    }
+
+    private void finalizeMutualAcceptance(
+            Invitation invitation,
+            Customers customer,
+            Vendors vendor,
+            Long actedByCompanyId) {
+        customer.setConnectionStatus(ConnectionStatus.ACCEPTED);
+        vendor.setConnectionStatus(ConnectionStatus.ACCEPTED);
+        customer.setAcceptedInvitationId(invitation.getInviteId());
+        vendor.setAcceptedInvitationId(invitation.getInviteId());
+        customer.setCustomerCompany(vendor.getCompany());
+        vendor.setVendorCompany(customer.getCompany());
+        customerRepository.save(customer);
+        vendorRepository.save(vendor);
+
+        upsertCompanyLink(customer, vendor);
+
+        invitation.setStatus(STATUS_ACCEPTED);
+        invitation.setAccespedAt(LocalDateTime.now());
+        invitation.setUpdatedAt(LocalDateTime.now());
+        invitationRepository.save(invitation);
+
+        Long requesterCompanyId = invitation.getFromCompany() != null
+                ? invitation.getFromCompany().getCompanyId()
+                : null;
+        Long receiverCompanyId = invitation.getToCompany() != null
+                ? invitation.getToCompany().getCompanyId()
+                : null;
+        Long targetCompanyId = requesterCompanyId != null && requesterCompanyId.equals(actedByCompanyId)
+                ? receiverCompanyId
+                : requesterCompanyId;
+
+        if (targetCompanyId != null) {
+            notificationService.createCompanyNotification(
+                    actedByCompanyId,
+                    targetCompanyId,
+                    "Connection Accepted",
+                    "Both sides accepted. Connection is now active.",
+                    "CONNECTION_ACCEPTED",
+                    "View",
+                    null);
+        }
     }
 
     private Vendors resolveVendorFromInvitation(Invitation invitation) {

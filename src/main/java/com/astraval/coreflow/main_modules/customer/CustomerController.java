@@ -1,5 +1,6 @@
 package com.astraval.coreflow.main_modules.customer;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -77,11 +78,14 @@ public class CustomerController {
             Customers linkedCustomer = customerService.linkCustomerByPhone(companyId, customerId);
             var linkedCompany = customerService.resolveLinkedCompanyForCustomer(linkedCustomer)
                     .orElse(linkedCustomer.getCustomerCompany());
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("customerId", linkedCustomer.getCustomerId());
+            if (linkedCompany != null) {
+                payload.put("customerCompanyId", linkedCompany.getCompanyId());
+                payload.put("customerCompanyName", linkedCompany.getCompanyName());
+            }
             return ApiResponseFactory.updated(
-                    Map.of(
-                            "customerId", linkedCustomer.getCustomerId(),
-                            "customerCompanyId", linkedCompany.getCompanyId(),
-                            "customerCompanyName", linkedCompany.getCompanyName()),
+                    payload,
                     "Customer linked by phone successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
