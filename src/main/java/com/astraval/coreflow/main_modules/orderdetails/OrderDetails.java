@@ -51,6 +51,9 @@ public class OrderDetails {
   @Column(name = "order_date")
   private LocalDateTime orderDate;
 
+  @Column(name = "payment_due_date")
+  private LocalDateTime paymentDueDate;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "customer")
   private Customers customers = null;

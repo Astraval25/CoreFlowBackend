@@ -12,6 +12,7 @@ public class OrderDetailsFullResponse {
     private String platformRef;
     private String localOrderNumber;
     private LocalDateTime orderDate;
+    private LocalDateTime paymentDueDate;
 
     private Long sellerCompanyId;
     private String sellerCompanyName;

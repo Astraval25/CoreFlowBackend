@@ -199,14 +199,23 @@ public class ConnectionRequestService {
             throw new RuntimeException("Customer connection is not in a state that can be accepted");
         }
 
-        // Find the related auto-invitation
+        // Find the related auto-invitation (legacy records may not have one)
         Invitation invitation = findAutoInvitationForEntity(TYPE_CUSTOMER, customerId)
                 .or(() -> findAutoInvitationForEntity(TYPE_VENDOR, null, customerId))
-                .orElseThrow(() -> new RuntimeException("Connection request not found for customer"));
+                .orElse(null);
 
-        Vendors vendor = resolveVendorFromInvitation(invitation);
+        Vendors vendor = invitation != null
+                ? resolveVendorFromInvitation(invitation)
+                : resolveVendorCounterpartForCustomer(customer);
         if (vendor == null) {
             throw new RuntimeException("Connection request counterpart not found for customer");
+        }
+
+        // Legacy fallback: if invitation metadata is missing, complete direct
+        // acceptance
+        if (invitation == null) {
+            finalizeLegacyAcceptance(customer, vendor);
+            return;
         }
 
         // Record customer-side acceptance first, but keep connection PENDING
@@ -250,11 +259,20 @@ public class ConnectionRequestService {
 
         Invitation invitation = findAutoInvitationForEntity(TYPE_VENDOR, vendorId)
                 .or(() -> findAutoInvitationForEntity(TYPE_CUSTOMER, null, vendorId))
-                .orElseThrow(() -> new RuntimeException("Connection request not found for vendor"));
+                .orElse(null);
 
-        Customers customer = resolveCustomerFromInvitation(invitation);
+        Customers customer = invitation != null
+                ? resolveCustomerFromInvitation(invitation)
+                : resolveCustomerCounterpartForVendor(vendor);
         if (customer == null) {
             throw new RuntimeException("Connection request counterpart not found for vendor");
+        }
+
+        // Legacy fallback: if invitation metadata is missing, complete direct
+        // acceptance
+        if (invitation == null) {
+            finalizeLegacyAcceptance(customer, vendor);
+            return;
         }
 
         // Record vendor-side acceptance first, but keep connection PENDING
@@ -299,10 +317,6 @@ public class ConnectionRequestService {
 
         Optional<Invitation> invitationOpt = findAutoInvitationForEntity(TYPE_CUSTOMER, customerId)
                 .or(() -> findAutoInvitationForEntity(TYPE_VENDOR, null, customerId));
-
-        if (invitationOpt.isEmpty() && !wasAccepted) {
-            throw new RuntimeException("Connection request not found for customer");
-        }
 
         Invitation invitation = invitationOpt.orElse(null);
         Vendors vendor = invitation != null
@@ -367,10 +381,6 @@ public class ConnectionRequestService {
         Optional<Invitation> invitationOpt = findAutoInvitationForEntity(TYPE_VENDOR, vendorId)
                 .or(() -> findAutoInvitationForEntity(TYPE_CUSTOMER, null, vendorId));
 
-        if (invitationOpt.isEmpty() && !wasAccepted) {
-            throw new RuntimeException("Connection request not found for vendor");
-        }
-
         Invitation invitation = invitationOpt.orElse(null);
         Customers customer = invitation != null
                 ? resolveCustomerFromInvitation(invitation)
@@ -417,6 +427,18 @@ public class ConnectionRequestService {
     }
 
     // --- Helper methods ---
+
+    private void finalizeLegacyAcceptance(Customers customer, Vendors vendor) {
+        customer.setConnectionStatus(ConnectionStatus.ACCEPTED);
+        vendor.setConnectionStatus(ConnectionStatus.ACCEPTED);
+        customer.setAcceptedInvitationId(null);
+        vendor.setAcceptedInvitationId(null);
+        customer.setCustomerCompany(vendor.getCompany());
+        vendor.setVendorCompany(customer.getCompany());
+        customerRepository.save(customer);
+        vendorRepository.save(vendor);
+        upsertCompanyLink(customer, vendor);
+    }
 
     private Optional<Invitation> findAutoInvitationForEntity(String entityType, Long entityId) {
         return invitationRepository

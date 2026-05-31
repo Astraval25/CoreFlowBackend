@@ -23,6 +23,7 @@ public class UpdatePurchaseOrder {
     private Double discountAmount;
 
     private LocalDateTime orderDate;
+    private LocalDateTime paymentDueDate;
     
     @NotNull(message = "Delivery charge is required")
     @PositiveOrZero(message = "Delivery charge must be positive or zero")

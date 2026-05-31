@@ -78,6 +78,7 @@ public class OrderDetailsService {
         response.setOrderId(orderDetails.getOrderId());
         response.setOrderNumber(orderDetails.getOrderNumber());
         response.setOrderDate(orderDetails.getOrderDate());
+        response.setPaymentDueDate(orderDetails.getPaymentDueDate());
 
         if (orderDetails.getSellerCompany() != null) {
             response.setSellerCompanyId(orderDetails.getSellerCompany().getCompanyId());

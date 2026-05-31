@@ -2,6 +2,7 @@ package com.astraval.coreflow.main_modules.orderdetails.repo;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -73,4 +74,22 @@ public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Long
             @Param("sellerCompanyId") Long sellerCompanyId,
             @Param("customerId") Long customerId,
             @Param("orderStatuses") List<String> orderStatuses);
+
+    @Query("""
+            SELECT o FROM OrderDetails o
+            LEFT JOIN FETCH o.customers c
+            LEFT JOIN FETCH c.company sc
+            LEFT JOIN FETCH o.vendors v
+            LEFT JOIN FETCH v.company bc
+            WHERE o.isActive = true
+            AND o.orderStatus <> :cancelledStatus
+            AND o.totalAmount IS NOT NULL
+            AND COALESCE(o.paidAmount, 0) < o.totalAmount
+            AND o.paymentDueDate >= :fromDateTime
+            AND o.paymentDueDate < :toDateTime
+            """)
+    List<OrderDetails> findUnpaidOrdersByPaymentDueDateRange(
+            @Param("fromDateTime") LocalDateTime fromDateTime,
+            @Param("toDateTime") LocalDateTime toDateTime,
+            @Param("cancelledStatus") String cancelledStatus);
 }
