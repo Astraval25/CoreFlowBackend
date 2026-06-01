@@ -15,8 +15,9 @@ public class LoginResponse {
     private Long companyId;
     private String companyName;
     private List<Long> companyIds;
-    
-    public LoginResponse(String token, String refreshToken, Integer userId, String roleCode, String landingUrl, Long companyId, String companyName, List<Long> companyIds) {
+    private String email;
+
+    public LoginResponse(String token, String refreshToken, Integer userId, String roleCode, String landingUrl, Long companyId, String companyName, List<Long> companyIds, String email) {
         this.token = token;
         this.refreshToken = refreshToken;
         this.userId = userId;
@@ -25,9 +26,18 @@ public class LoginResponse {
         this.companyId = companyId;
         this.companyName = companyName;
         this.companyIds = companyIds;
+        this.email = email;
     }
-    
+
+    public LoginResponse(String token, String refreshToken, Integer userId, String roleCode, String landingUrl, Long companyId, String companyName, List<Long> companyIds) {
+        this(token, refreshToken, userId, roleCode, landingUrl, companyId, companyName, companyIds, null);
+    }
+
+    public LoginResponse(String token, String refreshToken, Integer userId, String roleCode, String landingUrl, Long companyId, String companyName, String email) {
+        this(token, refreshToken, userId, roleCode, landingUrl, companyId, companyName, null, email);
+    }
+
     public LoginResponse(String token, String refreshToken, Integer userId, String roleCode, String landingUrl, Long companyId, String companyName) {
-        this(token, refreshToken, userId, roleCode, landingUrl, companyId, companyName, null);
+        this(token, refreshToken, userId, roleCode, landingUrl, companyId, companyName, null, null);
     }
 }

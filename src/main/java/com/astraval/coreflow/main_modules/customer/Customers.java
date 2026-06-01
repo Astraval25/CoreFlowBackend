@@ -42,6 +42,9 @@ public class Customers {
     @Column(name = "accepted_invitation_id")
     private Long acceptedInvitationId = null;
 
+    @Column(name = "connection_status")
+    private String connectionStatus;
+
     @Column(name = "customer_name", nullable = false)
     private String customerName;
 

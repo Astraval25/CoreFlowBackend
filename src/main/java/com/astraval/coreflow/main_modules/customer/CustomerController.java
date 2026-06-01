@@ -1,5 +1,6 @@
 package com.astraval.coreflow.main_modules.customer;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.common.util.PaginationRequest;
+import com.astraval.coreflow.main_modules.companylink.ConnectionRequestService;
+import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupRequest;
+import com.astraval.coreflow.main_modules.customer.dto.CustomerContactLookupResultDto;
 import com.astraval.coreflow.main_modules.customer.dto.CreateUpdateCustomerDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerOrderPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.customer.dto.CustomerSummaryDto;
@@ -31,15 +35,58 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private ConnectionRequestService connectionRequestService;
+
     // Create
     @PostMapping("/{companyId}/customers")
-    public ApiResponse<Map<String, Long>> createCustomer(@PathVariable Long companyId,
+    public ApiResponse<Map<String, Object>> createCustomer(@PathVariable Long companyId,
             @Valid @RequestBody CreateUpdateCustomerDto request) {
         try {
             Long customerId = customerService.createCustomer(companyId, request);
             return ApiResponseFactory.created(
                     Map.of("customerId", customerId),
                     "Customer created successfully");
+        } catch (DuplicateCustomerPhoneException e) {
+            return ApiResponseFactory.validation(
+                    Map.of(
+                            "existingCustomerId", e.getExistingCustomerId(),
+                            "phoneKey", e.getPhoneKey()),
+                    e.getMessage());
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/contact-lookup")
+    public ApiResponse<List<CustomerContactLookupResultDto>> contactLookup(
+            @PathVariable Long companyId,
+            @RequestBody CustomerContactLookupRequest request) {
+        try {
+            List<CustomerContactLookupResultDto> lookupResults = customerService.contactLookup(companyId, request);
+            return ApiResponseFactory.accepted(lookupResults, "Contact lookup completed");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/{customerId}/link-by-phone")
+    public ApiResponse<Map<String, Object>> linkCustomerByPhone(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            Customers linkedCustomer = customerService.linkCustomerByPhone(companyId, customerId);
+            var linkedCompany = customerService.resolveLinkedCompanyForCustomer(linkedCustomer)
+                    .orElse(linkedCustomer.getCustomerCompany());
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("customerId", linkedCustomer.getCustomerId());
+            if (linkedCompany != null) {
+                payload.put("customerCompanyId", linkedCompany.getCompanyId());
+                payload.put("customerCompanyName", linkedCompany.getCompanyName());
+            }
+            return ApiResponseFactory.updated(
+                    payload,
+                    "Customer linked by phone successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
@@ -153,6 +200,52 @@ public class CustomerController {
             return ApiResponseFactory.deleted("Customer deleted successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
+        }
+    }
+
+    // Connection request endpoints
+
+    @PostMapping("/{companyId}/customers/{customerId}/connection/accept")
+    public ApiResponse<String> acceptConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            connectionRequestService.acceptConnectionForCustomer(companyId, customerId);
+            return ApiResponseFactory.accepted("Connection accepted successfully", "Connection accepted successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/{customerId}/connection/reject")
+    public ApiResponse<String> rejectConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId) {
+        try {
+            connectionRequestService.rejectConnectionForCustomer(companyId, customerId);
+            return ApiResponseFactory.accepted("Connection rejected successfully", "Connection rejected successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/customers/{customerId}/connection/undo")
+    public ApiResponse<String> undoConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId,
+            @RequestBody Map<String, String> request) {
+        try {
+            String newStatus = request.get("newStatus");
+            if ("ACCEPTED".equals(newStatus)) {
+                connectionRequestService.acceptConnectionForCustomer(companyId, customerId);
+            } else if ("REJECTED".equals(newStatus)) {
+                connectionRequestService.rejectConnectionForCustomer(companyId, customerId);
+            } else {
+                return ApiResponseFactory.error("Invalid status. Must be ACCEPTED or REJECTED", 400);
+            }
+            return ApiResponseFactory.accepted("Connection updated successfully", "Connection updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
 }

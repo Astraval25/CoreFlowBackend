@@ -8,12 +8,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companyref.CompanyRefService;
 import com.astraval.coreflow.main_modules.config.CompanyNumberSequenceRepository;
+import com.astraval.coreflow.main_modules.customer.CustomerService;
 import com.astraval.coreflow.main_modules.customer.CustomerRepository;
 import com.astraval.coreflow.main_modules.customer.Customers;
 import com.astraval.coreflow.main_modules.items.model.Items;
 import com.astraval.coreflow.main_modules.items.repo.ItemRepository;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 import com.astraval.coreflow.main_modules.orderdetails.OrderDetails;
 import com.astraval.coreflow.main_modules.orderdetails.OrderStatus;
 import com.astraval.coreflow.main_modules.orderdetails.dto.CreateSalesOrder;
@@ -51,12 +54,18 @@ public class SalesOrderDetailsService {
         
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private CustomerService customerService;
     
     @Autowired
     private VendorService vendorService;
 
     @Autowired
     private PartnerBalanceService partnerBalanceService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private CompanyRefService companyRefService;
@@ -74,15 +83,24 @@ public class SalesOrderDetailsService {
         // 1. check the companyId is exist
         companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-        Customers toCustomers = customerRepository.findById(createOrder.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customers toCustomers = customerRepository
+                .findByCustomerIdAndCompanyCompanyId(createOrder.getCustomerId(), companyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found for company ID: " + companyId + " (customerId=" + createOrder.getCustomerId() + ")"));
+        // Block orders for customers with pending/rejected connection
+        if (!com.astraval.coreflow.main_modules.companylink.ConnectionStatus.allowsTransactions(toCustomers.getConnectionStatus())) {
+            throw new RuntimeException("Cannot create order: customer connection is " + toCustomers.getConnectionStatus()
+                    + ". The connection request must be accepted first.");
+        }
         // Access Validation Done if all ok then only allow to create.
 
         OrderDetails orderDetails = orderDetailsMapper.toOrderDetails(createOrder);
         // Main id setting...
         orderDetails.setCustomers(toCustomers);
-        if(toCustomers.getCustomerCompany() != null){
-            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        Long customersVendorCompanyId = customerService.resolveLinkedCompanyForCustomer(toCustomers)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (customersVendorCompanyId != null) {
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
             orderDetails.setVendors(buyerVendor);
         }
@@ -90,7 +108,11 @@ public class SalesOrderDetailsService {
         LocalDateTime orderDate = createOrder.getOrderDate() != null
                 ? createOrder.getOrderDate()
                 : LocalDateTime.now();
+        LocalDateTime paymentDueDate = createOrder.getPaymentDueDate() != null
+                ? createOrder.getPaymentDueDate()
+                : orderDate.plusDays(3);
         orderDetails.setOrderDate(orderDate);
+        orderDetails.setPaymentDueDate(paymentDueDate);
         orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
@@ -136,10 +158,24 @@ public class SalesOrderDetailsService {
         companyRefService.createOrderRef(companyId, savedOrder, sellerLocalNumber);
 
         // Company overlay for buyer (if linked)
-        if (toCustomers.getCustomerCompany() != null) {
-            Long buyerCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        if (customersVendorCompanyId != null) {
+            Long buyerCompanyId = customersVendorCompanyId;
             String buyerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(buyerCompanyId, "PURCHASE_ORDER");
             companyRefService.createOrderRef(buyerCompanyId, savedOrder, buyerLocalNumber);
+
+            if (savedOrder.getVendors() != null) {
+                notificationService.createCompanyNotification(
+                        companyId,
+                        buyerCompanyId,
+                        "New Sales Order",
+                        "A new sales order is created by " + toCustomers.getCompany().getCompanyName(),
+                        "SALES_ORDER_CREATED",
+                        "View Orders",
+                        "/companies/" + buyerCompanyId + "/purchase/orders",
+                        null,
+                        "VENDOR",
+                        savedOrder.getVendors().getVendorId());
+            }
         }
 
         partnerBalanceService.refreshDueAmountsForOrder(savedOrder);
@@ -173,13 +209,18 @@ public class SalesOrderDetailsService {
                 ? existingOrder.getVendors().getVendorId()
                 : null;
         
-        Customers toCustomers = customerRepository.findById(updateOrder.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customers toCustomers = customerRepository
+                .findByCustomerIdAndCompanyCompanyId(updateOrder.getCustomerId(), companyId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found for company ID: " + companyId + " (customerId=" + updateOrder.getCustomerId() + ")"));
         
         // Update order details
         existingOrder.setCustomers(toCustomers);
-        if (toCustomers.getCustomerCompany() != null) {
-            Long customersVendorCompanyId = toCustomers.getCustomerCompany().getCompanyId();
+        Long updatedCustomersVendorCompanyId = customerService.resolveLinkedCompanyForCustomer(toCustomers)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (updatedCustomersVendorCompanyId != null) {
+            Long customersVendorCompanyId = updatedCustomersVendorCompanyId;
             Vendors buyerVendor = vendorService.getBuyerVendorId(customersVendorCompanyId, companyId);
             existingOrder.setVendors(buyerVendor);
         } else {
@@ -191,6 +232,9 @@ public class SalesOrderDetailsService {
         existingOrder.setHasBill(updateOrder.isHasBill());
         if (updateOrder.getOrderDate() != null) {
             existingOrder.setOrderDate(updateOrder.getOrderDate());
+        }
+        if (updateOrder.getPaymentDueDate() != null) {
+            existingOrder.setPaymentDueDate(updateOrder.getPaymentDueDate());
         }
         
         // Delete existing order items

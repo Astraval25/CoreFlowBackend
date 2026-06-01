@@ -8,5 +8,6 @@ public record CustomerOrderSummaryDto(
     Double totalAmount,
     String orderPlatformRef,
     Double paidAmount,
-    LocalDateTime orderDate
+    LocalDateTime orderDate,
+    Boolean isViewed
 ) {}

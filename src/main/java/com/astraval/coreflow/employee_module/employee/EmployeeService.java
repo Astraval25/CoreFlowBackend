@@ -5,16 +5,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.employee_module.employee.dto.*;
+import com.astraval.coreflow.employee_module.enums.LeaveStatus;
 import com.astraval.coreflow.employee_module.enums.SalaryType;
+import com.astraval.coreflow.employee_module.enums.WorkLogStatus;
+import com.astraval.coreflow.employee_module.leavelog.EmployeeLeaveLogRepository;
 import com.astraval.coreflow.employee_module.salaryconfig.EmployeeSalaryConfig;
 import com.astraval.coreflow.employee_module.salaryconfig.EmployeeSalaryConfigRepository;
 import com.astraval.coreflow.employee_module.salaryconfig.dto.SalaryConfigDto;
+import com.astraval.coreflow.employee_module.worklog.EmployeeWorkLogRepository;
 import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.notification.NotificationService;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class EmployeeService {
@@ -27,6 +34,15 @@ public class EmployeeService {
 
     @Autowired
     private EmployeeSalaryConfigRepository salaryConfigRepository;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private EmployeeWorkLogRepository employeeWorkLogRepository;
+
+    @Autowired
+    private EmployeeLeaveLogRepository employeeLeaveLogRepository;
 
     @Transactional
     public Long createEmployee(Long companyId, CreateEmployeeDto dto) {
@@ -68,12 +84,18 @@ public class EmployeeService {
 
     public List<EmployeeSummaryDto> getEmployees(Long companyId) {
         List<Employee> employees = employeeRepository.findByCompanyCompanyIdOrderByEmployeeName(companyId);
-        return employees.stream().map(this::toSummaryDto).toList();
+        List<EmployeeSummaryDto> summaries = applyUnreadCounts(
+                employees.stream().map(this::toSummaryDto).toList(),
+                companyId);
+        return applyPendingCounts(summaries, companyId);
     }
 
     public List<EmployeeSummaryDto> getActiveEmployees(Long companyId) {
         List<Employee> employees = employeeRepository.findByCompanyCompanyIdAndIsActiveTrueOrderByEmployeeName(companyId);
-        return employees.stream().map(this::toSummaryDto).toList();
+        List<EmployeeSummaryDto> summaries = applyUnreadCounts(
+                employees.stream().map(this::toSummaryDto).toList(),
+                companyId);
+        return applyPendingCounts(summaries, companyId);
     }
 
     public EmployeeDetailDto getEmployeeDetail(Long companyId, Long employeeId) {
@@ -157,7 +179,44 @@ public class EmployeeService {
                     dto.setCurrentSalaryType(config.getSalaryType());
                     dto.setCurrentMonthlyAmount(config.getMonthlyAmount());
                 });
+        dto.setUnreadCount(0L);
+        dto.setPendingWorkLogCount(0L);
+        dto.setPendingLeaveLogCount(0L);
+        dto.setPendingTotalCount(0L);
 
         return dto;
+    }
+
+    private List<EmployeeSummaryDto> applyUnreadCounts(List<EmployeeSummaryDto> employees, Long companyId) {
+        var unreadCountByEmployee = notificationService.getCompanyUnreadCountBySubjectType(companyId, "EMPLOYEE");
+        employees.forEach(employee -> employee.setUnreadCount(
+                unreadCountByEmployee.getOrDefault(employee.getEmployeeId(), 0L)));
+        return employees;
+    }
+
+    private List<EmployeeSummaryDto> applyPendingCounts(List<EmployeeSummaryDto> employees, Long companyId) {
+        Map<Long, Long> pendingWorkCountByEmployee = employeeWorkLogRepository
+                .countByCompanyAndStatusGroupedByEmployee(companyId, WorkLogStatus.PENDING)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row[0]).longValue(),
+                        row -> ((Number) row[1]).longValue()));
+
+        Map<Long, Long> pendingLeaveCountByEmployee = employeeLeaveLogRepository
+                .countByCompanyAndStatusGroupedByEmployee(companyId, LeaveStatus.PENDING)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row[0]).longValue(),
+                        row -> ((Number) row[1]).longValue()));
+
+        employees.forEach(employee -> {
+            Long pendingWork = pendingWorkCountByEmployee.getOrDefault(employee.getEmployeeId(), 0L);
+            Long pendingLeave = pendingLeaveCountByEmployee.getOrDefault(employee.getEmployeeId(), 0L);
+            employee.setPendingWorkLogCount(pendingWork);
+            employee.setPendingLeaveLogCount(pendingLeave);
+            employee.setPendingTotalCount(pendingWork + pendingLeave);
+        });
+
+        return employees;
     }
 }

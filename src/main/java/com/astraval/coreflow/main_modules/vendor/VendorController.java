@@ -1,5 +1,6 @@
 package com.astraval.coreflow.main_modules.vendor;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,7 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.astraval.coreflow.common.util.ApiResponse;
 import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.common.util.PaginationRequest;
+import com.astraval.coreflow.main_modules.companylink.ConnectionRequestService;
 import com.astraval.coreflow.main_modules.vendor.dto.CreateUpdateVendorDto;
+import com.astraval.coreflow.main_modules.vendor.dto.VendorContactLookupRequest;
+import com.astraval.coreflow.main_modules.vendor.dto.VendorContactLookupResultDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorOrderPaymentSummaryDto;
 import com.astraval.coreflow.main_modules.vendor.dto.VendorSummaryDto;
 
@@ -31,15 +35,58 @@ public class VendorController {
     @Autowired
     private VendorService vendorService;
 
+    @Autowired
+    private ConnectionRequestService connectionRequestService;
+
     // Create
     @PostMapping("/{companyId}/vendors")
-    public ApiResponse<Map<String, Long>> createVendor(@PathVariable Long companyId,
+    public ApiResponse<Map<String, Object>> createVendor(@PathVariable Long companyId,
             @Valid @RequestBody CreateUpdateVendorDto request) {
         try {
             Long vendorId = vendorService.createVendor(companyId, request);
             return ApiResponseFactory.created(
                     Map.of("vendorId", vendorId),
                     "Vendor created successfully");
+        } catch (DuplicateVendorPhoneException e) {
+            return ApiResponseFactory.validation(
+                    Map.of(
+                            "existingVendorId", e.getExistingVendorId(),
+                            "phoneKey", e.getPhoneKey()),
+                    e.getMessage());
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/vendors/contact-lookup")
+    public ApiResponse<List<VendorContactLookupResultDto>> contactLookup(
+            @PathVariable Long companyId,
+            @RequestBody VendorContactLookupRequest request) {
+        try {
+            List<VendorContactLookupResultDto> lookupResults = vendorService.contactLookup(companyId, request);
+            return ApiResponseFactory.accepted(lookupResults, "Contact lookup completed");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/vendors/{vendorId}/link-by-phone")
+    public ApiResponse<Map<String, Object>> linkVendorByPhone(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId) {
+        try {
+            Vendors linkedVendor = vendorService.linkVendorByPhone(companyId, vendorId);
+            var linkedCompany = vendorService.resolveLinkedCompanyForVendor(linkedVendor)
+                    .orElse(linkedVendor.getVendorCompany());
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("vendorId", linkedVendor.getVendorId());
+            if (linkedCompany != null) {
+                payload.put("vendorCompanyId", linkedCompany.getCompanyId());
+                payload.put("vendorCompanyName", linkedCompany.getCompanyName());
+            }
+            return ApiResponseFactory.updated(
+                    payload,
+                    "Vendor linked by phone successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 406);
         }
@@ -153,6 +200,52 @@ public class VendorController {
             return ApiResponseFactory.deleted("Vendor deleted successfully");
         } catch (RuntimeException e) {
             return ApiResponseFactory.error(e.getMessage(), 420);
+        }
+    }
+
+    // Connection request endpoints
+
+    @PostMapping("/{companyId}/vendors/{vendorId}/connection/accept")
+    public ApiResponse<String> acceptConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId) {
+        try {
+            connectionRequestService.acceptConnectionForVendor(companyId, vendorId);
+            return ApiResponseFactory.accepted("Connection accepted successfully", "Connection accepted successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/vendors/{vendorId}/connection/reject")
+    public ApiResponse<String> rejectConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId) {
+        try {
+            connectionRequestService.rejectConnectionForVendor(companyId, vendorId);
+            return ApiResponseFactory.accepted("Connection rejected successfully", "Connection rejected successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
+        }
+    }
+
+    @PostMapping("/{companyId}/vendors/{vendorId}/connection/undo")
+    public ApiResponse<String> undoConnection(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId,
+            @RequestBody Map<String, String> request) {
+        try {
+            String newStatus = request.get("newStatus");
+            if ("ACCEPTED".equals(newStatus)) {
+                connectionRequestService.acceptConnectionForVendor(companyId, vendorId);
+            } else if ("REJECTED".equals(newStatus)) {
+                connectionRequestService.rejectConnectionForVendor(companyId, vendorId);
+            } else {
+                return ApiResponseFactory.error("Invalid status. Must be ACCEPTED or REJECTED", 400);
+            }
+            return ApiResponseFactory.accepted("Connection updated successfully", "Connection updated successfully");
+        } catch (RuntimeException e) {
+            return ApiResponseFactory.error(e.getMessage(), 406);
         }
     }
 }

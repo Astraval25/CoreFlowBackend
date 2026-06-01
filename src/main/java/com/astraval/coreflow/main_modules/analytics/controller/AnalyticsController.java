@@ -16,9 +16,12 @@ import com.astraval.coreflow.common.util.ApiResponseFactory;
 import com.astraval.coreflow.main_modules.analytics.dto.BusinessGrowthDto;
 import com.astraval.coreflow.main_modules.analytics.dto.CashFlowDto;
 import com.astraval.coreflow.main_modules.analytics.dto.DashboardKpiDto;
+import com.astraval.coreflow.main_modules.analytics.dto.EmployeeAnalyticsOverviewDto;
+import com.astraval.coreflow.main_modules.analytics.dto.EmployeeDailyAnalyticsDto;
 import com.astraval.coreflow.main_modules.analytics.dto.ItemFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.MonthlyTrendDto;
 import com.astraval.coreflow.main_modules.analytics.dto.OrderHistoryDto;
+import com.astraval.coreflow.main_modules.analytics.dto.PartyOrderPaymentTrendDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentHistoryDto;
 import com.astraval.coreflow.main_modules.analytics.dto.OrderFrequencyDto;
 import com.astraval.coreflow.main_modules.analytics.dto.PaymentFrequencyDto;
@@ -179,6 +182,64 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ApiResponseFactory.ok(analyticsService.getPurchaseByVendor(companyId, defaultStart(startDate), defaultEnd(endDate)),
                 "Purchase by vendor retrieved");
+    }
+
+    @GetMapping("/{companyId}/analytics/customers/{customerId}/order-payment-trend")
+    public ApiResponse<List<PartyOrderPaymentTrendDto>> customerOrderPaymentTrend(
+            @PathVariable Long companyId,
+            @PathVariable Long customerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(
+                analyticsService.getCustomerOrderPaymentTrend(
+                        companyId,
+                        customerId,
+                        defaultStart(startDate),
+                        defaultEnd(endDate)),
+                "Customer order-payment trend retrieved");
+    }
+
+    @GetMapping("/{companyId}/analytics/vendors/{vendorId}/order-payment-trend")
+    public ApiResponse<List<PartyOrderPaymentTrendDto>> vendorOrderPaymentTrend(
+            @PathVariable Long companyId,
+            @PathVariable Long vendorId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(
+                analyticsService.getVendorOrderPaymentTrend(
+                        companyId,
+                        vendorId,
+                        defaultStart(startDate),
+                        defaultEnd(endDate)),
+                "Vendor order-payment trend retrieved");
+    }
+
+    @GetMapping("/{companyId}/analytics/employees/overview")
+    public ApiResponse<List<EmployeeAnalyticsOverviewDto>> employeeAnalyticsOverview(
+            @PathVariable Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(
+                analyticsService.getEmployeeAnalyticsOverview(
+                        companyId,
+                        defaultStart(startDate),
+                        defaultEnd(endDate)),
+                "Employee analytics overview retrieved");
+    }
+
+    @GetMapping("/{companyId}/analytics/employees/{employeeId}/daily")
+    public ApiResponse<List<EmployeeDailyAnalyticsDto>> employeeDailyAnalytics(
+            @PathVariable Long companyId,
+            @PathVariable Long employeeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponseFactory.ok(
+                analyticsService.getEmployeeDailyAnalytics(
+                        companyId,
+                        employeeId,
+                        defaultStart(startDate),
+                        defaultEnd(endDate)),
+                "Employee daily analytics retrieved");
     }
 
     // ========================

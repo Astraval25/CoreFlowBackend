@@ -18,6 +18,8 @@ public class ItemMapper {
         item.setBasePurchasePrice(dto.getBasePurchasePrice());
         item.setHsnCode(dto.getHsnCode());
         item.setTaxRate(dto.getTaxRate());
+        if (dto.getIsSellable() != null) item.setIsSellable(dto.getIsSellable());
+        if (dto.getIsPurchasable() != null) item.setIsPurchasable(dto.getIsPurchasable());
     }
 
     public void mapUpdateDtoToEntity(com.astraval.coreflow.main_modules.items.dto.UpdateItemDto dto, Items item) {
@@ -30,5 +32,7 @@ public class ItemMapper {
         if (dto.getBasePurchasePrice() != null) item.setBasePurchasePrice(dto.getBasePurchasePrice());
         if (dto.getHsnCode() != null) item.setHsnCode(dto.getHsnCode());
         if (dto.getTaxRate() != null) item.setTaxRate(dto.getTaxRate());
+        if (dto.getIsSellable() != null) item.setIsSellable(dto.getIsSellable());
+        if (dto.getIsPurchasable() != null) item.setIsPurchasable(dto.getIsPurchasable());
     }
 }

@@ -19,7 +19,7 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
     
     @Query("SELECT new com.astraval.coreflow.main_modules.customer.dto.CustomerSummaryDto(" +
            "c.customerId, c.displayName, " +
-           "COALESCE(cc.companyName, ''), c.email, c.dueAmount, c.isActive) " +
+           "COALESCE(cc.companyName, ''), c.email, c.dueAmount, c.isActive, c.connectionStatus) " +
            "FROM Customers c " +
            "LEFT JOIN c.customerCompany cc " +
            "WHERE c.company.companyId = :companyId " +
@@ -28,17 +28,21 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
 
     @Query("SELECT new com.astraval.coreflow.main_modules.customer.dto.CustomerSummaryDto(" +
            "c.customerId, c.displayName, " +
-           "COALESCE(cc.companyName, ''), c.email, c.dueAmount, c.isActive) " +
+           "COALESCE(cc.companyName, ''), c.email, c.dueAmount, c.isActive, c.connectionStatus) " +
            "FROM Customers c " +
            "LEFT JOIN c.customerCompany cc " +
            "WHERE c.company.companyId = :companyId " +
-           "AND c.customerCompany IS NULL " +
+           "AND NOT EXISTS (" +
+           "  SELECT 1 FROM CompanyLink l " +
+           "  WHERE l.customer.customerId = c.customerId " +
+           "    AND COALESCE(l.isActive, TRUE) = TRUE" +
+           ") " +
            "ORDER BY c.displayName")
     List<CustomerSummaryDto> findUnlinkedByCompanyIdSummary(@Param("companyId") Long companyId);
-    
+
     @Query("SELECT new com.astraval.coreflow.main_modules.customer.dto.CustomerSummaryDto(" +
            "c.customerId, c.displayName, " +
-           "COALESCE(cc.companyName, ''), c.email, c.dueAmount, c.isActive) " +
+           "COALESCE(cc.companyName, ''), c.email, c.dueAmount, c.isActive, c.connectionStatus) " +
            "FROM Customers c " +
            "LEFT JOIN c.customerCompany cc " +
            "WHERE c.company.companyId = :companyId " +
@@ -55,6 +59,19 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
 
 
     Optional<Customers> findByCompanyCompanyIdAndCustomerCompanyCompanyId(Long companyId, Long customerCompanyId);
+
+    @Query(value = """
+            SELECT *
+            FROM customers c
+            WHERE c.comp_id = :companyId
+              AND LENGTH(REGEXP_REPLACE(COALESCE(c.phone, ''), '[^0-9]', '', 'g')) >= 10
+              AND RIGHT(REGEXP_REPLACE(COALESCE(c.phone, ''), '[^0-9]', '', 'g'), 10) = :phoneKey
+            ORDER BY c.customer_id
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<Customers> findFirstByCompanyIdAndPhoneKey(
+            @Param("companyId") Long companyId,
+            @Param("phoneKey") String phoneKey);
 
     @Query(value = "SELECT COALESCE(fn_customer_due_amount(:customerId), 0.0)", nativeQuery = true)
     Double calculateDueAmount(@Param("customerId") Long customerId);
@@ -92,7 +109,7 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
 
     @Query(value = """
             SELECT o.order_id, o.order_number, o.total_amount,
-                   o.platform_ref, o.paid_amount, o.order_date
+                   o.platform_ref, o.paid_amount, o.order_date, o.order_status
             FROM order_details o
             WHERE o.customer = :customerId
               AND COALESCE(o.is_active, TRUE) = TRUE
@@ -117,7 +134,7 @@ public interface CustomerRepository extends JpaRepository<Customers, Long> {
             Pageable pageable);
 
     @Query(value = """
-            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount
+            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount, p.payment_status
             FROM payments p
             WHERE p.customer = :customerId
               AND COALESCE(p.is_active, TRUE) = TRUE

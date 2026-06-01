@@ -76,7 +76,10 @@ public class EmployeeLeaveLogService {
                         + " leave (" + dto.getLeaveCategory() + ") on " + dto.getLeaveDate(),
                 "LEAVE_LOG_CREATED",
                 "View Leave Logs",
-                "/cf/company/" + companyId + "/leave-logs");
+                "/cf/company/" + companyId + "/leave-logs",
+                null,
+                "EMPLOYEE",
+                employee.getEmployeeId());
 
         return saved.getLeaveId();
     }

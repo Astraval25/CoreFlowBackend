@@ -21,9 +21,9 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
            "v.vendorId, " +
            "v.displayName, " +
            "COALESCE(vc.companyName, ''), " +
-           "v.email, " + 
+           "v.email, " +
            "v.dueAmount, " +
-           "v.isActive) " +
+           "v.isActive, v.connectionStatus) " +
            "FROM Vendors v " +
            "LEFT JOIN v.vendorCompany vc " +
                   "WHERE v.company.companyId = :companyId " +
@@ -34,22 +34,26 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
            "v.vendorId, " +
            "v.displayName, " +
            "COALESCE(vc.companyName, ''), " +
-           "v.email, " + 
+           "v.email, " +
            "v.dueAmount, " +
-           "v.isActive) " +
+           "v.isActive, v.connectionStatus) " +
            "FROM Vendors v " +
            "LEFT JOIN v.vendorCompany vc " +
            "WHERE v.company.companyId = :companyId " +
-           "AND v.vendorCompany IS NULL " +
+           "AND NOT EXISTS (" +
+           "  SELECT 1 FROM CompanyLink l " +
+           "  WHERE l.vendor.vendorId = v.vendorId " +
+           "    AND COALESCE(l.isActive, TRUE) = TRUE" +
+           ") " +
            "ORDER BY v.displayName")
     List<VendorSummaryDto> findUnlinkedByCompanyIdSummary(@Param("companyId") Long companyId);
-    
+
     @Query("SELECT new com.astraval.coreflow.main_modules.vendor.dto.VendorSummaryDto(" +
                   "v.vendorId, " +
                   "v.displayName, " +
                   "COALESCE(vc.companyName, ''), " +
                   "v.email, " +
-                  "v.dueAmount, v.isActive) " +
+                  "v.dueAmount, v.isActive, v.connectionStatus) " +
                   "FROM Vendors v " +
                   "LEFT JOIN v.vendorCompany vc " +
                   "WHERE v.company.companyId = :companyId " +
@@ -67,6 +71,19 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
     Optional<Vendors> findByCompanyCompanyIdAndVendorCompanyCompanyId(
                   Long companyId,
                   Long vendorCompanyId);
+
+    @Query(value = """
+            SELECT *
+            FROM vendors v
+            WHERE v.comp_id = :companyId
+              AND LENGTH(REGEXP_REPLACE(COALESCE(v.phone, ''), '[^0-9]', '', 'g')) >= 10
+              AND RIGHT(REGEXP_REPLACE(COALESCE(v.phone, ''), '[^0-9]', '', 'g'), 10) = :phoneKey
+            ORDER BY v.vendor_id
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<Vendors> findFirstByCompanyIdAndPhoneKey(
+            @Param("companyId") Long companyId,
+            @Param("phoneKey") String phoneKey);
 
     @Query(value = "SELECT COALESCE(fn_vendor_due_amount(:vendorId), 0.0)", nativeQuery = true)
     Double calculateDueAmount(@Param("vendorId") Long vendorId);
@@ -104,7 +121,7 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
 
     @Query(value = """
             SELECT o.order_id, o.order_number, o.total_amount,
-                   o.platform_ref, o.paid_amount, o.order_date
+                   o.platform_ref, o.paid_amount, o.order_date, o.order_status
             FROM order_details o
             WHERE o.vendor = :vendorId
               AND COALESCE(o.is_active, TRUE) = TRUE
@@ -129,7 +146,7 @@ public interface VendorRepository extends JpaRepository<Vendors, Long> {
             Pageable pageable);
 
     @Query(value = """
-            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount
+            SELECT p.payment_id, p.platform_ref, p.payment_date, p.amount, p.payment_status
             FROM payments p
             WHERE p.vendor = :vendorId
               AND COALESCE(p.is_active, TRUE) = TRUE

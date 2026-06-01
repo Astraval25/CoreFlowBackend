@@ -33,4 +33,8 @@ public class CreateItemDto {
     private String hsnCode;
 
     private BigDecimal taxRate;
+
+    private Boolean isSellable;
+
+    private Boolean isPurchasable;
 }

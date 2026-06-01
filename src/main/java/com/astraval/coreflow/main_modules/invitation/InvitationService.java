@@ -54,7 +54,7 @@ public class InvitationService {
         Customers customer = customerRepository.findByCustomerIdAndCompanyCompanyId(customerId, companyId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + customerId));
 
-        if (customer.getCustomerCompany() != null) {
+        if (isCustomerLinked(customer)) {
             throw new RuntimeException("Customer already linked to a company");
         }
 
@@ -81,7 +81,7 @@ public class InvitationService {
         Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(vendorId, companyId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
 
-        if (vendor.getVendorCompany() != null) {
+        if (isVendorLinked(vendor)) {
             throw new RuntimeException("Vendor already linked to a company");
         }
 
@@ -162,10 +162,10 @@ public class InvitationService {
             Vendors vendor = vendorRepository.findByVendorIdAndCompanyCompanyId(request.getSelectedVendorId(), companyId)
                     .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + request.getSelectedVendorId()));
 
-            if (customer.getCustomerCompany() != null) {
+            if (isCustomerLinked(customer)) {
                 throw new RuntimeException("Customer already linked to a company");
             }
-            if (vendor.getVendorCompany() != null) {
+            if (isVendorLinked(vendor)) {
                 throw new RuntimeException("Vendor already linked to a company");
             }
             if (customer.getCompany().getCompanyId().equals(vendor.getCompany().getCompanyId())) {
@@ -194,10 +194,10 @@ public class InvitationService {
             Customers customer = customerRepository.findByCustomerIdAndCompanyCompanyId(request.getSelectedCustomerId(), companyId)
                     .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getSelectedCustomerId()));
 
-            if (vendor.getVendorCompany() != null) {
+            if (isVendorLinked(vendor)) {
                 throw new RuntimeException("Vendor already linked to a company");
             }
-            if (customer.getCustomerCompany() != null) {
+            if (isCustomerLinked(customer)) {
                 throw new RuntimeException("Customer already linked to a company");
             }
             if (vendor.getCompany().getCompanyId().equals(customer.getCompany().getCompanyId())) {
@@ -286,6 +286,7 @@ public class InvitationService {
 
     private void upsertCustomerVendorLink(Customers customer, Vendors vendor) {
         CompanyLink link = customerVendorLinkRepository.findByCustomerCustomerId(customer.getCustomerId())
+                .or(() -> customerVendorLinkRepository.findByVendorVendorId(vendor.getVendorId()))
                 .orElseGet(CompanyLink::new);
 
         link.setCustomer(customer);
@@ -297,5 +298,21 @@ public class InvitationService {
         
         link.setIsActive(true);
         customerVendorLinkRepository.save(link);
+    }
+
+    private boolean isCustomerLinked(Customers customer) {
+        if (customer == null || customer.getCustomerId() == null) {
+            return false;
+        }
+        return customerVendorLinkRepository.findByCustomerCustomerIdAndIsActiveTrue(customer.getCustomerId()).isPresent()
+                || customer.getCustomerCompany() != null;
+    }
+
+    private boolean isVendorLinked(Vendors vendor) {
+        if (vendor == null || vendor.getVendorId() == null) {
+            return false;
+        }
+        return customerVendorLinkRepository.findByVendorVendorIdAndIsActiveTrue(vendor.getVendorId()).isPresent()
+                || vendor.getVendorCompany() != null;
     }
 }

@@ -37,10 +37,10 @@ public class User {
     @Column(name = "password", length = 300, nullable = false)
     private String password;
 
-    @Column(name = "contact_no", length = 10)
+    @Column(name = "contact_no", length = 20, nullable = false, unique = true)
     private String contactNo;
 
-    @Column(name = "email", length = 100, nullable = false)
+    @Column(name = "email", length = 100)
     private String email;
 
     @Column(name = "verified")

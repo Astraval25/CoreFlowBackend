@@ -252,7 +252,16 @@ public class AnalyticsRepository {
                     COUNT(od.order_id) AS total_orders,
                     COALESCE(SUM(od.total_amount), 0) AS total_amount,
                     COALESCE(SUM(od.paid_amount), 0) AS paid_amount,
-                    COALESCE(SUM(od.total_amount), 0) - COALESCE(SUM(od.paid_amount), 0) AS due_amount
+                    COALESCE(SUM(od.total_amount), 0) - COALESCE(SUM(od.paid_amount), 0) AS due_amount,
+                    COALESCE((
+                        SELECT SUM(oid.quantity)
+                        FROM order_item_details oid
+                        JOIN order_details od2 ON od2.order_id = oid.order_id
+                        WHERE od2.customer = c.customer_id
+                          AND od2.is_active = true
+                          AND od2.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
+                          AND od2.order_date BETWEEN :startDate AND :endDate
+                    ), 0) AS total_quantity
                 FROM order_details od
                 JOIN customers c ON od.customer = c.customer_id
                 WHERE c.comp_id = :companyId
@@ -275,7 +284,16 @@ public class AnalyticsRepository {
                     COUNT(od.order_id) AS total_orders,
                     COALESCE(SUM(od.total_amount), 0) AS total_amount,
                     COALESCE(SUM(od.paid_amount), 0) AS paid_amount,
-                    COALESCE(SUM(od.total_amount), 0) - COALESCE(SUM(od.paid_amount), 0) AS due_amount
+                    COALESCE(SUM(od.total_amount), 0) - COALESCE(SUM(od.paid_amount), 0) AS due_amount,
+                    COALESCE((
+                        SELECT SUM(oid.quantity)
+                        FROM order_item_details oid
+                        JOIN order_details od2 ON od2.order_id = oid.order_id
+                        WHERE od2.vendor = v.vendor_id
+                          AND od2.is_active = true
+                          AND od2.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
+                          AND od2.order_date BETWEEN :startDate AND :endDate
+                    ), 0) AS total_quantity
                 FROM order_details od
                 JOIN vendors v ON od.vendor = v.vendor_id
                 WHERE v.comp_id = :companyId
@@ -835,6 +853,243 @@ public class AnalyticsRepository {
         return q.getResultList();
     }
 
+    public List<Object[]> customerOrderPaymentTrend(
+            Long companyId,
+            Long customerId,
+            LocalDateTime startDate,
+            LocalDateTime endDate) {
+        String sql = """
+                WITH days AS (
+                    SELECT CAST(gs.day AS date) AS day
+                    FROM generate_series(CAST(:startDate AS date), CAST(:endDate AS date), INTERVAL '1 day') gs(day)
+                ),
+                order_amounts AS (
+                    SELECT CAST(od.order_date AS date) AS day,
+                           COALESCE(SUM(od.total_amount), 0) AS order_amount,
+                           COALESCE(SUM(oid.quantity), 0) AS total_quantity
+                    FROM order_details od
+                    LEFT JOIN order_item_details oid ON oid.order_id = od.order_id
+                    JOIN customers c ON od.customer = c.customer_id
+                    WHERE c.comp_id = :companyId
+                      AND c.customer_id = :customerId
+                      AND od.is_active = true
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
+                      AND od.order_date BETWEEN :startDate AND :endDate
+                    GROUP BY CAST(od.order_date AS date)
+                ),
+                payment_amounts AS (
+                    SELECT CAST(p.payment_date AS date) AS day,
+                           COALESCE(SUM(p.amount), 0) AS paid_amount
+                    FROM payments p
+                    JOIN customers c ON p.customer = c.customer_id
+                    WHERE c.comp_id = :companyId
+                      AND c.customer_id = :customerId
+                      AND p.is_active = true
+                      AND p.payment_status <> 'PAYMENT_REFUND'
+                      AND p.payment_date BETWEEN :startDate AND :endDate
+                    GROUP BY CAST(p.payment_date AS date)
+                )
+                SELECT TO_CHAR(days.day, 'YYYY-MM-DD') AS day,
+                       COALESCE(oa.total_quantity, 0) AS total_quantity,
+                       COALESCE(oa.order_amount, 0) AS order_amount,
+                       COALESCE(pa.paid_amount, 0) AS paid_amount
+                FROM days
+                LEFT JOIN order_amounts oa ON oa.day = days.day
+                LEFT JOIN payment_amounts pa ON pa.day = days.day
+                ORDER BY days.day
+                """;
+        Query q = em.createNativeQuery(sql);
+        q.setParameter("companyId", companyId);
+        q.setParameter("customerId", customerId);
+        q.setParameter("startDate", startDate);
+        q.setParameter("endDate", endDate);
+        return q.getResultList();
+    }
+
+    public List<Object[]> vendorOrderPaymentTrend(
+            Long companyId,
+            Long vendorId,
+            LocalDateTime startDate,
+            LocalDateTime endDate) {
+        String sql = """
+                WITH days AS (
+                    SELECT CAST(gs.day AS date) AS day
+                    FROM generate_series(CAST(:startDate AS date), CAST(:endDate AS date), INTERVAL '1 day') gs(day)
+                ),
+                order_amounts AS (
+                    SELECT CAST(od.order_date AS date) AS day,
+                           COALESCE(SUM(od.total_amount), 0) AS order_amount,
+                           COALESCE(SUM(oid.quantity), 0) AS total_quantity
+                    FROM order_details od
+                    LEFT JOIN order_item_details oid ON oid.order_id = od.order_id
+                    JOIN vendors v ON od.vendor = v.vendor_id
+                    WHERE v.comp_id = :companyId
+                      AND v.vendor_id = :vendorId
+                      AND od.is_active = true
+                      AND od.order_status NOT IN ('QUOTATION','QUOTATION_VIEWED','QUOTATION_ACCEPTED','QUOTATION_DECLINED','ORDER_CANCELLED')
+                      AND od.order_date BETWEEN :startDate AND :endDate
+                    GROUP BY CAST(od.order_date AS date)
+                ),
+                payment_amounts AS (
+                    SELECT CAST(p.payment_date AS date) AS day,
+                           COALESCE(SUM(p.amount), 0) AS paid_amount
+                    FROM payments p
+                    JOIN vendors v ON p.vendor = v.vendor_id
+                    WHERE v.comp_id = :companyId
+                      AND v.vendor_id = :vendorId
+                      AND p.is_active = true
+                      AND p.payment_status <> 'PAYMENT_REFUND'
+                      AND p.payment_date BETWEEN :startDate AND :endDate
+                    GROUP BY CAST(p.payment_date AS date)
+                )
+                SELECT TO_CHAR(days.day, 'YYYY-MM-DD') AS day,
+                       COALESCE(oa.total_quantity, 0) AS total_quantity,
+                       COALESCE(oa.order_amount, 0) AS order_amount,
+                       COALESCE(pa.paid_amount, 0) AS paid_amount
+                FROM days
+                LEFT JOIN order_amounts oa ON oa.day = days.day
+                LEFT JOIN payment_amounts pa ON pa.day = days.day
+                ORDER BY days.day
+                """;
+        Query q = em.createNativeQuery(sql);
+        q.setParameter("companyId", companyId);
+        q.setParameter("vendorId", vendorId);
+        q.setParameter("startDate", startDate);
+        q.setParameter("endDate", endDate);
+        return q.getResultList();
+    }
+
+    public List<Object[]> employeeAnalyticsOverview(
+            Long companyId,
+            LocalDateTime startDate,
+            LocalDateTime endDate) {
+        String sql = """
+                SELECT e.employee_id,
+                       e.employee_code,
+                       e.employee_name,
+                       COALESCE((
+                           SELECT COUNT(*)
+                           FROM modemp.employee_work_logs w
+                           WHERE w.company_id = :companyId
+                             AND w.employee_id = e.employee_id
+                             AND w.status = 'APPROVED'
+                             AND w.log_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                       ), 0) AS approved_work_count,
+                       COALESCE((
+                           SELECT SUM(w.quantity)
+                           FROM modemp.employee_work_logs w
+                           WHERE w.company_id = :companyId
+                             AND w.employee_id = e.employee_id
+                             AND w.status = 'APPROVED'
+                             AND w.log_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                       ), 0) AS approved_work_quantity,
+                       COALESCE((
+                           SELECT SUM(w.amount_earned)
+                           FROM modemp.employee_work_logs w
+                           WHERE w.company_id = :companyId
+                             AND w.employee_id = e.employee_id
+                             AND w.status = 'APPROVED'
+                             AND w.log_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                       ), 0) AS approved_work_amount,
+                       COALESCE((
+                           SELECT COUNT(*)
+                           FROM modemp.employee_leave_logs l
+                           WHERE l.company_id = :companyId
+                             AND l.employee_id = e.employee_id
+                             AND l.status = 'APPROVED'
+                             AND l.leave_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                       ), 0) AS approved_leave_count,
+                       COALESCE((
+                           SELECT SUM(
+                               CASE
+                                   WHEN l.leave_type = 'HALF_DAY' THEN 0.5
+                                   ELSE 1.0
+                               END
+                           )
+                           FROM modemp.employee_leave_logs l
+                           WHERE l.company_id = :companyId
+                             AND l.employee_id = e.employee_id
+                             AND l.status = 'APPROVED'
+                             AND l.leave_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                       ), 0) AS approved_leave_days,
+                       COALESCE((
+                           SELECT COUNT(*)
+                           FROM modemp.employee_work_logs w
+                           WHERE w.company_id = :companyId
+                             AND w.employee_id = e.employee_id
+                             AND w.status = 'PENDING'
+                       ), 0) AS pending_work_count,
+                       COALESCE((
+                           SELECT COUNT(*)
+                           FROM modemp.employee_leave_logs l
+                           WHERE l.company_id = :companyId
+                             AND l.employee_id = e.employee_id
+                             AND l.status = 'PENDING'
+                       ), 0) AS pending_leave_count
+                FROM modemp.employees e
+                WHERE e.company_id = :companyId
+                ORDER BY e.employee_name ASC
+                """;
+        Query q = em.createNativeQuery(sql);
+        q.setParameter("companyId", companyId);
+        q.setParameter("startDate", startDate);
+        q.setParameter("endDate", endDate);
+        return q.getResultList();
+    }
+
+    public List<Object[]> employeeDailyAnalytics(
+            Long companyId,
+            Long employeeId,
+            LocalDateTime startDate,
+            LocalDateTime endDate) {
+        String sql = """
+                WITH days AS (
+                    SELECT CAST(gs.day AS date) AS day
+                    FROM generate_series(CAST(:startDate AS date), CAST(:endDate AS date), INTERVAL '1 day') gs(day)
+                ),
+                approved_work AS (
+                    SELECT w.log_date AS day,
+                           COALESCE(SUM(w.quantity), 0) AS approved_work_quantity,
+                           COALESCE(SUM(w.amount_earned), 0) AS approved_work_amount
+                    FROM modemp.employee_work_logs w
+                    WHERE w.company_id = :companyId
+                      AND w.employee_id = :employeeId
+                      AND w.status = 'APPROVED'
+                      AND w.log_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                    GROUP BY w.log_date
+                ),
+                approved_leave AS (
+                    SELECT l.leave_date AS day,
+                           COALESCE(SUM(
+                               CASE
+                                   WHEN l.leave_type = 'HALF_DAY' THEN 0.5
+                                   ELSE 1.0
+                               END
+                           ), 0) AS approved_leave_days
+                    FROM modemp.employee_leave_logs l
+                    WHERE l.company_id = :companyId
+                      AND l.employee_id = :employeeId
+                      AND l.status = 'APPROVED'
+                      AND l.leave_date BETWEEN CAST(:startDate AS date) AND CAST(:endDate AS date)
+                    GROUP BY l.leave_date
+                )
+                SELECT TO_CHAR(days.day, 'YYYY-MM-DD') AS day,
+                       COALESCE(aw.approved_work_quantity, 0) AS approved_work_quantity,
+                       COALESCE(aw.approved_work_amount, 0) AS approved_work_amount,
+                       COALESCE(al.approved_leave_days, 0) AS approved_leave_days
+                FROM days
+                LEFT JOIN approved_work aw ON aw.day = days.day
+                LEFT JOIN approved_leave al ON al.day = days.day
+                ORDER BY days.day
+                """;
+        Query q = em.createNativeQuery(sql);
+        q.setParameter("companyId", companyId);
+        q.setParameter("employeeId", employeeId);
+        q.setParameter("startDate", startDate);
+        q.setParameter("endDate", endDate);
+        return q.getResultList();
+    }
+
     public List<Object[]> orderHistory(
             Long companyId,
             LocalDateTime startDate,
@@ -847,10 +1102,15 @@ public class AnalyticsRepository {
                     od.order_id,
                     CASE WHEN c.comp_id = :companyId THEN 'SALES' ELSE 'PURCHASE' END AS order_type,
                     od.order_date,
+                    CASE
+                        WHEN c.comp_id = :companyId THEN COALESCE(NULLIF(c.display_name, ''), c.customer_name, '')
+                        ELSE COALESCE(NULLIF(v.display_name, ''), v.vendor_name, '')
+                    END AS party_name,
                     COALESCE(cor.local_order_number, od.order_number, '') AS local_order_number,
                     od.order_status,
                     COALESCE(SUM(oid.quantity), 0) AS total_item_quantity,
                     COALESCE(od.total_amount, 0) AS total_amount,
+                    COALESCE(od.paid_amount, 0) AS paid_amount,
                     CASE
                         WHEN COALESCE(od.total_amount, 0) > 0
                             THEN ROUND((COALESCE(od.paid_amount, 0) / od.total_amount) * 100)
@@ -877,7 +1137,7 @@ public class AnalyticsRepository {
                         OR (:paidState = 'PAID' AND COALESCE(od.total_amount, 0) > 0 AND COALESCE(od.paid_amount, 0) >= COALESCE(od.total_amount, 0))
                       )
                   AND (:statusesEmpty = true OR od.order_status IN :statuses)
-                GROUP BY od.order_id, order_type, od.order_date, cor.local_order_number, od.order_number, od.order_status, od.total_amount, od.paid_amount
+                GROUP BY od.order_id, order_type, od.order_date, c.comp_id, c.display_name, c.customer_name, v.display_name, v.vendor_name, cor.local_order_number, od.order_number, od.order_status, od.total_amount, od.paid_amount
                 ORDER BY od.order_date DESC, od.order_id DESC
                 """;
         Query q = em.createNativeQuery(sql);
@@ -902,6 +1162,10 @@ public class AnalyticsRepository {
                     p.payment_id,
                     CASE WHEN c.comp_id = :companyId THEN 'RECEIVED' ELSE 'MADE' END AS payment_type,
                     p.payment_date,
+                    CASE
+                        WHEN c.comp_id = :companyId THEN COALESCE(NULLIF(c.display_name, ''), c.customer_name, '')
+                        ELSE COALESCE(NULLIF(v.display_name, ''), v.vendor_name, '')
+                    END AS party_name,
                     COALESCE(cpr.local_payment_number, p.payment_number, '') AS local_payment_number,
                     p.payment_status,
                     p.mode_of_payment,

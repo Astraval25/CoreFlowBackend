@@ -69,4 +69,10 @@ public class Invitation {
     @Column(name = "selected_vendor_id")
     private Long selectedVendorId;
 
+    @Column(name = "request_type")
+    private String requestType = "MANUAL";
+
+    @Column(name = "requester_company_phone")
+    private String requesterCompanyPhone;
+
 }

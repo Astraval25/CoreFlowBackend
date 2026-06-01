@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/test/**", "/error", "/ads").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/file").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADM")
+                        .requestMatchers("/api/users/**").hasAnyRole("ADM", "USR")
                         .requestMatchers("/api/emp/**").hasRole("EMP")
                         .requestMatchers(HttpMethod.GET, "/api/companies/*/modemp/work-definitions")
                         .hasAnyRole("ADM", "EMP")

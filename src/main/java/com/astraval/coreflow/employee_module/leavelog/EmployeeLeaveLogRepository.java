@@ -45,4 +45,13 @@ public interface EmployeeLeaveLogRepository extends JpaRepository<EmployeeLeaveL
             @Param("employeeId") Long employeeId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT l.employee.employeeId, COUNT(l.leaveId) " +
+            "FROM EmployeeLeaveLog l " +
+            "WHERE l.company.companyId = :companyId " +
+            "AND l.status = :status " +
+            "GROUP BY l.employee.employeeId")
+    List<Object[]> countByCompanyAndStatusGroupedByEmployee(
+            @Param("companyId") Long companyId,
+            @Param("status") LeaveStatus status);
 }

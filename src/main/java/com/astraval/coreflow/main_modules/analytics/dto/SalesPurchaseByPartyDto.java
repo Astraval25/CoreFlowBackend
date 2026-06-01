@@ -6,5 +6,6 @@ public record SalesPurchaseByPartyDto(
     Long totalOrders,
     Double totalAmount,
     Double paidAmount,
-    Double dueAmount
+    Double dueAmount,
+    Double totalQuantity
 ) {}

@@ -46,11 +46,18 @@ public class OtpService {
         otpVerification.setExpiresAt(LocalDateTime.now().plusMinutes(10));
         otpRepository.save(otpVerification);
         
-        // Get Emil Template for OTP sending
-        EmailTemplateDetails details = emailTemplateService.getEmailTemplateByName("OTP Verification");
-        String bodyTextData = details.getBodyText().replace("{{otp}}", otp);
-                
-        emailService.sendTextEmail(email, details.getSubject(), bodyTextData);
+        // Prefer configured template, but don't fail registration if template is missing.
+        String subject = "OTP Verification";
+        String bodyTextData = "Your OTP is: " + otp;
+        try {
+            EmailTemplateDetails details = emailTemplateService.getEmailTemplateByName("OTP Verification");
+            subject = details.getSubject();
+            bodyTextData = details.getBodyText().replace("{{otp}}", otp);
+        } catch (RuntimeException ignored) {
+            // Fallback to default subject/body when template is not seeded in local DB.
+        }
+
+        emailService.sendTextEmail(email, subject, bodyTextData);
     }
 
     @Transactional

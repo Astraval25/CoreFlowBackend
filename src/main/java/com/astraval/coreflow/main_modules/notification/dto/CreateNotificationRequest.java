@@ -35,4 +35,9 @@ public class CreateNotificationRequest {
 
     @Size(max = 100)
     private String entityKey;
+
+    @Size(max = 50)
+    private String subjectType;
+
+    private Long subjectId;
 }

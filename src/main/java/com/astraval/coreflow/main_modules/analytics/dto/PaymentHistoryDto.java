@@ -11,6 +11,7 @@ public class PaymentHistoryDto {
     private Long paymentId;
     private String paymentType;
     private LocalDateTime paymentDate;
+    private String partyName;
     private String localPaymentNumber;
     private String paymentStatus;
     private String modeOfPayment;

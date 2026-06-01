@@ -44,3 +44,9 @@ app:
       company-logos: uploads/company_logo
   firebase:
     service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:firebase-service-account-adminsdk-coreflow.json}
+  cron:
+    default-zone: ${APP_CRON_DEFAULT_ZONE:Asia/Kolkata}
+    jobs:
+      paymentDueReminder:
+        cron: ${PAYMENT_DUE_REMINDER_CRON:0 0 9 * * *}
+        zone: ${PAYMENT_DUE_REMINDER_ZONE:${APP_CRON_DEFAULT_ZONE:Asia/Kolkata}}

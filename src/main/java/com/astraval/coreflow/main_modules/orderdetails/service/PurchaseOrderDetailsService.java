@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astraval.coreflow.main_modules.companies.CompanyRepository;
+import com.astraval.coreflow.main_modules.companies.Companies;
 import com.astraval.coreflow.main_modules.companyref.CompanyRefService;
 import com.astraval.coreflow.main_modules.config.CompanyNumberSequenceRepository;
 import com.astraval.coreflow.main_modules.customer.CustomerService;
@@ -28,6 +29,7 @@ import com.astraval.coreflow.main_modules.orderitemdetails.OrderItemDetails;
 import com.astraval.coreflow.main_modules.orderitemdetails.OrderItemDetailsService;
 import com.astraval.coreflow.main_modules.payments.service.PartnerBalanceService;
 import com.astraval.coreflow.main_modules.vendor.VendorRepository;
+import com.astraval.coreflow.main_modules.vendor.VendorService;
 import com.astraval.coreflow.main_modules.vendor.Vendors;
 
 @Service
@@ -52,6 +54,9 @@ public class PurchaseOrderDetailsService {
 
     @Autowired
     private VendorRepository vendorRepository;
+
+    @Autowired
+    private VendorService vendorService;
 
     @Autowired
     private CustomerService customerService;
@@ -81,15 +86,21 @@ public class PurchaseOrderDetailsService {
 
         Vendors myVendor = vendorRepository.findById(createOrder.getVendorId())
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-
+        // Block orders for vendors with pending/rejected connection
+        if (!com.astraval.coreflow.main_modules.companylink.ConnectionStatus.allowsTransactions(myVendor.getConnectionStatus())) {
+            throw new RuntimeException("Cannot create order: vendor connection is " + myVendor.getConnectionStatus()
+                    + ". The connection request must be accepted first.");
+        }
 
         OrderDetails orderDetails = orderDetailsMapper.toPurchaseOrderDetails(createOrder);
         // Main id setting...
         orderDetails.setVendors(myVendor);
 
-        if (myVendor.getVendorCompany() != null) {
+        Long vendorsCustomerCompanyId = vendorService.resolveLinkedCompanyForVendor(myVendor)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (vendorsCustomerCompanyId != null) {
             // Find buyer company's customer id by order company id
-            Long vendorsCustomerCompanyId = myVendor.getVendorCompany().getCompanyId();
             Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
             orderDetails.setCustomers(sellerCustomer);
 
@@ -100,14 +111,21 @@ public class PurchaseOrderDetailsService {
                     "A new purchase order is created by " + myVendor.getCompany().getCompanyName(),
                     "PURCHASE_ORDER_CREATED",
                     "View Orders",
-                    "/companies/" + vendorsCustomerCompanyId + "/purchase/orders");
+                    "/companies/" + vendorsCustomerCompanyId + "/purchase/orders",
+                    null,
+                    "CUSTOMER",
+                    sellerCustomer.getCustomerId());
         }
         
         
         LocalDateTime orderDate = createOrder.getOrderDate() != null
                 ? createOrder.getOrderDate()
                 : LocalDateTime.now();
+        LocalDateTime paymentDueDate = createOrder.getPaymentDueDate() != null
+                ? createOrder.getPaymentDueDate()
+                : orderDate.plusDays(3);
         orderDetails.setOrderDate(orderDate);
+        orderDetails.setPaymentDueDate(paymentDueDate);
         orderDetails.setDeliveryCharge(createOrder.getDeliveryCharge());
         orderDetails.setDiscountAmount(createOrder.getDiscountAmount());
         orderDetails.setTaxAmount(createOrder.getTaxAmount());
@@ -151,8 +169,8 @@ public class PurchaseOrderDetailsService {
         companyRefService.createOrderRef(companyId, savedOrder, buyerLocalNumber);
 
         // Company overlay for seller (if linked)
-        if (myVendor.getVendorCompany() != null) {
-            Long sellerCompanyId = myVendor.getVendorCompany().getCompanyId();
+        if (vendorsCustomerCompanyId != null) {
+            Long sellerCompanyId = vendorsCustomerCompanyId;
             String sellerLocalNumber = companyNumberSequenceRepository.generateCompanyNumber(sellerCompanyId, "SALES_ORDER");
             companyRefService.createOrderRef(sellerCompanyId, savedOrder, sellerLocalNumber);
         }
@@ -187,8 +205,11 @@ public class PurchaseOrderDetailsService {
 
         // Update order details
         existingOrder.setVendors(vendor);
-        if (vendor.getVendorCompany() != null) {
-            Long vendorsCustomerCompanyId = vendor.getVendorCompany().getCompanyId();
+        Long updatedVendorsCustomerCompanyId = vendorService.resolveLinkedCompanyForVendor(vendor)
+                .map(Companies::getCompanyId)
+                .orElse(null);
+        if (updatedVendorsCustomerCompanyId != null) {
+            Long vendorsCustomerCompanyId = updatedVendorsCustomerCompanyId;
             Customers sellerCustomer = customerService.getSellersCustomerId(vendorsCustomerCompanyId, companyId);
             existingOrder.setCustomers(sellerCustomer);
         } else {
@@ -200,6 +221,9 @@ public class PurchaseOrderDetailsService {
         existingOrder.setHasBill(updateOrder.isHasBill());
         if (updateOrder.getOrderDate() != null) {
             existingOrder.setOrderDate(updateOrder.getOrderDate());
+        }
+        if (updateOrder.getPaymentDueDate() != null) {
+            existingOrder.setPaymentDueDate(updateOrder.getPaymentDueDate());
         }
 
         // Delete existing order items
